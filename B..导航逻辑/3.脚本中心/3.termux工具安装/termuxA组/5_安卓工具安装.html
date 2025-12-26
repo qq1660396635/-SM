@@ -1,0 +1,257 @@
+<!DOCTYPE html> 
+<html lang="zh"> 
+<head> 
+  <meta charset="UTF-8"> 
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+  <title>cordova 页面打包APP 指南</title> 
+  <!-- Prism.js 代码高亮--> 
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" id="prism-theme"> 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script> 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script> 
+ 
+</head> 
+<body> 
+  <div class="container" id="mainContainer"> 
+    <div class="header"> 
+      <h1>📱cordova工具安装</h1> 
+      <p>配置cordova环境</p> 
+      <div class="progress-bar"> 
+        <div class="progress-fill" id="progressBar"></div> 
+      </div> 
+    </div> 
+    
+    <!-- 标签页切换--> 
+    <div class="tabs"> 
+      <button class="tab active" onclick="switchTab('table')">📋 工具列表</button> 
+      <button class="tab" onclick="switchTab('modules')">📦 安装模块</button> 
+    </div> 
+    
+    <div id="contentContainer"> 
+      <div class="loading"> 
+        <div class="loading-spinner"></div> 
+        正在加载配置指南... 
+      </div> 
+    </div> 
+    
+    <div class="tips"> 
+      <h3>💡使用说明</h3> 
+      <ul> 
+        <li>第一页查看所有工具列表和安装方式</li> 
+        <li>第二页查看模块化安装脚本</li> 
+        <li>点击命令块右上角"复制"按钮快速复制</li> 
+        <li>所有命令需在Termux环境中执行</li> 
+        <li>点击模块可标记为已完成，进度自动保存</li> 
+        <li>使用右下角+/-按钮调整页面缩放</li> 
+        <li>1. 安装nodejs，需要先安装libicu - - - 2. 安装jdk-17，卸载jdk-21</li> 
+      </ul> 
+    </div> 
+    
+    <!-- 主题切换器--> 
+    <div class="theme-switcher"> 
+      <button class="theme-btn" onclick="switchTheme()">🌙切换主题</button> 
+    </div> 
+  </div> 
+  
+  <!-- 引入数据库管理器 -->
+    <script src="/db.js"></script>
+    <!-- 引入公共插件 -->
+    <script src="common-plugin.js"></script>  
+    <!-- 引入缩放插件 -->
+    <script src="/A2_全局中心/B_插件工具/3.插件_字体缩放-记忆.js"></script>
+  
+  <!-- 引入配置文件--> 
+  <script src="5_安卓工具安装.js"></script>
+  <script src="5_页面美化包.js"></script> 
+  
+  <script> 
+    // 页面加载完成后初始化 
+    document.addEventListener('DOMContentLoaded', async () => { 
+      try { 
+        // 初始化数据库 
+        await IDB.init(); 
+        console.log('数据库初始化完成'); 
+        
+        // 加载配置文件（优先从缓存） 
+        const configText = await IDB.CacheMgr.get('5_安卓工具安装.js'); 
+        if (configText) { 
+          eval(configText); 
+          
+          // 默认显示表格页 
+          renderTable(); 
+          
+          // 保存浏览记录 
+          CommonPlugin.saveViewHistory('android_tools'); 
+          
+          // 加载主题 
+          CommonPlugin.loadTheme(); 
+        } 
+      } catch (error) { 
+        console.error('加载失败:', error); 
+        CommonPlugin.showError('加载失败'); 
+      } 
+    }); 
+    
+    // 标签页切换 
+    function switchTab(tabName) { 
+      // 更新标签按钮状态 
+      document.querySelectorAll('.tab').forEach(tab => { 
+        tab.classList.remove('active'); 
+      }); 
+      event.target.classList.add('active'); 
+      
+      // 更新内容显示 
+      if (tabName === 'table') { 
+        renderTable(); 
+      } else { 
+        renderModules(); 
+      } 
+    } 
+    
+    // 渲染工具表格 
+    async function renderTable() { 
+      const container = document.getElementById('contentContainer'); 
+      container.innerHTML = ''; 
+      
+      const sectionDiv = document.createElement('div'); 
+      sectionDiv.className = 'section-card'; 
+      
+      const header = document.createElement('div'); 
+      header.className = 'section-header'; 
+      header.textContent = '📋安卓开发工具列表'; 
+      
+      const contentDiv = document.createElement('div'); 
+      contentDiv.className = 'section-content'; 
+      
+      // 创建表格 
+      const table = document.createElement('table'); 
+      table.className = 'tools-table'; 
+      
+      // 创建表头 
+      const thead = document.createElement('thead'); 
+      const headerRow = document.createElement('tr'); 
+      androidToolsConfig.toolsTable.headers.forEach(headerText => { 
+        const th = document.createElement('th'); 
+        th.textContent = headerText; 
+        headerRow.appendChild(th); 
+      }); 
+      thead.appendChild(headerRow); 
+      table.appendChild(thead); 
+      
+      // 创建表体 
+      const tbody = document.createElement('tbody'); 
+      androidToolsConfig.toolsTable.rows.forEach(rowData => { 
+        const tr = document.createElement('tr'); 
+        rowData.forEach(cellData => { 
+          const td = document.createElement('td'); 
+          // 处理包含代码的单元格 
+          if (typeof cellData === 'string' && cellData.includes('`')) { 
+            td.innerHTML = cellData.replace(/`([^`]+)`/g, '<code>$1</code>'); 
+          } else { 
+            td.textContent = cellData; 
+          } 
+          tr.appendChild(td); 
+        }); 
+        tbody.appendChild(tr); 
+      }); 
+      table.appendChild(tbody); 
+      
+      contentDiv.appendChild(table); 
+      sectionDiv.appendChild(header); 
+      sectionDiv.appendChild(contentDiv); 
+      container.appendChild(sectionDiv); 
+    } 
+    
+    // 渲染安装模块 
+    async function renderModules() { 
+      const container = document.getElementById('contentContainer'); 
+      container.innerHTML = ''; 
+      
+      // 获取已完成的步骤 
+      const completedSteps = await IDB.get('E_android_completed_steps', 'userdata') || {}; 
+      let totalSteps = 0; 
+      let completedCount = 0; 
+      
+      androidToolsConfig.installModules.forEach((module, moduleIndex) => { 
+        const moduleDiv = document.createElement('div'); 
+        moduleDiv.className = 'section-card'; 
+        
+        // 创建标题 
+        const header = document.createElement('div'); 
+        header.className = 'section-header'; 
+        header.textContent = module.title; 
+        
+        // 创建内容区 
+        const contentDiv = document.createElement('div'); 
+        contentDiv.className = 'section-content'; 
+        
+        // 创建命令块 
+        const commandBlock = document.createElement('div'); 
+        commandBlock.className = 'command-block'; 
+        
+        // 添加复制按钮 
+        const copyBtn = document.createElement('button'); 
+        copyBtn.className = 'copy-btn'; 
+        copyBtn.textContent = '复制'; 
+        copyBtn.onclick = (e) => CommonPlugin.copyCommand(e, copyBtn); 
+        
+        // 创建代码内容 
+        const pre = document.createElement('pre'); 
+        const code = document.createElement('code'); 
+        code.className = 'language-bash'; 
+        code.textContent = module.commands.join('\n'); 
+        pre.appendChild(code); 
+        
+        commandBlock.appendChild(copyBtn); 
+        commandBlock.appendChild(pre); 
+        
+        // 创建模块项（用于点击标记完成） 
+        const moduleItem = document.createElement('div'); 
+        const moduleKey = `module_${moduleIndex}`; 
+        const isCompleted = completedSteps[moduleKey]; 
+        if (isCompleted) completedCount++; 
+        totalSteps++; 
+        
+        moduleItem.className = `module-item ${isCompleted ? 'completed-step' : ''}`; 
+        moduleItem.onclick = () => toggleModule(moduleKey, moduleItem); 
+        
+  
+        
+        moduleItem.appendChild(commandBlock); 
+        contentDiv.appendChild(moduleItem); 
+        moduleDiv.appendChild(header); 
+        moduleDiv.appendChild(contentDiv); 
+        container.appendChild(moduleDiv); 
+      }); 
+      
+      // 更新进度条 
+      CommonPlugin.updateProgress(completedCount, totalSteps); 
+      
+      // 应用Prism高亮 
+      Prism.highlightAll(); 
+    } 
+    
+    // 切换模块完成状态 
+    async function toggleModule(moduleKey, moduleElement) { 
+      const completedSteps = await IDB.get('E_android_completed_steps', 'userdata') || {}; 
+      completedSteps[moduleKey] = !completedSteps[moduleKey]; 
+      await IDB.put('E_android_completed_steps', completedSteps, 'userdata'); 
+      
+      if (completedSteps[moduleKey]) { 
+        moduleElement.classList.add('completed-step'); 
+      } else { 
+        moduleElement.classList.remove('completed-step'); 
+      } 
+      
+      // 重新计算进度 
+      const totalSteps = document.querySelectorAll('.module-item').length; 
+      const completedCount = document.querySelectorAll('.completed-step').length; 
+      CommonPlugin.updateProgress(completedCount, totalSteps); 
+    } 
+    
+    // 主题切换（调用插件中的方法） 
+    function switchTheme() { 
+      CommonPlugin.switchTheme(); 
+    } 
+  </script> 
+</body> 
+</html>

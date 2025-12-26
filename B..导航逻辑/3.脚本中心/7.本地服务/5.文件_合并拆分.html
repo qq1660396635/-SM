@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文件工具</title>
+    <style>
+        :root { --primary: #6366f1; --primary-dark: #4f46e5; --secondary: #10b981; --secondary-dark: #059669; --error: #ef4444; --warning: #f59e0b; --success: #10b981; --bg: #f8fafc; --card: #ffffff; --text: #1e293b; --text-light: #64748b; --border: #e2e8f0; --shadow: rgba(0,0,0,0.1); }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; }
+        body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; color: var(--text); line-height: 1.6; }
+        .container { max-width: 500px; margin: 0 auto; padding: 15px; }
+        header { text-align: center; margin-bottom: 25px; padding: 30px 20px; background: rgba(255,255,255,0.95); backdrop-filter: blur(20px); border-radius: 20px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); border: 1px solid rgba(255,255,255,0.2); }
+        h1 { font-size: 1.8rem; margin-bottom: 8px; background: linear-gradient(45deg, var(--primary), var(--secondary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 700; }
+        .tabs { display: flex; margin-bottom: 20px; background: rgba(255,255,255,0.9); border-radius: 12px; padding: 4px; backdrop-filter: blur(10px); }
+        .tab { flex: 1; padding: 12px; text-align: center; cursor: pointer; border-radius: 8px; transition: all 0.3s; font-weight: 600; }
+        .tab.active { background: var(--primary); color: white; }
+        .tab:hover:not(.active) { background: rgba(99, 102, 241, 0.1); }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .card { background: rgba(255,255,255,0.95); backdrop-filter: blur(20px); border-radius: 16px; padding: 20px; margin-bottom: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); border: 1px solid rgba(255,255,255,0.2); }
+        .card:hover { transform: translateY(-3px); box-shadow: 0 15px 40px rgba(0,0,0,0.15); }
+        .form-group { margin-bottom: 18px; }
+        label { display: block; margin-bottom: 8px; font-weight: 600; color: var(--text); font-size: 0.9rem; }
+        input, select { width: 100%; padding: 14px 16px; border: 2px solid var(--border); border-radius: 12px; font-size: 16px; transition: all 0.3s; background: rgba(255,255,255,0.9); }
+        input:focus, select:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1); transform: translateY(-1px); }
+        button { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white; border: none; padding: 14px 28px; border-radius: 12px; cursor: pointer; font-size: 16px; font-weight: 600; transition: all 0.3s; display: inline-block; margin-right: 10px; box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3); }
+        button:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4); }
+        button:disabled { background: #cbd5e1; cursor: not-allowed; transform: none; box-shadow: none; }
+        .btn-secondary { background: linear-gradient(135deg, var(--secondary), var(--secondary-dark)); box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3); }
+        .btn-secondary:hover { box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4); }
+        .connection-status { display: flex; align-items: center; margin-bottom: 18px; padding: 16px; border-radius: 12px; background: rgba(255,255,255,0.7); backdrop-filter: blur(10px); }
+        .status-indicator { width: 12px; height: 12px; border-radius: 50%; margin-right: 12px; background: #cbd5e1; box-shadow: 0 0 0 2px rgba(255,255,255,0.8); }
+        .status-indicator.connected { background: var(--success); animation: pulse 2s infinite; box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2); }
+        .status-indicator.error { background: var(--error); box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2); }
+        @keyframes pulse { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.7; transform: scale(1.2); } 100% { opacity: 1; transform: scale(1); } }
+        .result { margin-top: 20px; padding: 20px; border-radius: 12px; display: none; animation: slideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .result.success { background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0.05)); border-left: 4px solid var(--success); }
+        .result.error { background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(239, 68, 68, 0.05)); border-left: 4px solid var(--error); }
+        .file-list { margin-top: 12px; max-height: 180px; overflow-y: auto; background: rgba(255,255,255,0.6); padding: 12px; border-radius: 8px; backdrop-filter: blur(10px); }
+        .file-item { padding: 8px 0; border-bottom: 1px solid rgba(0,0,0,0.05); font-size: 0.9rem; transition: background 0.2s; }
+        .file-item:hover { background: rgba(99, 102, 241, 0.05); }
+        .file-item:last-child { border-bottom: none; }
+        .loading { display: none; text-align: center; margin: 25px 0; }
+        .spinner { border: 3px solid rgba(255,255,255,0.3); width: 40px; height: 40px; border-radius: 50%; border-left-color: var(--primary); animation: spin 1s linear infinite; margin: 0 auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        footer { text-align: center; margin-top: 25px; padding: 15px; color: white; font-size: 0.85rem; opacity: 0.9; }
+        /* 手机端适配 */
+        @media (max-width: 768px) {
+            .container { padding: 10px; }
+            header { padding: 25px 15px; margin-bottom: 20px; }
+            h1 { font-size: 1.5rem; }
+            .card { padding: 18px; margin-bottom: 15px; }
+            button { width: 100%; margin-right: 0; margin-bottom: 10px; padding: 16px; }
+            .form-group { margin-bottom: 15px; }
+            input, select { padding: 16px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📁 文件工具</h1>
+            <p style="color: var(--text-light); font-size: 0.9rem; margin-top: 5px;">智能合并与拆分各类文件</p>
+        </header>
+        
+        <main>
+            <div class="tabs">
+                <div class="tab active" onclick="switchTab('merge')">🔗 文件合并</div>
+                <div class="tab" onclick="switchTab('split')">✂️ 文件拆分</div>
+            </div>
+            
+            <!-- 合并标签页 -->
+            <div id="merge-tab" class="tab-content active">
+                <div class="card">
+                    <div class="connection-status" id="mergeConnectionStatus">
+                        <div class="status-indicator" id="mergeStatusIndicator"></div>
+                        <span id="mergeStatusText">未连接</span>
+                    </div>
+                    
+                    <button id="mergeConnectBtn" class="btn-secondary">🔗 连接服务器</button>
+                    
+                    <div class="form-group">
+                        <label for="mergeServerUrl">服务器地址</label>
+                        <input type="text" id="mergeServerUrl" value="http://localhost:8080" placeholder="输入服务器地址">
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h2 style="margin-bottom: 18px; color: var(--primary); font-size: 1.3rem;">⚙️ 合并设置</h2>
+                    
+                    <div class="form-group">
+                        <label for="mergeType">合并类型</label>
+                        <select id="mergeType">
+                            <option value="1">📄 TXT文件</option>
+                            <option value="2">🐍 Python文件</option>
+                            <option value="3">📝 DOCX文件</option>
+                            <option value="4">📚 除HTML外的所有文件</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="mergeDirectory">目录路径</label>
+                        <input type="text" id="mergeDirectory" placeholder="/storage/emulated/0/Download/">
+                    </div>
+                    
+                    <button id="mergeBtn" disabled>🚀 开始合并</button>
+                    
+                    <div class="loading" id="mergeLoading">
+                        <div class="spinner"></div>
+                        <p style="margin-top: 15px; color: var(--text-light); font-weight: 500;">正在合并文件，请稍候...</p>
+                    </div>
+                    
+                    <div class="result" id="mergeResult"></div>
+                </div>
+            </div>
+            
+            <!-- 拆分标签页 -->
+            <div id="split-tab" class="tab-content">
+                <div class="card">
+                    <div class="connection-status" id="splitConnectionStatus">
+                        <div class="status-indicator" id="splitStatusIndicator"></div>
+                        <span id="splitStatusText">未连接</span>
+                    </div>
+                    
+                    <button id="splitConnectBtn" class="btn-secondary">🔗 连接服务器</button>
+                    
+                    <div class="form-group">
+                        <label for="splitServerUrl">服务器地址</label>
+                        <input type="text" id="splitServerUrl" value="http://localhost:8080" placeholder="输入服务器地址">
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h2 style="margin-bottom: 18px; color: var(--secondary); font-size: 1.3rem;">⚙️ 拆分设置</h2>
+                    
+                    <div class="form-group">
+                        <label for="splitType">拆分类型</label>
+                        <select id="splitType">
+                            <option value="1">📄 TXT合并文件</option>
+                            <option value="2">🐍 Python合并文件</option>
+                            <option value="3">📚 除HTML外所有文件的合并</option>
+                            <option value="4">📝 DOCX合并文件</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="splitInputFile">输入文件路径</label>
+                        <input type="text" id="splitInputFile" placeholder="/storage/emulated/0/Download/合并_TXT文件.txt">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="splitOutputDir">输出目录</label>
+                        <input type="text" id="splitOutputDir" placeholder="/storage/emulated/0/Download/拆分结果">
+                    </div>
+                    
+                    <button id="splitBtn" disabled>✂️ 开始拆分</button>
+                    
+                    <div class="loading" id="splitLoading">
+                        <div class="spinner"></div>
+                        <p style="margin-top: 15px; color: var(--text-light); font-weight: 500;">正在拆分文件，请稍候...</p>
+                    </div>
+                    
+                    <div class="result" id="splitResult"></div>
+                </div>
+            </div>
+        </main>
+        
+        <footer>
+            <p>文件工具 &copy; 2024 | 服务器运行在Termux环境</p>
+        </footer>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // 合并相关元素
+            const mergeServerUrlInput = document.getElementById('mergeServerUrl');
+            const mergeConnectBtn = document.getElementById('mergeConnectBtn');
+            const mergeStatusIndicator = document.getElementById('mergeStatusIndicator');
+            const mergeStatusText = document.getElementById('mergeStatusText');
+            const mergeBtn = document.getElementById('mergeBtn');
+            const mergeType = document.getElementById('mergeType');
+            const mergeDirectory = document.getElementById('mergeDirectory');
+            const mergeLoading = document.getElementById('mergeLoading');
+            const mergeResult = document.getElementById('mergeResult');
+            
+            // 拆分相关元素
+            const splitServerUrlInput = document.getElementById('splitServerUrl');
+            const splitConnectBtn = document.getElementById('splitConnectBtn');
+            const splitStatusIndicator = document.getElementById('splitStatusIndicator');
+            const splitStatusText = document.getElementById('splitStatusText');
+            const splitBtn = document.getElementById('splitBtn');
+            const splitType = document.getElementById('splitType');
+            const splitInputFile = document.getElementById('splitInputFile');
+            const splitOutputDir = document.getElementById('splitOutputDir');
+            const splitLoading = document.getElementById('splitLoading');
+            const splitResult = document.getElementById('splitResult');
+            
+            let mergeConnected = false;
+            let splitConnected = false;
+            
+            // 切换标签页
+            window.switchTab = function(tabName) {
+                // 隐藏所有标签内容
+                document.querySelectorAll('.tab-content').forEach(content => {
+                    content.classList.remove('active');
+                });
+                document.querySelectorAll('.tab').forEach(tab => {
+                    tab.classList.remove('active');
+                });
+                
+                // 显示选中的标签内容
+                document.getElementById(tabName + '-tab').classList.add('active');
+                event.target.classList.add('active');
+            }
+            
+            // 合并连接服务器
+            mergeConnectBtn.addEventListener('click', async () => {
+                const serverUrl = mergeServerUrlInput.value.trim();
+                if (!serverUrl) {
+                    showMergeStatus('请输入服务器地址', 'error');
+                    return;
+                }
+                
+                mergeConnectBtn.disabled = true;
+                mergeConnectBtn.textContent = '连接中...';
+                
+                try {
+                    const response = await fetch(`${serverUrl}/test`);
+                    const data = await response.json();
+                    
+                    if (data.status === 'success') {
+                        mergeConnected = true;
+                        showMergeStatus('✅ 已连接到服务器', 'connected');
+                        mergeBtn.disabled = false;
+                        mergeConnectBtn.textContent = '🔄 重新连接';
+                    } else {
+                        showMergeStatus('❌ 连接失败', 'error');
+                    }
+                } catch (error) {
+                    showMergeStatus('❌ 连接失败: ' + error.message, 'error');
+                } finally {
+                    mergeConnectBtn.disabled = false;
+                }
+            });
+            
+            // 拆分连接服务器
+            splitConnectBtn.addEventListener('click', async () => {
+                const serverUrl = splitServerUrlInput.value.trim();
+                if (!serverUrl) {
+                    showSplitStatus('请输入服务器地址', 'error');
+                    return;
+                }
+                
+                splitConnectBtn.disabled = true;
+                splitConnectBtn.textContent = '连接中...';
+                
+                try {
+                    const response = await fetch(`${serverUrl}/test`);
+                    const data = await response.json();
+                    
+                    if (data.status === 'success') {
+                        splitConnected = true;
+                        showSplitStatus('✅ 已连接到服务器', 'connected');
+                        splitBtn.disabled = false;
+                        splitConnectBtn.textContent = '🔄 重新连接';
+                    } else {
+                        showSplitStatus('❌ 连接失败', 'error');
+                    }
+                } catch (error) {
+                    showSplitStatus('❌ 连接失败: ' + error.message, 'error');
+                } finally {
+                    splitConnectBtn.disabled = false;
+                }
+            });
+            
+            // 执行合并
+            mergeBtn.addEventListener('click', async () => {
+                if (!mergeConnected) {
+                    showMergeStatus('请先连接服务器', 'error');
+                    return;
+                }
+                
+                const serverUrl = mergeServerUrlInput.value.trim();
+                const mergeTypeValue = mergeType.value;
+                const directoryValue = mergeDirectory.value.trim() || '/storage/emulated/0/Download/';
+                
+                mergeLoading.style.display = 'block';
+                mergeResult.style.display = 'none';
+                mergeBtn.disabled = true;
+                
+                try {
+                    const response = await fetch(`${serverUrl}/merge`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            merge_type: mergeTypeValue,
+                            directory: directoryValue
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.status === 'success') {
+                        showMergeResult(data, 'success');
+                    } else {
+                        showMergeResult(data, 'error');
+                    }
+                } catch (error) {
+                    showMergeResult({message: '请求失败: ' + error.message}, 'error');
+                } finally {
+                    mergeLoading.style.display = 'none';
+                    mergeBtn.disabled = false;
+                }
+            });
+            
+            // 执行拆分
+            splitBtn.addEventListener('click', async () => {
+                if (!splitConnected) {
+                    showSplitStatus('请先连接服务器', 'error');
+                    return;
+                }
+                
+                const serverUrl = splitServerUrlInput.value.trim();
+                const splitTypeValue = splitType.value;
+                const inputFileValue = splitInputFile.value.trim();
+                const outputDirValue = splitOutputDir.value.trim();
+                
+                splitLoading.style.display = 'block';
+                splitResult.style.display = 'none';
+                splitBtn.disabled = true;
+                
+                try {
+                    const response = await fetch(`${serverUrl}/split`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            split_type: splitTypeValue,
+                            input_file: inputFileValue,
+                            output_dir: outputDirValue
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.status === 'success') {
+                        showSplitResult(data, 'success');
+                    } else {
+                        showSplitResult(data, 'error');
+                    }
+                } catch (error) {
+                    showSplitResult({message: '请求失败: ' + error.message}, 'error');
+                } finally {
+                    splitLoading.style.display = 'none';
+                    splitBtn.disabled = false;
+                }
+            });
+            
+            function showMergeStatus(message, type) {
+                mergeStatusText.textContent = message;
+                mergeStatusIndicator.className = 'status-indicator ' + type;
+            }
+            
+            function showSplitStatus(message, type) {
+                splitStatusText.textContent = message;
+                splitStatusIndicator.className = 'status-indicator ' + type;
+            }
+            
+            function showMergeResult(data, type) {
+                mergeResult.className = 'result ' + type;
+                mergeResult.style.display = 'block';
+                
+                if (type === 'success') {
+                    mergeResult.innerHTML = `
+                        <h3 style="margin-bottom: 15px; color: var(--success);">✅ 合并成功</h3>
+                        <p><strong>📄 输出文件:</strong> ${data.output_file}</p>
+                        <p><strong>📊 合并文件数:</strong> ${data.file_count}</p>
+                        <p><strong>💾 文件大小:</strong> ${data.file_size} 字节</p>
+                        <div class="file-list">
+                            <h4 style="margin-bottom: 10px;">📋 合并的文件:</h4>
+                            ${data.files.map(file => `<div class="file-item">📎 ${file}</div>`).join('')}
+                        </div>
+                    `;
+                } else {
+                    mergeResult.innerHTML = `
+                        <h3 style="margin-bottom: 15px; color: var(--error);">❌ 合并失败</h3>
+                        <p>${data.message}</p>
+                    `;
+                }
+            }
+            
+            function showSplitResult(data, type) {
+                splitResult.className = 'result ' + type;
+                splitResult.style.display = 'block';
+                
+                if (type === 'success') {
+                    splitResult.innerHTML = `
+                        <h3 style="margin-bottom: 15px; color: var(--success);">✅ 拆分成功</h3>
+                        <p><strong>📂 输出目录:</strong> ${data.output_dir}</p>
+                        <p><strong>📊 拆分文件数:</strong> ${data.file_count}</p>
+                        <p><strong>✅ 成功数:</strong> ${data.success_count}</p>
+                        <div class="file-list">
+                            <h4 style="margin-bottom: 10px;">📋 拆分的文件:</h4>
+                            ${data.files.map(file => `<div class="file-item">📎 ${file}</div>`).join('')}
+                        </div>
+                    `;
+                } else {
+                    splitResult.innerHTML = `
+                        <h3 style="margin-bottom: 15px; color: var(--error);">❌ 拆分失败</h3>
+                        <p>${data.message}</p>
+                    `;
+                }
+            }
+        });
+    </script>
+</body>
+</html>

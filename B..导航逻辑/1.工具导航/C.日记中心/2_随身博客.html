@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>凉安随身博客</title>
+    <style>
+        :root {
+            --primary: #6c5ce7;
+            --accent: #a29bfe;
+            --bg: #f5f6fa;
+            --card-bg: #ffffff;
+            --text-main: #2d3436;
+            --text-sub: #636e72;
+            --rope-height: 40px;
+            --panel-bg: rgba(45, 52, 54, 0.95);
+        }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #dfe6e9;
+            display: flex;
+            justify-content: center;
+            margin: 0;
+            height: 100vh;
+            overflow: hidden;
+        }
+        #app-container {
+            width: 100%;
+            max-width: 450px;
+            height: 100%;
+            background-color: var(--bg);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        #control-panel {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 70%;
+            background: var(--panel-bg);
+            z-index: 100;
+            transform: translateY(-100%);
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border-bottom-left-radius: 30px;
+            border-bottom-right-radius: 30px;
+            padding: 20px;
+            color: white;
+            display: flex;
+            flex-direction: column;
+        }
+        #control-panel.open {
+            transform: translateY(0);
+        }
+        .panel-header {
+            font-size: 14px;
+            opacity: 0.7;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        /* 日期筛选器样式优化*/
+        .date-filter-container {
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .date-filter-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .date-filter-header label {
+            font-size: 12px;
+        }
+        .clear-filter {
+            font-size: 11px;
+            color: var(--accent);
+            cursor: pointer;
+            padding: 4px 8px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+        .clear-filter:hover {
+            background: rgba(255,255,255,0.2);
+        }
+        #panel-date-picker {
+            width: 100%;
+            background: transparent;
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        /* 有数据的日期样式*/
+        #panel-date-picker::-webkit-calendar-picker-indicator {
+            filter: invert(1);
+            cursor: pointer;
+        }
+        .date-status {
+            font-size: 11px;
+            margin-top: 5px;
+            color: var(--accent);
+            text-align: center;
+            min-height: 16px;
+        }
+        .grid-functions {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 15px;
+            overflow-y: auto;
+            padding-bottom: 20px;
+        }
+        .func-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            aspect-ratio: 1;
+            background: rgba(255,255,255,0.1);
+            border-radius: 12px;
+            font-size: 10px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .func-btn:active { background: var(--primary); }
+        .func-btn span { font-size: 18px; margin-bottom: 4px; }
+
+        #rope-area {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 60px;
+            z-index: 101;
+            pointer-events: none;
+            display: flex;
+            justify-content: center;
+        }
+        #rope-handle {
+            pointer-events: auto;
+            width: 60px;
+            height: 40px;
+            background: var(--primary);
+            border-radius: 0 0 20px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 10px rgba(108, 92, 231, 0.4);
+            cursor: pointer;
+            transition: height 0.2s;
+        }
+        #rope-handle::after {
+            content: '';
+            width: 20px;
+            height: 4px;
+            background: rgba(255,255,255,0.5);
+            border-radius: 2px;
+        }
+
+        #content-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 60px 20px 80px 20px;
+        }
+        .blog-card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+            transition: transform 0.2s;
+            position: relative;
+        }
+        .blog-card:active { transform: scale(0.98); }
+        .card-date {
+            font-size: 12px;
+            color: var(--primary);
+            font-weight: 700;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .card-content {
+            font-size: 14px;
+            line-height: 1.6;
+            color: var(--text-main);
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .card-footer {
+            margin-top: 10px;
+            font-size: 11px;
+            color: var(--text-sub);
+            border-top: 1px dashed #eee;
+            padding-top: 5px;
+            text-align: right;
+        }
+
+        /* 筛选状态提示*/
+        .filter-indicator {
+            background: var(--primary);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            margin-bottom: 15px;
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .filter-indicator.active {
+            display: flex;
+        }
+        .filter-indicator button {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 11px;
+        }
+
+        .fab {
+            position: absolute;
+            bottom: 25px;
+            right: 25px;
+            width: 56px;
+            height: 56px;
+            background: var(--text-main);
+            border-radius: 50%;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            z-index: 90;
+            cursor: pointer;
+        }
+
+        #modal {
+            position: absolute;
+            inset: 0;
+            background: var(--bg);
+            z-index: 200;
+            display: none;
+            flex-direction: column;
+            padding: 20px;
+            animation: slideUp 0.3s ease;
+        }
+        @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .close-btn { font-size: 24px; cursor: pointer; padding: 10px; }
+        #editor-date {
+            border: none;
+            background: transparent;
+            font-size: 16px;
+            font-weight: bold;
+            color: var(--text-main);
+        }
+        #editor-content {
+            width: 100%;
+            height: 150px;
+            border: none;
+            background: white;
+            padding: 15px;
+            border-radius: 12px;
+            font-size: 15px;
+            resize: none;
+            outline: none;
+            margin-bottom: 20px;
+        }
+        .comment-section {
+            flex: 1;
+            overflow-y: auto;
+            border-top: 1px solid #eee;
+            padding-top: 15px;
+        }
+        .comment-item {
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+        .comment-time {
+            font-size: 10px;
+            color: #999;
+            margin-bottom: 4px;
+            display: block;
+        }
+        .comment-input-area {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        #new-comment {
+            flex: 1;
+            padding: 10px;
+            border-radius: 20px;
+            border: 1px solid #ddd;
+            outline: none;
+        }
+        #send-comment {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 0 15px;
+            border-radius: 20px;
+            font-weight: bold;
+        }
+
+        #pagination {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            padding: 10px;
+            font-size: 12px;
+            color: var(--text-sub);
+        }
+        .page-btn {
+            padding: 5px 10px;
+            background: white;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .page-btn.active { background: var(--primary); color: white; }
+
+        /* 空状态提示*/
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-sub);
+            font-size: 14px;
+        }
+        .empty-state span {
+            font-size: 48px;
+            display: block;
+            margin-bottom: 10px;
+            opacity: 0.3;
+        }
+    </style>
+</head>
+<body>
+    <div id="app-container">
+        <!-- 下拉面板-->
+        <div id="control-panel">
+            <div class="panel-header">XSimple 控制中心</div>
+            <!-- 日期筛选器-->
+            <div class="date-filter-container">
+                <div class="date-filter-header">
+                    <label>📅选择日期查看</label>
+                    <span class="clear-filter" onclick="clearDateFilter()">显示全部</span>
+                </div>
+                <input type="date" id="panel-date-picker">
+                <div class="date-status" id="date-status"></div>
+            </div>
+            <div class="grid-functions" id="func-grid">
+                <!-- JS 会在这里生成20+个按钮-->
+            </div>
+            <div style="margin-top: auto; text-align: center; font-size: 12px;">下拉关闭面板</div>
+        </div>
+
+        <!-- 顶部的绳子-->
+        <div id="rope-area">
+            <div id="rope-handle" onclick="togglePanel()"></div>
+        </div>
+
+        <!-- 内容展示区-->
+        <div id="content-area">
+            <!-- 筛选状态提示-->
+            <div class="filter-indicator" id="filter-indicator">
+                <span id="filter-text">正在显示: </span>
+                <button onclick="clearDateFilter()">✕清除</button>
+            </div>
+            <div id="blog-list"></div>
+            <div id="pagination"></div>
+        </div>
+
+        <!-- 悬浮添加按钮-->
+        <div class="fab" onclick="openEditor()">+</div>
+
+        <!-- 详情/评论弹窗-->
+        <div id="modal">
+            <div class="modal-header">
+                <span class="close-btn" onclick="closeModal()">✕</span>
+                <span id="modal-title">写博客</span>
+                <div>
+                    <!-- 新增删除按钮，默认隐藏 -->
+                    <span id="btn-delete-entry" onclick="deleteEntry()" style="color: #ff7675; font-weight:bold; cursor:pointer; margin-right: 15px;">删除</span>
+                    <!-- 保存按钮 -->
+                    <span onclick="saveEntry()" style="color:var(--primary); font-weight:bold; cursor:pointer;">保存</span>
+                </div>
+            </div>
+            <input type="date" id="editor-date">
+            <textarea id="editor-content" placeholder=" 记 录 当 下 的 想 法..."></textarea>
+            
+            <!-- 评论列表（仅在查看模式显示）-->
+            <div id="comments-container" style="display:none; flex-direction:column; height: 100%;">
+                <h4 style="margin:0 0 10px 0;">自我对话区</h4>
+                <div class="comment-section" id="comment-list">
+                    <!-- 评论在这里-->
+                </div>
+                <div class="comment-input-area">
+                    <input type="text" id="new-comment" placeholder="给自己写条评论...">
+                    <button id="send-comment" onclick="addComment()"> 发送</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 数据模型- 改为更真实的心情日记
+        let blogs = JSON.parse(localStorage.getItem('xsimple_blog_data')) || [
+            {
+                id: 1698300000000,
+                date: '2024-01-15',
+                content: '今天是个阳光明媚的早晨，醒来时听到窗外鸟儿在唱歌。泡了一杯手冲咖啡，坐在阳台上看书，感觉整个世界都慢了下来。这种宁静的时光，真的很难得。',
+                comments: [{time: '09:30', text: '希望每天都能有这样的心情'}]
+            },
+            {
+                id: 1698386400000,
+                date: '2024-01-16',
+                content: '下午去咖啡馆写代码，遇到了一个有趣的问题。调试了两个小时，终于解决了。成就感满满！晚上和朋友聚餐，聊了很多关于未来的计划。',
+                comments: [{time: '22:15', text: '解决问题的感觉真的很棒'}]
+            },
+            {
+                id: 1698472800000,
+                date: '2024-01-17',
+                content: '今天有点低落，可能是天气的原因。下雨天总是让人多愁善感。听了一整天的轻音乐，整理了房间，心情好了一些。',
+                comments: [{time: '20:00', text: '明天会更好的'}]
+            }
+        ];
+
+        let currentPage = 1;
+        const itemsPerPage = 6;
+        let currentEditingId = null;
+        let selectedDate = null; // 当前筛选的日期
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            initControlPanel();
+            renderList();
+            updateDateStatus();
+            // 设置默认为今天
+            document.getElementById('editor-date').valueAsDate = new Date();
+        });
+
+        // 1. 生成20+个功能按钮
+        function initControlPanel() {
+            const grid = document.getElementById('func-grid');
+            const icons = ['📅', '☁️', '⚙️', '🔍', '📊', '❤️', '🎵', '📷', '🔋', '🔐', '🏷️', '📡', '💾', '💡', '🔔', '🌙', '🎲', '🧩', '🚀', '🛒', '🎁', '📁'];
+            const names = ['日历', '天气', '设置', '搜索', '统计', '收藏', '音乐', '相册', '电量', '隐私', '标签', '同步', '备份', '灵感', '提醒', '夜间', '随机', '组件', '加速', '商店', '礼物', '归档'];
+
+            icons.forEach((icon, index) => {
+                const btn = document.createElement('div');
+                btn.className = 'func-btn';
+                btn.innerHTML = `<span>${icon}</span><div>${names[index] || '功能'}</div>`;
+                btn.onclick = () => {
+                    const panel = document.getElementById('control-panel');
+                    if(panel.classList.contains('open')) togglePanel();
+                };
+                grid.appendChild(btn);
+            });
+        }
+
+        // 2. 绳子交互logic
+        function togglePanel() {
+            const panel = document.getElementById('control-panel');
+            const handle = document.getElementById('rope-handle');
+            panel.classList.toggle('open');
+            if(panel.classList.contains('open')) {
+                handle.style.height = '60px';
+                handle.style.opacity = '0';
+                updateDateStatus(); // 打开面板时更新日期状态
+            } else {
+                handle.style.height = '40px';
+                handle.style.opacity = '1';
+            }
+        }
+        // 点击外部区域关闭面板
+        document.getElementById('content-area').addEventListener('click', () => {
+            const panel = document.getElementById('control-panel');
+            if(panel.classList.contains('open')) togglePanel();
+        });
+
+        // 3. 更新日期状态显示
+        function updateDateStatus() {
+            const datePicker = document.getElementById('panel-date-picker');
+            const dateStatus = document.getElementById('date-status');
+            // 获取所有有数据的日期
+            const datesWithData = [...new Set(blogs.map(b => b.date))];
+
+            // 监听日期选择器的变化
+            datePicker.onchange = (e) => {
+                const selected = e.target.value;
+                if (selected) {
+                    if (datesWithData.includes(selected)) {
+                        dateStatus.textContent = '✓该日期有' + blogs.filter(b => b.date === selected).length + ' 条记录';
+                        dateStatus.style.color = '#4ade80';
+                    } else {
+                        dateStatus.textContent = '该日期暂无记录';
+                        dateStatus.style.color = '#fbbf24';
+                    }
+                    applyDateFilter(selected);
+                }
+            };
+
+            // 监听输入事件，实时显示状态
+            datePicker.oninput = (e) => {
+                const selected = e.target.value;
+                if (selected && datesWithData.includes(selected)) {
+                    dateStatus.textContent = '✓该日期有 ' + blogs.filter(b => b.date === selected).length + ' 条记录';
+                    dateStatus.style.color = '#4ade80';
+                } else if (selected) {
+                    dateStatus.textContent = '该日期暂无记录';
+                    dateStatus.style.color = '#fbbf24';
+                } else {
+                    dateStatus.textContent = '';
+                }
+            };
+        }
+
+        // 4. 应用日期筛选
+        function applyDateFilter(date) {
+            selectedDate = date;
+            currentPage = 1;
+            renderList();
+            // 显示筛选提示
+            const indicator = document.getElementById('filter-indicator');
+            const filterText = document.getElementById('filter-text');
+            indicator.classList.add('active');
+            filterText.textContent = '正在显示: ' + date;
+            // 关闭面板
+            const panel = document.getElementById('control-panel');
+            if(panel.classList.contains('open')) togglePanel();
+        }
+
+        // 5. 清除日期筛选
+        function clearDateFilter() {
+            selectedDate = null;
+            currentPage = 1;
+            renderList();
+            // 隐藏筛选提示
+            const indicator = document.getElementById('filter-indicator');
+            indicator.classList.remove('active');
+            // 清空日期选择器
+            document.getElementById('panel-date-picker').value = '';
+            document.getElementById('date-status').textContent = '';
+        }
+
+        // 6. 渲染博客列表
+        function renderList() {
+            const list = document.getElementById('blog-list');
+            list.innerHTML = '';
+            // 根据筛选条件获取数据
+            let filteredBlogs = selectedDate ? blogs.filter(b => b.date === selectedDate) : blogs;
+            // 按日期从新到旧排序
+            filteredBlogs.sort((a, b) => b.id - a.id);
+
+            // 如果没有数据，显示空状态
+            if (filteredBlogs.length === 0) {
+                list.innerHTML = `
+                <div class="empty-state">
+                    <span>📝</span>
+                    <div>${selectedDate ? selectedDate + ' 暂无记录' : '还没有任何记录'}</div>
+                    <div style="font-size: 12px; margin-top: 10px;">点击右下角 + 开始记录</div>
+                </div>`;
+                document.getElementById('pagination').innerHTML = '';
+                return;
+            }
+
+            // 分页逻辑
+            const start = (currentPage - 1) * itemsPerPage;
+            const end = start + itemsPerPage;
+            const pageData = filteredBlogs.slice(start, end);
+
+            pageData.forEach(post => {
+                const card = document.createElement('div');
+                card.className = 'blog-card';
+                card.onclick = () => openEditor(post.id);
+                card.innerHTML = `
+                    <div class="card-date">
+                        <span>${post.date}</span>
+                        <span style="font-weight:normal;opacity:0.5">#${(post.id).toString().slice(-4)}</span>
+                    </div>
+                    <div class="card-content">${post.content}</div>
+                    <div class="card-footer">${post.comments.length} 条自我评论 </div>
+                `;
+                list.appendChild(card);
+            });
+            renderPagination(filteredBlogs);
+        }
+
+        function renderPagination(data) {
+            const container = document.getElementById('pagination');
+            container.innerHTML = '';
+            const totalPages = Math.ceil(data.length / itemsPerPage);
+            if (totalPages <= 1) return;
+
+            for(let i=1; i<=totalPages; i++) {
+                const btn = document.createElement('span');
+                btn.className = `page-btn ${i === currentPage ? 'active' : ''}`;
+                btn.innerText = i;
+                btn.onclick = () => { currentPage = i; renderList(); };
+                container.appendChild(btn);
+            }
+        }
+
+        // 7. 打开编辑器/详情页
+        function openEditor(id = null) {
+            const modal = document.getElementById('modal');
+            const dateInput = document.getElementById('editor-date');
+            const contentInput = document.getElementById('editor-content');
+            const commentsContainer = document.getElementById('comments-container');
+            const listContainer = document.getElementById('comment-list');
+            const modalTitle = document.getElementById('modal-title');
+            const deleteBtn = document.getElementById('btn-delete-entry'); // 获取删除按钮
+
+            modal.style.display = 'flex';
+            currentEditingId = id;
+
+            if (id) {
+                // 查看/编辑模式
+                const post = blogs.find(b => b.id === id);
+                dateInput.value = post.date;
+                contentInput.value = post.content;
+                modalTitle.innerText = "时光回顾";
+                // 显示评论区
+                commentsContainer.style.display = 'flex';
+                listContainer.innerHTML = '';
+                post.comments.forEach(c => {
+                    const div = document.createElement('div');
+                    div.className = 'comment-item';
+                    div.innerHTML = `<span class="comment-time">${c.time}</span>${c.text}`;
+                    listContainer.appendChild(div);
+                });
+                // 显示删除按钮
+                deleteBtn.style.display = 'inline-block';
+            } else {
+                // 新建模式
+                dateInput.valueAsDate = new Date();
+                contentInput.value = '';
+                modalTitle.innerText = "记录此刻";
+                commentsContainer.style.display = 'none';
+                // 隐藏删除按钮
+                deleteBtn.style.display = 'none';
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('modal').style.display = 'none';
+            currentEditingId = null;
+        }
+
+        // 8. 保存数据
+        function saveEntry() {
+            const date = document.getElementById('editor-date').value;
+            const content = document.getElementById('editor-content').value;
+            if (!content.trim()) return alert('写点什么吧！');
+
+            if (currentEditingId) {
+                // 更新
+                const post = blogs.find(b => b.id === currentEditingId);
+                post.date = date;
+                post.content = content;
+            } else {
+                // 新增
+                blogs.unshift({
+                    id: Date.now(),
+                    date: date,
+                    content: content,
+                    comments: []
+                });
+            }
+            saveToLocal();
+            renderList();
+            closeModal();
+        }
+
+        // 9. 删除数据 (新增功能)
+        function deleteEntry() {
+            if (!currentEditingId) return;
+            
+            // 二次确认
+            if (confirm('确定要删除这条珍贵的回忆吗？删除后无法恢复。')) {
+                // 从数组中过滤掉该ID的记录
+                blogs = blogs.filter(blog => blog.id !== currentEditingId);
+                
+                // 持久化存储
+                saveToLocal();
+                // 刷新页面
+                renderList();
+                // 关闭弹窗
+                closeModal();
+            }
+        }
+
+        // 10. 添加评论
+        function addComment() {
+            if (!currentEditingId) return;
+            const input = document.getElementById('new-comment');
+            const text = input.value.trim();
+            if (!text) return;
+
+            const post = blogs.find(b => b.id === currentEditingId);
+            const now = new Date();
+            const timeStr = `${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`;
+
+            post.comments.push({
+                time: timeStr,
+                text: text
+            });
+            input.value = '';
+            saveToLocal();
+            openEditor(currentEditingId); // 刷新评论区显示
+        }
+
+        function saveToLocal() {
+            localStorage.setItem('xsimple_blog_data', JSON.stringify(blogs));
+        }
+    </script>
+</body>
+</html>

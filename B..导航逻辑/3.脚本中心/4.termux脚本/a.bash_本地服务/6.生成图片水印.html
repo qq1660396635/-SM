@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图片水印生成器</title>
+    
+    <!-- prism.js 语法高亮 -->
+    <script src="/A2_全局中心/B_插件缓存-CDN/1.prism代码高亮/1.prism-css-白色主题.js"></script>   
+    <script src="/A2_全局中心/B_插件缓存-CDN/1.prism代码高亮/prism-core.min.js"></script>
+    <script src="/A2_全局中心/B_插件缓存-CDN/1.prism代码高亮/prism-bash.min.js"></script>
+    
+    <!-- 引入缩放插件 -->
+    <script src="/A2_全局中心/B_插件工具/3.插件_字体缩放.js"></script>
+    
+    <style>
+        /* 1. 基础样式重置 */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        /* 2. 页面主体样式 - 新的渐变背景 */
+        body { 
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            color: #2c3e50; 
+            line-height: 1.5; 
+            padding: 10px; 
+            min-height: 100vh; 
+        }
+        
+        /* 3. 主容器 */
+        .container { max-width: 1400px; margin: 0 auto; animation: fadeIn 0.5s ease-in; }
+        
+        /* 4. 页面标题 - 更紧凑 */
+        h1 { 
+            color: #ffffff; 
+            margin-bottom: 15px; 
+            font-size: 22px; 
+            display: flex; 
+            align-items: center; 
+            gap: 10px; 
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3); 
+            animation: slideDown 0.6s ease-out; 
+        }
+        
+        /* 5. 代码块容器 - 更大的显示区域 */
+        .code-container { 
+            background: #ffffff; 
+            border-radius: 12px; 
+            overflow: hidden; 
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2); 
+            border: 1px solid #e1e8ed; 
+            transition: transform 0.3s ease, box-shadow 0.3s ease; 
+            margin-bottom: 20px;
+        }
+        
+        /* 6. 代码块悬停效果 */
+        .code-container:hover { transform: translateY(-3px); box-shadow: 0 15px 35px rgba(0, 0, 0, 0.25); }
+        
+        /* 7. 代码头部 */
+        .code-header { 
+            background: linear-gradient(90deg, #4a5568 0%, #2d3748 100%); 
+            padding: 12px 20px; 
+            border-bottom: 1px solid #dee2e6; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+        }
+        
+        /* 8. 代码标题 */
+        .code-title { color: #ffffff; font-size: 14px; font-weight: 600; letter-spacing: 0.5px; }
+        
+        /* 9. 复制按钮 - 紫色主题 */
+        .copy-btn { 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            color: white; 
+            border: none; 
+            padding: 6px 14px; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            font-size: 12px; 
+            font-weight: 600; 
+            transition: all 0.3s ease; 
+            display: flex; 
+            align-items: center; 
+            gap: 5px; 
+            box-shadow: 0 2px 4px rgba(102, 126, 234, 0.4); 
+        }
+        
+        /* 10. 复制按钮悬停效果 */
+        .copy-btn:hover { 
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%); 
+            transform: scale(1.05); 
+            box-shadow: 0 4px 8px rgba(102, 126, 234, 0.5); 
+        }
+        
+        /* 11. 复制按钮已复制状态 */
+        .copy-btn.copied { background: linear-gradient(135deg, #48bb78 0%, #38a169 100%); }
+        
+        /* 12. 代码内容区 - 更小字体，更大区域 */
+        pre { 
+            background: #f7fafc; 
+            padding: 15px; 
+            overflow-x: auto; 
+            font-size: 11px; 
+            line-height: 1.4; 
+            border-radius: 0 0 12px 12px; 
+            margin: 0; 
+            max-height: 70vh; 
+            overflow-y: auto; 
+        }
+        
+        /* 13. 代码标签 */
+        code { color: #2d3748; font-family: inherit; white-space: pre; }
+        
+        /* 14. 说明区域 - 跟随滚动 */
+        .info-section { 
+            margin-top: 0; 
+            padding: 15px; 
+            background: rgba(255, 255, 255, 0.95); 
+            border-radius: 12px; 
+            backdrop-filter: blur(10px); 
+            border: 1px solid #e1e8ed; 
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* 15. 信息区标题 */
+        .info-section h2 { color: #667eea; margin-bottom: 10px; font-size: 18px; }
+        
+        /* 16. 信息网格布局 */
+        .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; margin-top: 10px; }
+        
+        /* 17. 信息项 */
+        .info-item { 
+            background: rgba(248, 249, 250, 0.9); 
+            padding: 10px; 
+            border-radius: 8px; 
+            border-left: 3px solid #667eea; 
+            transition: transform 0.3s ease, box-shadow 0.3s ease; 
+        }
+        
+        /* 18. 信息项悬停效果 */
+        .info-item:hover { transform: translateX(5px); box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); }
+        
+        /* 19. 信息标签 */
+        .info-label { color: #718096; font-size: 11px; margin-bottom: 3px; text-transform: uppercase; letter-spacing: 0.5px; }
+        
+        /* 20. 信息内容 */
+        .info-content { color: #2d3748; font-size: 12px; }
+        
+        /* 21. Toast提示 */
+        .toast { 
+            position: fixed; 
+            bottom: 20px; 
+            right: 20px; 
+            background: #667eea; 
+            color: white; 
+            padding: 12px 20px; 
+            border-radius: 6px; 
+            font-size: 14px; 
+            z-index: 1000; 
+            opacity: 0; 
+            transform: translateY(10px); 
+            transition: all 0.3s ease; 
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); 
+        }
+        
+        /* 22. Toast显示状态 */
+        .toast.show { opacity: 1; transform: translateY(0); }
+        
+        /* 23. 响应式设计 - 优化竖屏 */
+        @media (max-width: 768px) { 
+            body { padding: 8px; } 
+            pre { 
+                padding: 12px; 
+                font-size: 10px; 
+                max-height: 75vh; 
+            } 
+            .info-grid { grid-template-columns: 1fr; }
+            h1 { font-size: 20px; margin-bottom: 10px; }
+        }
+        
+        /* 24. 动画定义 */
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        
+        /* 25. 滑入动画 */
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* 26. 滚动条美化 */
+        pre::-webkit-scrollbar { width: 8px; height: 8px; }
+        pre::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+        pre::-webkit-scrollbar-thumb { background: #888; border-radius: 4px; }
+        pre::-webkit-scrollbar-thumb:hover { background: #555; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📸 图片水印生成器</h1>
+        
+        <div class="code-container">
+            <div class="code-header">
+                <span class="code-title">watermark_generator.sh</span>
+                <button class="copy-btn" id="copyBtn">
+                    <span>📋</span>
+                    <span id="copyBtnText">复制</span>
+                </button>
+            </div>
+            <pre><code id="codeContent" class="language-bash">#!/bin/bash
+
+# 1. ================= 字体设置 =================
+# 自动寻找安卓或Linux中文字体
+FONT_PATH=""
+possible_fonts=(
+    "/system/fonts/NotoSansCJK-Regular.ttc"
+    "/system/fonts/DroidSansFallback.ttf"
+    "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc"
+    "/usr/share/fonts/wqy-zenhei/wqy-zenhei.ttc"
+)
+
+for font in "${possible_fonts[@]}"; do
+    if [ -f "$font" ]; then
+        FONT_PATH="$font"
+        break
+    fi
+done
+
+[ -z "$FONT_PATH" ] && FONT_PATH="sans-serif" # 找不到这就回退
+# ===========================================
+
+# 2. 检查依赖
+command -v magick >/dev/null || { echo "请先安装: pkg install imagemagick"; exit 1; }
+
+# 3. 获取输入
+read -p "请输入图片路径: " image_path
+[ -f "$image_path" ] || { echo "文件不存在"; exit 1; }
+
+# 4. === 获取图片宽度，计算比例 ===
+width=$(magick identify -format "%w" "$image_path")
+
+# 计算字号 (根据图片宽度动态调整)
+# 时间大字: 18% 宽度
+fs_time=$(echo "$width * 0.18" | bc | cut -d. -f1)
+# 日期小字: 4.5% 宽度
+fs_meta=$(echo "$width * 0.045" | bc | cut -d. -f1)
+# 右下角Logo字: 3.5% 宽度
+fs_logo=$(echo "$width * 0.035" | bc | cut -d. -f1)
+
+# 5. 间距控制
+margin_bottom=$(echo "$width * 0.08" | bc | cut -d. -f1) # 整体离底部的距离
+icon_size=$(echo "$fs_meta * 1.2" | bc | cut -d. -f1)    # 红色图标大小
+logo_icon_size=$(echo "$fs_logo * 1.5" | bc | cut -d. -f1) # 相机图标大小
+
+# 6. === 文本内容 ===
+current_time=$(date +"%H:%M")
+current_date=$(date +"%Y-%m-%d")
+# 中文星期处理
+week_num=$(date +"%u")
+case $week_num in
+    1) w="一";; 2) w="二";; 3) w="三";; 4) w="四";; 5) w="五";; 6) w="六";; 7) w="日";;
+esac
+date_str="$current_date 星期$w"
+location_str="上海市 · 静安区"
+
+# 7. 输出文件名
+dir=$(dirname "$image_path")
+filename=$(basename "$image_path")
+output_file="$dir/${filename%.*}_水印V2.jpg"
+
+echo "正在生成完美水印..."
+
+# 8. ================= 图像处理逻辑 =================
+# 这里的逻辑是：
+# 1. 制作 [红点图标]：在 100x100 的固定画布上画，然后缩放到文字高度。
+# 2. 制作 [相机图标]：同上，固定画布画好，再缩放。
+# 3. 拼接 [日期+红点+地点]：横向拼接。
+# 4. 组合 [时间] 和 [上面那行]：纵向叠加。
+# 5. 合成到底图。
+
+magick "$image_path" \
+    \
+    \( \
+        \
+        \( -background none -fill white -font "$FONT_PATH" -pointsize "$fs_time" label:"$current_time" \) \
+        \
+        \( \
+            \( -background none -fill white -font "$FONT_PATH" -pointsize "$fs_meta" label:"$date_str " \) \
+            \
+            \( -size 100x100 xc:none -fill "#FF2222" \
+               -draw "circle 50,40 50,75" \
+               -draw "path 'M 20,45 L 50,100 L 80,45 Z'" \
+               -draw "circle 50,40 50,50" \
+               -resize x"$icon_size" \) \
+            \
+            \( -background none -fill white -font "$FONT_PATH" -pointsize "$fs_meta" label:" $location_str" \) \
+            \
+            -gravity Center +append \
+        \) \
+        \
+        -gravity Center -append -background none \
+    \) \
+    -gravity South -geometry +0+"$margin_bottom" -composite \
+    \
+    \( \
+        \( -size 100x100 xc:none -stroke white -strokewidth 8 -fill none \
+           -draw "roundrectangle 5,20 95,80 10,10" \
+           -stroke none -fill white \
+           -draw "circle 50,50 50,65" \
+           -draw "rectangle 70,25 85,35" \
+           -resize x"$logo_icon_size" \
+        \) \
+        \( -background none -fill white -font "$FONT_PATH" -pointsize "$fs_logo" label:" 水印相机" \) \
+        -gravity Center +append \
+    \) \
+    -gravity SouthEast -geometry +"$(($width/30))"+"$(($width/40))" -composite \
+    \
+    "$output_file"
+
+# 9. 完成
+echo "✅ 完成！请查看: $output_file"</code></pre>
+        </div>
+        
+        <div class="info-section">
+            <h2>📋 脚本说明</h2>
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label">🎯 功能</div>
+                    <div class="info-content">为图片添加专业的时间地点水印，支持中文显示</div>
+                    <div class="info-content">说明，若需要定制，则需修改绘画逻辑</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">📁 输出</div>
+                    <div class="info-content">在原图片同目录生成 ${filename}_水印V2.jpg</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">⚡ 特性</div>
+                    <div class="info-content">自动适配图片尺寸、智能字体检测、动态计算布局</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">🛠️ 依赖</div>
+                    <div class="info-content">需要安装 ImageMagick (magick命令)</div>
+                    <div class="info-label">💡 提示：保存为.sh文件后运行</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">🎨 水印元素</div>
+                    <div class="info-content">时间、日期、星期、位置、红色定位点、相机图标</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">📱 适用平台</div>
+                    <div class="info-content">支持Android (Termux)、Linux等系统</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Toast 提示 -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // 1. 复制按钮点击事件处理
+        document.getElementById('copyBtn').addEventListener('click', function() {
+            const copyBtn = this;
+            const copyBtnText = document.getElementById('copyBtnText');
+            const toast = document.getElementById('toast');
+            
+            // 获取纯文本内容（去除HTML标签）
+            const codeElement = document.getElementById('codeContent');
+            const textContent = codeElement.textContent || codeElement.innerText;
+            
+            // 使用现代API复制
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(textContent).then(function() {
+                    // 显示成功提示
+                    handleCopySuccess(copyBtn, copyBtnText, toast);
+                }).catch(function(err) {
+                    showCopyError(copyBtn, copyBtnText, toast);
+                });
+            } else {
+                // 备用方法
+                fallbackCopy(textContent, copyBtn, copyBtnText, toast);
+            }
+        });
+        
+        // 2. 处理复制成功
+        function handleCopySuccess(copyBtn, copyBtnText, toast) {
+            copyBtn.classList.add('copied');
+            copyBtnText.textContent = '已复制';
+            
+            // 显示toast
+            toast.textContent = '✅ 脚本已复制到剪贴板';
+            toast.classList.add('show');
+            
+            // 2秒后恢复按钮状态
+            setTimeout(function() {
+                copyBtn.classList.remove('copied');
+                copyBtnText.textContent = '复制';
+            }, 2000);
+            
+            // 3秒后隐藏toast
+            setTimeout(function() {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+        
+        // 3. 备用复制方法
+        function fallbackCopy(text, copyBtn, copyBtnText, toast) {
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            textArea.style.position = 'fixed';
+            textArea.style.opacity = '0';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    handleCopySuccess(copyBtn, copyBtnText, toast);
+                } else {
+                    showCopyError(copyBtn, copyBtnText, toast);
+                }
+            } catch (err) {
+                showCopyError(copyBtn, copyBtnText, toast);
+            }
+            
+            document.body.removeChild(textArea);
+        }
+        
+        // 4. 显示复制错误
+        function showCopyError(copyBtn, copyBtnText, toast) {
+            // 显示错误提示
+            toast.textContent = '❌ 复制失败，请手动选择复制';
+            toast.style.background = '#e74c3c';
+            toast.classList.add('show');
+            
+            // 3秒后隐藏toast
+            setTimeout(function() {
+                toast.classList.remove('show');
+                toast.style.background = '#667eea';
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

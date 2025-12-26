@@ -1,0 +1,864 @@
+<!DOCTYPE html> 
+<html lang="zh-CN"> 
+<head>
+    <meta charset="UTF-8"> 
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>脚本中心- 代码查看器</title> 
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+    <style>
+        :root { 
+            --primary-color: #0ea5e9; 
+            --secondary-color: #06b6d4;
+            --text-primary: #0f172a; 
+            --text-secondary: #64748b; 
+            --bg-color: #f8fafc; 
+            --card-bg: #ffffff; 
+            --border-color: #e2e8f0; 
+            --success-color: #10b981; 
+            --warning-color: #f59e0b; 
+            --info-color: #3b82f6; 
+            --code-bg: #1e293b; 
+        }
+        * { 
+            margin: 0; 
+            padding: 0; 
+            box-sizing: border-box; 
+        } 
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif; 
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%); 
+            min-height: 100vh; 
+            color: var(--text-primary); 
+            position: relative; 
+            overflow-x: hidden; 
+        }
+        body::before { 
+            content: ''; 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            right: 0; 
+            bottom: 0; 
+            background: radial-gradient(circle at 20% 50%, rgba(14, 165, 233, 0.1) 0%, transparent 50%), 
+                        radial-gradient(circle at 80% 80%, rgba(6, 182, 212, 0.1) 0%, transparent 50%); 
+            z-index: 0; 
+        }
+        .container { 
+            max-width: 100%; 
+            padding: 15px 10px; 
+            position: relative; 
+            z-index: 1; 
+            transition: transform 0.3s ease, font-size 0.3s ease; 
+            transform-origin: top center; 
+        }
+        #homeView { 
+            display: block; 
+            min-height: 100vh; 
+            padding-bottom: 20px; 
+        }
+        #codeView { 
+            display: none; 
+            min-height: 100vh; 
+            background: var(--code-bg); 
+            color: #e2e8f0; 
+            transition: transform 0.3s ease; 
+        }
+        header { 
+            text-align: center; 
+            color: white; 
+            margin-bottom: 20px; 
+            animation: fadeInDown 0.8s ease; 
+        }
+        h1 { 
+            font-size: 28px; 
+            font-weight: 700; 
+            margin-bottom: 8px; 
+            text-shadow: 0 4px 6px rgba(0,0,0,0.3); 
+            background: linear-gradient(135deg, #60a5fa, #a78bfa); 
+            -webkit-background-clip: text; 
+            -webkit-text-fill-color: transparent; 
+            background-clip: text; 
+        }
+        .subtitle { 
+            font-size: 14px; 
+            opacity: 0.9; 
+            font-weight: 300; 
+            color: #cbd5e1; 
+        }
+        .scripts-grid { 
+            display: grid; 
+            grid-template-columns: repeat(2, 1fr); 
+            gap: 12px; 
+            margin-top: 20px; 
+        }
+        .script-card { 
+            background: rgba(255, 255, 255, 0.95); 
+            backdrop-filter: blur(10px); 
+            border-radius: 12px; 
+            padding: 12px; 
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); 
+            animation: fadeInUp 0.6s ease; 
+            transition: all 0.3s ease; 
+            cursor: pointer; 
+            position: relative; 
+            overflow: hidden; 
+            border: 1px solid rgba(255, 255, 255, 0.2); 
+        }
+        .script-card::before { 
+            content: ''; 
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            right: 0; 
+            height: 3px; 
+            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color)); 
+        }
+        .script-card:hover { 
+            transform: translateY(-4px) scale(1.02); 
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15); 
+        }
+        .script-icon { 
+            width: 32px; 
+            height: 32px; 
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)); 
+            border-radius: 8px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            margin-bottom: 8px; 
+            font-size: 16px; 
+            color: white; 
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); 
+        }
+        .script-title { 
+            font-size: 14px; 
+            font-weight: 600; 
+            color: var(--text-primary); 
+            margin-bottom: 4px; 
+        }
+        .script-description { 
+            font-size: 11px; 
+            color: var(--text-secondary); 
+            line-height: 1.4; 
+            margin-bottom: 8px; 
+        }
+        .script-meta { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            font-size: 9px; 
+            color: var(--text-secondary); 
+        }
+        .script-size { 
+            background: var(--bg-color); 
+            padding: 2px 4px; 
+            border-radius: 3px; 
+        }
+        .script-status { 
+            font-size: 9px; 
+            padding: 2px 4px; 
+            border-radius: 3px; 
+        } 
+        .script-status.loaded { 
+            background: var(--success-color); 
+            color: white; 
+        } 
+        .pagination { 
+            display: flex; 
+            justify-content: center; 
+            gap: 8px; 
+            margin-top: 20px; 
+        }
+        .page-btn { 
+            background: rgba(255, 255, 255, 0.1); 
+            color: white; 
+            border: 1px solid rgba(255, 255, 255, 0.2); 
+            padding: 6px 12px; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            font-size: 12px; 
+            transition: all 0.2s ease; 
+        }
+        .page-btn:hover { 
+            background: rgba(255, 255, 255, 0.2); 
+        } 
+        .page-btn.active { 
+            background: var(--primary-color); 
+            border-color: var(--primary-color); 
+        }
+        .code-header { 
+            background: #0f172a; 
+            padding: 12px 15px; 
+            border-bottom: 1px solid #334155; 
+            position: sticky; 
+            top: 0; 
+            z-index: 100; 
+        }
+        .code-title { 
+            font-size: 14px; 
+            font-weight: 500; 
+            color: #e2e8f0; 
+            text-align: center; 
+            margin-bottom: 10px; 
+        }
+        .code-controls { 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            gap: 10px; 
+        }
+        .control-btn, .copy-btn, .back-btn { 
+            background: var(--primary-color); 
+            color: white; 
+            border: none; 
+            padding: 6px 12px; 
+            border-radius: 4px; 
+            cursor: pointer; 
+            font-size: 12px; 
+            transition: all 0.3s ease; 
+            display: flex; 
+            align-items: center; 
+            gap: 4px; 
+        }
+        .control-btn:hover, .copy-btn:hover, .back-btn:hover { 
+            background: var(--secondary-color); 
+            transform: translateY(-1px); 
+        }
+        .control-panel { 
+            position: fixed; 
+            top: 80px; 
+            left: 50%; 
+            transform: translateX(-50%); 
+            background: rgba(30, 41, 59, 0.95); 
+            backdrop-filter: blur(10px); 
+            border-radius: 12px; 
+            padding: 15px; 
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); 
+            z-index: 999; 
+            display: none; 
+            min-width: 250px; 
+            border: 1px solid rgba(255, 255, 255, 0.1); 
+        }
+        .control-panel.show { 
+            display: block; 
+            animation: slideIn 0.3s ease; 
+        } 
+        .control-group { 
+            margin-bottom: 12px; 
+        } 
+        .control-group:last-child { 
+            margin-bottom: 0; 
+        } 
+        .control-label { 
+            color: #cbd5e1; 
+            font-size: 12px; 
+            font-weight: 500; 
+            margin-bottom: 6px; 
+            display: block; 
+        }
+        .control-buttons { 
+            display: flex; 
+            gap: 6px; 
+            flex-wrap: wrap; 
+        } 
+        .control-btn-small { 
+            background: #334155; 
+            color: #e2e8f0; 
+            border: none; 
+            padding: 4px 8px; 
+            border-radius: 4px; 
+            cursor: pointer; 
+            font-size: 11px; 
+            transition: all 0.2s ease; 
+        }
+        .control-btn-small:hover { 
+            background: #475569; 
+        } 
+        .control-btn-small.active { 
+            background: var(--primary-color); 
+        } 
+        .code-container { 
+            padding: 15px; 
+            overflow-x: auto; 
+            max-height: calc(100vh - 120px); 
+            overflow-y: auto; 
+        }
+        pre[class*="language-"] { 
+            margin: 0; 
+            padding: 15px; 
+            background: var(--code-bg); 
+            border-radius: 0; 
+            font-size: 12px; 
+            line-height: 1.4; 
+        }
+        .loading { 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            height: 150px; 
+            color: #94a3b8; 
+        }
+        .error { 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            height: 150px; 
+            color: #f87171; 
+            flex-direction: column; 
+            gap: 8px; 
+            font-size: 14px; 
+        }
+        .toast { 
+            position: fixed; 
+            bottom: 20px; 
+            left: 50%; 
+            transform: translateX(-50%); 
+            background: var(--success-color); 
+            color: white; 
+            padding: 8px 16px; 
+            border-radius: 6px; 
+            font-size: 12px; 
+            z-index: 10000; 
+            opacity: 0; 
+            transition: opacity 0.3s ease; 
+        }
+        .toast.show { 
+            opacity: 1; 
+        } 
+        .toast.error { 
+            background: #ef4444; 
+        }
+        .db-tip {
+            position: fixed;
+            bottom: 5px;
+            right: 10px;
+            color: rgba(0, 255, 0, 0.15);
+            font-size: 8px;
+            z-index: 10000;
+            pointer-events: none;
+            transition: opacity 0.5s;
+        }
+        .debug-info {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            color: #00ff00;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 11px;
+            font-family: monospace;
+            z-index: 10001;
+            max-width: 300px;
+            word-wrap: break-word;
+        }
+        @keyframes fadeInDown { 
+            from { 
+                opacity: 0; 
+                transform: translateY(-20px); 
+            } 
+            to { 
+                opacity: 1; 
+                transform: translateY(0); 
+            } 
+        }
+        @keyframes fadeInUp { 
+            from { 
+                opacity: 0; 
+                transform: translateY(20px); 
+            } 
+            to { 
+                opacity: 1; 
+                transform: translateY(0); 
+            } 
+        }
+        @keyframes slideIn { 
+            from { 
+                opacity: 0; 
+                transform: translateX(-50%) translateY(-10px); 
+            } 
+            to { 
+                opacity: 1; 
+                transform: translateX(-50%) translateY(0); 
+            } 
+        }
+        @media (min-width: 768px) { 
+            .container { 
+                max-width: 768px; 
+                margin: 0 auto; 
+            } 
+            .scripts-grid { 
+                grid-template-columns: repeat(4, 1fr); 
+                gap: 15px; 
+            } 
+        }
+        .rotate-90 { 
+            transform: rotate(90deg); 
+        } 
+        .rotate-180 { 
+            transform: rotate(180deg); 
+        } 
+        .rotate-270 { 
+            transform: rotate(270deg); 
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 主页视图-->
+        <div id="homeView">
+            <header>
+                <h1>📜脚本中心</h1> 
+                <p class="subtitle">精选实用脚本，一键查看源码</p> 
+            </header>
+            <main class="scripts-grid" id="scriptsGrid">
+                <!-- 动态生成的脚本卡片-->
+            </main>
+            <div class="pagination" id="pagination">
+                <!-- 动态生成的分页按钮-->
+            </div>
+        </div>
+        
+        <!-- 代码查看视图-->
+        <div id="codeView">
+            <div class="code-header">
+                <div class="code-title" id="codeTitle">脚本代码</div> 
+                <div class="code-controls">
+                    <button class="control-btn" onclick="toggleControlPanel()">
+                        ⚙️控制面板
+                    </button>
+                    <button class="copy-btn" onclick="copyCode()">
+                        📋复制代码
+                    </button>
+                    <button class="back-btn" onclick="backToHome()">
+                        ←返回 
+                    </button> 
+                </div>
+            </div>
+            <div class="control-panel" id="controlPanel">
+                <div class="control-group">
+                    <span class="control-label">缩放</span> 
+                    <div class="control-buttons">
+                        <button class="control-btn-small" onclick="adjustZoom(-0.1)">缩小</button>
+                        <button class="control-btn-small" onclick="adjustZoom(0.1)">放大</button>
+                        <button class="control-btn-small" onclick="resetZoom()">重置</button>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <span class="control-label">字体</span> 
+                    <div class="control-buttons">
+                        <button class="control-btn-small" onclick="adjustFontSize(-2)">A-</button>
+                        <button class="control-btn-small" onclick="adjustFontSize(2)">A+</button>
+                        <button class="control-btn-small" onclick="resetFontSize()">重置</button>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <span class="control-label">旋转</span> 
+                    <div class="control-buttons">
+                        <button class="control-btn-small" onclick="rotateScreen(0)">0°</button>
+                        <button class="control-btn-small" onclick="rotateScreen(90)">90°</button>
+                        <button class="control-btn-small" onclick="rotateScreen(180)">180°</button>
+                        <button class="control-btn-small" onclick="rotateScreen(270)">270°</button>
+                    </div>
+                </div>
+            </div>
+            <div class="code-container" id="codeContainer">
+                <div class="loading">正在加载代码...</div> 
+            </div>
+        </div>
+        
+        <!-- Toast 提示-->
+        <div class="toast" id="toast"></div>
+        <!-- 数据库加载提示 -->
+        <div class="db-tip" id="dbTip"></div>
+        <!-- 调试信息 -->
+        <div class="debug-info" id="debugInfo" style="display: none;"></div>
+    </div>
+
+    <!-- ①数据库公共库（永不改名）-->
+    <script src="/db.js"></script>
+    
+    <!-- ③页面逻辑-->
+    <script>
+        // ===== 调试配置 =====
+        const DEBUG = true; // 设置为 false 可关闭调试信息
+
+        // ===== 调试函数 =====
+        function debugLog(message, type = 'info') {
+            if (!DEBUG) return;
+            
+            const timestamp = new Date().toLocaleTimeString();
+            const debugInfo = document.getElementById('debugInfo');
+            const logEntry = `[${timestamp}] ${type.toUpperCase()}: ${message}\n`;
+            
+            debugInfo.textContent += logEntry;
+            debugInfo.scrollTop = debugInfo.scrollHeight;
+            
+            console.log(`[DEBUG] ${logEntry.trim()}`);
+        }
+
+        // 显示/隐藏调试信息
+        function toggleDebug() {
+            const debugInfo = document.getElementById('debugInfo');
+            debugInfo.style.display = debugInfo.style.display === 'none' ? 'block' : 'none';
+        }
+
+        // ===== 离线缓存管理器 =====
+        const CacheMgr = {
+            async get(file) {
+                debugLog(`尝试加载文件: ${file}`, 'info');
+                
+                try {
+                    // ① 优先读库
+                    const txt = await IDB.get(file);
+                    if (txt) {
+                        debugLog(`数据库命中: ${file}`, 'success');
+                        console.log('⚡DB 命中', file);
+                        showDbTip('⚡从数据库加载');
+                        return txt;
+                    }
+
+                    debugLog(`数据库未命中，开始网络请求: ${file}`, 'info');
+                    console.log('🌐首次拉取', file);
+                    
+                    // ② 库没有才 fetch
+                    const resp = await fetch(file);
+                    if (!resp.ok) {
+                        const errorMsg = `文件加载失败: ${file} (状态: ${resp.status})`;
+                        debugLog(errorMsg, 'error');
+                        throw new Error(errorMsg);
+                    }
+                    
+                    const text = await resp.text();
+                    debugLog(`文件加载成功，大小: ${text.length} 字符`, 'success');
+                    
+                    // ③ 立即写库
+                    await IDB.put(file, text);
+                    debugLog(`文件已缓存到数据库: ${file}`, 'success');
+                    
+                    return text;
+                } catch (error) {
+                    debugLog(`加载失败: ${error.message}`, 'error');
+                    throw error;
+                }
+            }
+        };
+
+        // 脚本配置
+        const scriptsConfig = [
+            { 
+                id: 'script1', 
+                name: '油猴1_解除网站不许复制2.0.16.js', 
+                title: '解除网站复制限制', 
+                description: '解除网站禁止复制的限制，让您可以自由复制网页内容', 
+                icon: '🔓', 
+                size: '2.5KB' 
+            },
+            { 
+                id: 'script2', 
+                name: '油猴2_正常上网.js', 
+                title: '网络访问助手', 
+                description: '帮助您正常访问网络，突破访问限制', 
+                icon: '🌐', 
+                size: '1.8KB' 
+            }
+        ];
+
+        // 控制面板功能
+        let currentZoom = 1;
+        let currentFontSize = 12;
+        let currentRotation = 0;
+        let currentPage = 1;
+        const itemsPerPage = 8;
+        let currentCode = '';
+
+        function toggleControlPanel() {
+            const panel = document.getElementById('controlPanel');
+            panel.classList.toggle('show');
+        }
+
+        function adjustZoom(delta) {
+            currentZoom = Math.max(0.5, Math.min(2, currentZoom + delta));
+            document.getElementById('codeView').style.transform = 
+                `scale(${currentZoom}) rotate(${currentRotation}deg)`;
+        }
+
+        function resetZoom() {
+            currentZoom = 1;
+            document.getElementById('codeView').style.transform = 
+                `scale(${currentZoom}) rotate(${currentRotation}deg)`;
+        }
+
+        function adjustFontSize(delta) {
+            currentFontSize = Math.max(10, Math.min(20, currentFontSize + delta));
+            const codeElements = document.querySelectorAll('pre[class*="language-"]');
+            codeElements.forEach(el => { 
+                el.style.fontSize = currentFontSize + 'px'; 
+            });
+        }
+
+        function resetFontSize() {
+            currentFontSize = 12;
+            const codeElements = document.querySelectorAll('pre[class*="language-"]');
+            codeElements.forEach(el => { 
+                el.style.fontSize = currentFontSize + 'px'; 
+            });
+        }
+
+        function rotateScreen(degrees) {
+            currentRotation = degrees;
+            document.getElementById('codeView').style.transform = 
+                `scale(${currentZoom}) rotate(${currentRotation}deg)`;
+        }
+
+        function copyCode() {
+            if (currentCode) {
+                navigator.clipboard.writeText(currentCode).then(() => {
+                    showToast('代码已复制到剪贴板！');
+                    debugLog('代码已复制到剪贴板', 'success');
+                }).catch(() => {
+                    showToast('复制失败，请手动选择复制');
+                    debugLog('代码复制失败', 'error');
+                });
+            } else {
+                showToast('没有可复制的代码');
+                debugLog('没有可复制的代码', 'warning');
+            }
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = 'toast show';
+            if (type === 'error') {
+                toast.classList.add('error');
+            }
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        // 显示数据库加载提示
+        function showDbTip(message) {
+            const tip = document.getElementById('dbTip');
+            tip.textContent = message;
+            tip.style.opacity = '1';
+            setTimeout(() => {
+                tip.style.opacity = '0';
+            }, 2000);
+        }
+
+        // 渲染脚本卡片
+        function renderScriptCards() {
+            debugLog('开始渲染脚本卡片', 'info');
+            
+            const grid = document.getElementById('scriptsGrid');
+            const pagination = document.getElementById('pagination');
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = startIndex + itemsPerPage;
+            const currentScripts = scriptsConfig.slice(startIndex, endIndex);
+
+            grid.innerHTML = '';
+            currentScripts.forEach((script, index) => {
+                const card = document.createElement('div');
+                card.className = 'script-card';
+                card.style.animationDelay = `${index * 0.05}s`;
+                
+                // 直接显示已加载状态（因为脚本已经通过script标签加载执行）
+                card.innerHTML = `
+                    <div class="script-icon">${script.icon}</div>
+                    <div class="script-title">${script.title}</div>
+                    <div class="script-description">${script.description}</div>
+                    <div class="script-meta">
+                        <span class="script-name">${script.name}</span>
+                        <span class="script-size">${script.size}</span>
+                        <span class="script-status loaded">已加载</span>
+                    </div>
+                `;
+                card.onclick = () => viewCode(script);
+                grid.appendChild(card);
+            });
+
+            // 渲染分页
+            const totalPages = Math.ceil(scriptsConfig.length / itemsPerPage);
+            pagination.innerHTML = '';
+            for (let i = 1; i <= totalPages; i++) {
+                const btn = document.createElement('button');
+                btn.className = 'page-btn';
+                if (i === currentPage) btn.classList.add('active');
+                btn.textContent = i;
+                btn.onclick = () => {
+                    currentPage = i;
+                    renderScriptCards();
+                };
+                pagination.appendChild(btn);
+            }
+            
+            debugLog(`脚本卡片渲染完成，共 ${currentScripts.length} 个`, 'success');
+        }
+
+        // 查看代码
+        async function viewCode(script) {
+            debugLog(`开始查看代码: ${script.name}`, 'info');
+            
+            // 切换视图
+            document.getElementById('homeView').style.display = 'none';
+            document.getElementById('codeView').style.display = 'block';
+            document.getElementById('codeTitle').textContent = script.name;
+
+            // 重置控制面板状态
+            resetZoom();
+            resetFontSize();
+            rotateScreen(0);
+
+            try {
+                // 加载Prism.js
+                if (!window.Prism) {
+                    debugLog('加载 Prism.js', 'info');
+                    await loadScript('https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js');
+                    await loadScript('https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js');
+                    debugLog('Prism.js 加载完成', 'success');
+                }
+
+                // 加载脚本内容（使用缓存管理器）
+                const code = await CacheMgr.get(script.name);
+                currentCode = code;
+
+                // 显示代码
+                const container = document.getElementById('codeContainer');
+                container.innerHTML = `<pre><code class="language-javascript">${escapeHtml(code)}</code></pre>`;
+
+                // 应用高亮
+                if (window.Prism) {
+                    Prism.highlightAll();
+                }
+                
+                debugLog(`代码显示成功: ${script.name}`, 'success');
+            } catch (error) {
+                debugLog(`代码加载失败: ${error.message}`, 'error');
+                console.error('Error loading code:', error);
+                
+                // 区分错误类型
+                let errorMessage = '加载失败';
+                let errorDetail = error.message;
+                
+                if (error.message.includes('数据库')) {
+                    errorMessage = '数据库加载失败';
+                } else if (error.message.includes('文件')) {
+                    errorMessage = '文件加载失败';
+                }
+                
+                document.getElementById('codeContainer').innerHTML = `
+                    <div class="error">
+                        <div>${errorMessage}</div>
+                        <div>${errorDetail}</div>
+                    </div>
+                `;
+                
+                showToast(errorMessage, 'error');
+            }
+        }
+
+        // 返回主页
+        function backToHome() {
+            debugLog('返回主页', 'info');
+            document.getElementById('codeView').style.display = 'none';
+            document.getElementById('homeView').style.display = 'block';
+            document.getElementById('codeContainer').innerHTML = '<div class="loading">正在加载代码...</div>';
+            currentCode = '';
+            document.getElementById('controlPanel').classList.remove('show');
+        }
+
+        // HTML 转义
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, m => map[m]);
+        }
+
+        // 加载外部脚本
+        function loadScript(url) {
+            debugLog(`加载外部脚本: ${url}`, 'info');
+            return new Promise((resolve, reject) => {
+                const s = document.createElement('script');
+                s.src = url;
+                s.onload = () => {
+                    debugLog(`外部脚本加载成功: ${url}`, 'success');
+                    resolve(true);
+                };
+                s.onerror = () => {
+                    debugLog(`外部脚本加载失败: ${url}`, 'error');
+                    reject(new Error(`Failed to load script: ${url}`));
+                };
+                document.head.appendChild(s);
+            });
+        }
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', async () => {
+            debugLog('页面加载完成，开始初始化', 'info');
+            
+            try {
+                // 等待数据库初始化
+                debugLog('初始化数据库', 'info');
+                await IDB.init();
+                debugLog('数据库初始化完成', 'success');
+                console.log('数据库初始化完成');
+
+                // 渲染脚本卡片
+                renderScriptCards();
+                showToast('脚本中心已加载！');
+                debugLog('脚本中心初始化完成', 'success');
+
+                // 后台静默预热，不阻塞渲染
+                debugLog('开始后台预热脚本', 'info');
+                scriptsConfig.forEach(s => {
+                    CacheMgr.get(s.name).catch(error => {
+                        debugLog(`预热失败 ${s.name}: ${error.message}`, 'error');
+                    });
+                });
+                
+                debugLog('所有初始化任务完成', 'success');
+            } catch (error) {
+                debugLog(`初始化失败: ${error.message}`, 'error');
+                console.error('初始化失败:', error);
+                
+                // 区分错误类型
+                let errorMessage = '初始化失败';
+                if (error.message.includes('数据库')) {
+                    errorMessage = '数据库初始化失败';
+                }
+                
+                showToast(errorMessage, 'error');
+            }
+        });
+
+        // 点击其他地方关闭控制面板
+        document.addEventListener('click', (e) => {
+            const panel = document.getElementById('controlPanel');
+            const controls = document.querySelector('.code-controls');
+            if (!panel.contains(e.target) && !controls.contains(e.target)) {
+                panel.classList.remove('show');
+            }
+        });
+
+        // 快捷键：Ctrl+D 切换调试信息
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'd') {
+                e.preventDefault();
+                toggleDebug();
+            }
+        });
+
+        // 初始化调试信息
+        debugLog('脚本中心启动', 'info');
+        debugLog(`调试模式: ${DEBUG ? '开启' : '关闭'}`, 'info');
+        debugLog(`脚本数量: ${scriptsConfig.length}`, 'info');
+    </script>
+</body>
+</html>

@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <title>本地服务中心</title>
+    <!-- 必须引入cordova.js -->
+    <script src="cordova.js"></script>
+    <!-- 引入Cordova检票逻辑 先-->
+    <script src="/A..主页逻辑/Aα.主页全局配置/index-cordova-ticket.js"></script>
+    <script src="/A2_全局中心/A_数据中心/数据库中心.js"></script>
+    <!-- 引入配置文件和数据库-->
+    <script src="/A..主页逻辑/Aα.主页全局配置/index-config.js"></script>
+    <!-- 引入样式配置文件 -->
+    <script src="/A..主页逻辑/Aα.主页全局配置/index-styleConfig.js"></script>
+     
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+</head>
+<body>
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+    <div class="sidebar-container" id="sidebarContainer">
+        <iframe id="sidebarFrame" src="A..主页逻辑/Aα.主页全局配置/sidebar.html" style="width:100%;height:100%;border:none;"></iframe>
+    </div>
+    <input type="file" id="bgInput" accept="image/*" onchange="handleBgUpload(event)">
+    <div id="toast" class="toast"></div>
+    <div class="container">
+        <header>
+            <button class="user-menu-btn" onclick="openSidebar()">
+                <img id="headerUserAvatar" class="user-avatar" src="https://picsum.photos/seed/default-avatar/28/28.jpg" alt="用户头像">
+                <span>用户中心</span>
+            </button>
+            <h1>本地服务中心</h1>
+        </header>
+        <div class="search-container">
+            <div class="search-box">
+                <input type="text" class="search-input" id="searchInput" placeholder=" 搜索 +...">
+                <span class="search-icon"><i class="fas fa-search"></i></span>
+            </div>
+        </div>
+        <main>
+            <div class="games-grid" id="gamesGrid"></div>
+            <div class="pagination-wrapper" id="paginationWrapper">
+                <div class="pagination" id="pagination"></div>
+            </div>
+        </main>
+        <div style="margin-top:10px;font-size:11px;color:rgba(255, 255, 255,0.5);text-align:center;">联系邮箱：1660396635@qq.com</div>
+    </div>
+
+    <script>
+        //==============================================
+        // 配置常量区域
+        //==============================================
+        const APP_CONFIG = {
+            // 默认背景图片路径
+            defaultBackgroundPath: '/A..主页逻辑/Aα.主页全局配置/sidebar.jpg',
+            // 用户自定义背景存储键名
+            userBackgroundKey: 'userBackground',
+            // 是否有用户自定义背景
+            hasUserBackground: false
+        };
+
+        //==============================================
+        // 6. 配置区域
+        //==============================================
+        const PAGE_CONFIG = {
+            sidebar: {
+                width: '60%',
+                file: 'sidebar.html',
+                mobileWidth: '70%',
+                smallMobileWidth: '85%'
+            },
+            pagination: {
+                gamesPerPage: 24
+            },
+            search: {
+                debounceDelay: 300,
+                clearOnNavigate: false
+            },
+            userMenu: {
+                position: 'fixed',
+                leftOffset: 20,
+                topOffset: 20,
+                mobileLeftOffset: 15,
+                mobileTopOffset: 15
+            }
+        };
+
+        //==============================================
+        // 7. 全局变量
+        //==============================================
+        let currentPage = 1;
+        let allGames = [];
+        let filteredGames = [];
+        let isLoading = false;
+
+        //==============================================
+        // 8. 工具函数
+        //==============================================
+        function scheduleUpdate(callback) {
+            if (window.requestAnimationFrame) {
+                requestAnimationFrame(callback);
+            } else {
+                setTimeout(callback, 16);
+            }
+        }
+
+        //==============================================
+        // 背景图片管理函数
+        //==============================================
+        // 设置默认背景图片
+        function setDefaultBackground() {
+            const savedBg = localStorage.getItem(APP_CONFIG.userBackgroundKey);
+            if (!savedBg) {
+                // 没有用户自定义背景，使用默认背景
+                document.body.style.backgroundImage = `url(${APP_CONFIG.defaultBackgroundPath})`;
+                document.body.style.backgroundSize = 'cover';
+                document.body.style.backgroundPosition = 'center';
+                document.body.style.backgroundRepeat = 'no-repeat';
+                document.body.style.backgroundAttachment = 'fixed';
+                APP_CONFIG.hasUserBackground = false;
+                console.log('已设置默认背景图片:', APP_CONFIG.defaultBackgroundPath);
+            } else {
+                // 有用户自定义背景，使用用户背景
+                document.body.style.backgroundImage = `url(${savedBg})`;
+                document.body.style.backgroundSize = 'cover';
+                document.body.style.backgroundPosition = 'center';
+                document.body.style.backgroundRepeat = 'no-repeat';
+                document.body.style.backgroundAttachment = 'fixed';
+                APP_CONFIG.hasUserBackground = true;
+                console.log('已加载用户自定义背景');
+            }
+        }
+
+        // 处理背景图片上传
+        function handleBgUpload(event) {
+            const file = event.target.files[0];
+            if (file && file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const imageUrl = e.target.result;
+                    document.body.style.backgroundImage = `url(${imageUrl})`;
+                    document.body.style.backgroundSize = 'cover';
+                    document.body.style.backgroundPosition = 'center';
+                    document.body.style.backgroundRepeat = 'no-repeat';
+                    document.body.style.backgroundAttachment = 'fixed';
+                    
+                    // 保存到localStorage
+                    localStorage.setItem(APP_CONFIG.userBackgroundKey, imageUrl);
+                    APP_CONFIG.hasUserBackground = true;
+                    showToast('背景图片已更新');
+                };
+                reader.readAsDataURL(file);
+            }
+            // 清空input值，允许重复选择同一文件
+            event.target.value = '';
+        }
+
+        // 重置为默认背景
+        function resetToDefaultBackground() {
+            localStorage.removeItem(APP_CONFIG.userBackgroundKey);
+            setDefaultBackground();
+            showToast('已恢复默认背景');
+        }
+
+        // 10. 从缓存加载游戏数据
+        function loadGamesFromCache() {
+            const cachedGames = localStorage.getItem('cachedGames');
+            const cacheVersion = localStorage.getItem('gamesCacheVersion');
+            const currentVersion = '1.0';
+            if (cachedGames && cacheVersion === currentVersion) {
+                try {
+                    return JSON.parse(cachedGames);
+                } catch (e) {
+                    console.error('缓存数据解析失败:', e);
+                }
+                return null;
+            }
+        }
+
+        // 11. 缓存游戏数据
+        function cacheGamesData(games) {
+            try {
+                localStorage.setItem('cachedGames', JSON.stringify(games));
+                localStorage.setItem('gamesCacheVersion', '1.0');
+                console.log('游戏数据已缓存');
+            } catch (e) {
+                console.error('缓存数据失败:', e);
+            }
+        }
+
+        // 12. 创建游戏卡片
+        function createGameCard(game, globalIndex) {
+            const card = document.createElement('a');
+            card.href = game.file;
+            card.target = '_blank';
+            card.className = 'game-card';
+            // 添加data-category属性用于区分导航栏
+            card.setAttribute('data-category', game.category || '');
+            card.innerHTML = `<span class="game-number">#${globalIndex}</span>
+            <div class="game-name">${game.name}</div>`;
+            return card;
+        }
+
+        //==============================================
+        // 13. 游戏加载与渲染
+        //==============================================
+        function initGames() {
+            try {
+                const cachedGames = loadGamesFromCache();
+                if (cachedGames) {
+                    allGames = cachedGames;
+                    filteredGames = [...allGames];
+                    currentPage = 1;
+                    renderGames();
+                    renderPagination();
+                    loadUserAvatar();
+                    console.log('从缓存加载游戏成功，共', allGames.length, '个游戏');
+                    return;
+                }
+
+                if (typeof window.gameConfig === 'undefined') {
+                    console.error('config.js 未加载');
+                    setTimeout(initGames, 100);
+                    return;
+                }
+
+                if (window.gameConfig && window.gameConfig.getAllGames) {
+                    allGames = window.gameConfig.getAllGames();
+                    filteredGames = [...allGames];
+                    currentPage = 1;
+                    renderGames();
+                    renderPagination();
+                    loadUserAvatar();
+                    cacheGamesData(allGames);
+                    console.log('游戏加载成功，共', allGames.length, '个游戏');
+                } else {
+                    throw new Error('游戏配置未找到');
+                }
+            } catch (error) {
+                console.error('游戏加载失败:', error);
+                showToast('游戏加载失败，请刷新页面重试');
+                document.getElementById('gamesGrid').innerHTML = '<div class="no-results">游戏数据加载失败<br>请检查config.js 文件是否存在</div>';
+            }
+        }
+
+        // 14. 渲染游戏
+        function renderGames() {
+            if (isLoading) return;
+            isLoading = true;
+            scheduleUpdate(() => {
+                const gamesGrid = document.getElementById('gamesGrid');
+                const startIndex = (currentPage - 1) * PAGE_CONFIG.pagination.gamesPerPage;
+                const endIndex = startIndex + PAGE_CONFIG.pagination.gamesPerPage;
+                const gamesToShow = filteredGames.slice(startIndex, endIndex);
+
+                if (gamesToShow.length === 0) {
+                    gamesGrid.innerHTML = '<div class="no-results">没有找到匹配的游戏</div>';
+                    isLoading = false;
+                    return;
+                }
+
+                const fragment = document.createDocumentFragment();
+                gamesToShow.forEach((game, index) => {
+                    const globalIndex = startIndex + index + 1;
+                    const card = createGameCard(game, globalIndex);
+                    fragment.appendChild(card);
+                });
+                gamesGrid.innerHTML = '';
+                gamesGrid.appendChild(fragment);
+                isLoading = false;
+            });
+        }
+
+        // 15. 渲染分页
+        function renderPagination() {
+            scheduleUpdate(() => {
+                const pagination = document.getElementById('pagination');
+                const wrapper = document.getElementById('paginationWrapper');
+                const totalPages = Math.ceil(filteredGames.length / PAGE_CONFIG.pagination.gamesPerPage);
+
+                if (totalPages <= 1) {
+                    wrapper.innerHTML = "";
+                    return;
+                }
+
+                let paginationHTML = "";
+                paginationHTML += `<button onclick="changePage(${currentPage-1})" ${currentPage===1?'disabled':''}>‹</button>`;
+
+                const startPage = Math.max(1, currentPage - 2);
+                const endPage = Math.min(totalPages, currentPage + 2);
+
+                if (startPage > 1) {
+                    paginationHTML += `<button onclick="changePage(1)">1</button>`;
+                    if (startPage > 2) paginationHTML += `<span>...</span>`;
+                }
+
+                for (let i = startPage; i <= endPage; i++) {
+                    paginationHTML += `<button onclick="changePage(${i})" class="${i===currentPage?'active':''}">${i}</button>`;
+                }
+
+                if (endPage < totalPages) {
+                    if (endPage < totalPages - 1) paginationHTML += `<span>...</span>`;
+                    paginationHTML += `<button onclick="changePage(${totalPages})">${totalPages}</button>`;
+                }
+
+                paginationHTML += `<button onclick="changePage(${currentPage+1})" ${currentPage===totalPages?'disabled':''}>›</button>`;
+
+                if (window.gameConfig && window.gameConfig.secondaryNav) {
+                    paginationHTML += `<a href="${window.gameConfig.secondaryNav.file}" class="secondary-nav-btn" target="_blank" title="${window.gameConfig.secondaryNav.title}">${window.gameConfig.secondaryNav.name}</a>`;
+                }
+
+                pagination.innerHTML = paginationHTML;
+            });
+        }
+
+        // 16. 切换页面
+        function changePage(page) {
+            const totalPages = Math.ceil(filteredGames.length / PAGE_CONFIG.pagination.gamesPerPage);
+            if (page >= 1 && page <= totalPages) {
+                currentPage = page;
+                renderGames();
+                renderPagination();
+                window.scrollTo({top: 0, behavior: 'smooth'});
+            }
+        }
+
+        //==============================================
+        // 17. 搜索功能
+        //==============================================
+        let searchTimeout;
+        document.getElementById('searchInput').addEventListener('input', function(e) {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                const searchTerm = e.target.value.toLowerCase().trim();
+                if (searchTerm === "") {
+                    filteredGames = [...allGames];
+                } else {
+                    filteredGames = allGames.filter(game => game.name.toLowerCase().includes(searchTerm));
+                }
+                currentPage = 1;
+                renderGames();
+                renderPagination();
+            }, PAGE_CONFIG.search.debounceDelay);
+        });
+
+        //==============================================
+        // 18. 侧边栏控制
+        //==============================================
+        function openSidebar() {
+            document.getElementById('sidebarContainer').classList.add('active');
+            document.getElementById('sidebarOverlay').classList.add('active');
+            setTimeout(() => {
+                const iframe = document.getElementById('sidebarFrame');
+                if (iframe.contentWindow && iframe.contentWindow.updateUserData)
+                    iframe.contentWindow.updateUserData();
+            }, 100);
+            // 检查Cordova状态并通知（使用全局命名空间）
+            if (window.CordovaTicket && window.CordovaTicket.ticket) {
+                window.CordovaTicket.notifySidebar();
+            }
+        }
+
+        // 19. 关闭侧边栏
+        function closeSidebar() {
+            document.getElementById('sidebarContainer').classList.remove('active');
+            document.getElementById('sidebarOverlay').classList.remove('active');
+        }
+
+        //==============================================
+        // 20. 用户功能
+        //==============================================
+        function loadUserAvatar() {
+            const savedAvatar = localStorage.getItem('userAvatar');
+            if (savedAvatar) {
+                document.getElementById('headerUserAvatar').src = savedAvatar;
+            }
+        }
+
+        // 21. Toast 提示
+        function showToast(message, duration = 3000) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, duration);
+        }
+
+        //==============================================
+        // 23. 事件监听器
+        //==============================================
+        window.addEventListener('message', function(event) {
+            if (event.data.type === 'closeSidebar') {
+                closeSidebar();
+            } else if (event.data.type === 'showToast') {
+                showToast(event.data.message);
+            } else if (event.data.type === 'updateAvatar') {
+                document.getElementById('headerUserAvatar').src = event.data.avatar;
+            } else if (event.data.type === 'changeBackground') {
+                document.getElementById('bgInput').click();
+            } else if (event.data.type === 'resetBackground') {
+                resetToDefaultBackground();
+            }
+        });
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeSidebar();
+            }
+        });
+
+        //==============================================
+        // 24. 页面初始化
+        //==============================================
+        window.addEventListener('DOMContentLoaded', function() {
+            // 设置背景图片（优先用户自定义，否则使用默认）
+            setDefaultBackground();
+            
+            // 调用样式配置文件中的函数（如果存在）
+            if (typeof window.loadSavedBackground === 'function') {
+                window.loadSavedBackground();
+            }
+            
+            document.getElementById('searchInput').value = '';
+            setTimeout(() => {
+                initGames();
+            }, 200);
+        });
+    </script>
+</body>
+</html>

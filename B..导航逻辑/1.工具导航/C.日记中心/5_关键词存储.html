@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>关键词记忆站</title>
+<style>
+:root { --primary-color: #0ea5e9; --secondary-color: #06b6d4;
+--text-primary: #0f172a; --text-secondary: #64748b; --bg-color: #f8fafc; --card-bg: #ffffff; --border-color: #e2e8f0; }
+* { margin: 0; padding: 0; box-sizing: border-box; } body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI',
+'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif; background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%); min-height: 100vh; color: var(--text-primary); position: relative; overflow-x: hidden; }
+body::before { content: ''; position: fixed; top: 0; left: 0; right: 0; bottom:
+0; background: radial-gradient(circle at 20% 50%, rgba(14, 165, 233, 0.1) 0%, transparent 50%), radial-gradient(circle at 80% 80%, rgba(6, 182, 212, 0.1) 0%, transparent 50%); z-index: 0; }
+.container { max-width: 100%; padding: 15px 10px; position: relative;
+z-index: 1; }
+header { text-align: center; color: white; margin-bottom: 20px;
+animation: fadeInDown 0.8s ease; }
+h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px;
+text-shadow: 0 4px 6px rgba(0,0,0,0.3); background: linear-gradient(135deg, #60a5fa, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.subtitle { font-size: 14px; opacity: 0.9; font-weight: 300; color:
+#cbd5e1; }
+.control-panel-btn { position: fixed; top: 20px; right: 20px; background:
+var(--primary-color); color: white; border: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); transition: all 0.3s ease; z-index: 1000; }
+.control-panel-btn:hover { background: var(--secondary-color);
+transform: scale(1.1); }
+.control-panel { position: fixed; top: 70px; right: 20px; background:
+rgba(30, 41, 59, 0.95); backdrop-filter: blur(10px); border-radius: 12px; padding: 15px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); z-index: 999; display: none; min-width: 280px; max-width: 320px; border: 1px solid rgba(255, 255, 255, 0.1); }
+.control-panel.show { display: block; animation: slideIn 0.3s ease; }
+.control-group { margin-bottom: 15px; } .control-group:last-child { margin-bottom: 0; } .control-label { color: #cbd5e1; font-size: 12px; font-weight: 500;
+margin-bottom: 8px; display: block; }
+.control-input { width: 100%; background: #334155; color: #e2e8f0;
+border: 1px solid rgba(255, 255, 255, 0.1); padding: 8px 12px; border-radius: 6px; font-size: 12px; margin-bottom: 8px; }
+.control-input:focus { outline: none; border-color:
+var(--primary-color); }
+.control-btn { background: var(--primary-color); color: white; border:
+none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 11px; transition: all 0.2s ease; margin-right: 6px; margin-bottom: 6px; }
+.control-btn:hover { background: var(--secondary-color); } .control-btn.danger { background: #ef4444; } .control-btn.danger:hover { background: #dc2626; } .category-list { max-height: 200px; overflow-y: auto; margin-bottom:
+10px; }
+.category-item { background: #334155; color: #e2e8f0; padding: 8px
+12px; border-radius: 6px; margin-bottom: 6px; font-size: 11px; display: flex; justify-content: space-between; align-items: center; }
+.category-item:hover { background: #475569; } .category-section { margin-bottom: 25px; } .category-title { color: white; font-size: 18px; font-weight: 600;
+margin-bottom: 8px; padding-left: 5px; border-left: 3px solid var(--primary-color); }
+.keywords-grid { display: grid; grid-template-columns: repeat(auto-fill,
+minmax(80px, 1fr)); gap: 6px; }
+.keyword-card { background: rgba(255, 255, 255, 0.95); backdrop-filter:
+blur(10px); border-radius: 6px; padding: 6px; box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.1); animation: fadeInUp 0.6s ease; transition: all 0.3s ease; cursor: pointer; position: relative; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.2); }
+.keyword-card::before { content: ''; position: absolute; top: 0; left: 0;
+right: 0; height: 2px; background: linear-gradient(90deg, var(--primary-color), var(--secondary-color)); }
+.keyword-card:hover { transform: translateY(-2px) scale(1.02);
+box-shadow: 0 4px 8px -2px rgba(0, 0, 0, 0.15); }
+.keyword-text { font-size: 11px; font-weight: 500; color:
+var(--text-primary); text-align: center; word-break: break-all; line-height: 1.2; }
+.keyword-tag { font-size: 9px; color: var(--text-secondary); text-align:
+center; margin-top: 2px; }
+.pagination { display: flex; justify-content: center; gap: 8px; margin-top:
+30px; margin-bottom: 20px; }
+.page-btn { background: rgba(255, 255, 255, 0.1); color: white; border:
+1px solid rgba(255, 255, 255, 0.2); padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; transition: all 0.2s ease; }
+.page-btn:hover { background: rgba(255, 255, 255, 0.2); } .page-btn.active { background: var(--primary-color); border-color:
+var(--primary-color); }
+.toast { position: fixed; bottom: 20px; left: 50%; transform:
+translateX(-50%); background: var(--primary-color); color: white; padding: 8px 16px; border-radius: 6px; font-size: 12px; z-index: 10000; opacity: 0; transition: opacity 0.3s ease; }
+.toast.show { opacity: 1; } .toast.error { background: #ef4444; } .db-tip { position: fixed; bottom: 5px; right: 10px; color: rgba(0, 255, 0,
+0.15); font-size: 8px; z-index: 10000; pointer-events: none; transition: opacity 0.5s; }
+.stats { color: rgba(255, 255, 255, 0.7); text-align: center; font-size:
+12px; margin-top: 10px; }
+@keyframes fadeInDown { from { opacity: 0; transform:
+translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fadeInUp { from { opacity: 0; transform:
+translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes slideIn { from { opacity: 0; transform: translateX(20px); }
+to { opacity: 1; transform: translateX(0); } }
+@media (min-width: 768px) { .container { max-width: 768px; margin:
+0 auto; } .keywords-grid { grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); gap: 8px; } }
+</style>
+</head>
+<body>
+<div class="container">
+<header>
+<h1>🧠关键词记忆站</h1>
+<p class="subtitle">记录你的技术关键词，随时查阅</p>
+</header>
+<main id="keywordsContainer">
+<!-- 动态生成的关键词卡片-->
+</main>
+<div class="pagination" id="pagination">
+<!-- 动态生成的分页按钮-->
+</div>
+<div class="stats" id="stats">
+<!-- 统计信息-->
+</div>
+</div>
+<!-- 控制面板按钮-->
+<button class="control-panel-btn" onclick="toggleControlPanel()">⚙️</button>
+<!-- 控制面板-->
+<div class="control-panel" id="controlPanel">
+<div class="control-group">
+<span class="control-label">添加新分类</span>
+<input type="text" class="control-input" id="newCategoryInput" placeholder="输入分类名称">
+<button class="control-btn" onclick="addCategory()">添加分类</button>
+</div>
+<div class="control-group">
+<span class="control-label">添加关键词</span>
+<select class="control-input" id="categorySelect">
+<option value="">选择分类</option>
+</select>
+<input type="text" class="control-input" id="newKeywordInput" placeholder="输入关键词">
+<button class="control-btn" onclick="addKeyword()">添加关键词</button>
+</div>
+<div class="control-group">
+<span class="control-label">分类管理</span>
+<div class="category-list" id="categoryList">
+<!-- 动态生成的分类列表-->
+</div>
+</div>
+</div>
+<!-- Toast 提示-->
+<div class="toast" id="toast"></div>
+<!-- 数据库加载提示-->
+<div class="db-tip" id="dbTip"></div>
+<!-- 数据库公共库-->
+<script src="/db.js"></script>
+<!-- 页面逻辑-->
+<script>
+// 调试配置
+const DEBUG = true;
+// 分页配置
+let currentPage = 1;
+const categoriesPerPage = 3; // 每页显示3个分类
+let allCategories = [];
+let systemKeywordsConfig = {}; // 系统关键词配置
+let userKeywordsConfig = {}; // 用户关键词配置
+let keywordsConfig = {}; // 合并后的关键词配置
+
+// 调试函数
+function debugLog(message, type = 'info') {
+    if (!DEBUG) return;
+    console.log(`[${type.toUpperCase()}] ${message}`);
+}
+
+// 显示Toast提示
+function showToast(message, type = 'success') {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.className = 'toast show';
+    if (type === 'error') {
+        toast.classList.add('error');
+    }
+    setTimeout(() => {
+        toast.classList.remove('show');
+    }, 3000);
+}
+
+// 显示数据库加载提示
+function showDbTip(message) {
+    const tip = document.getElementById('dbTip');
+    tip.textContent = message;
+    tip.style.opacity = '1';
+    setTimeout(() => {
+        tip.style.opacity = '0';
+    }, 2000);
+}
+
+// 切换控制面板
+function toggleControlPanel() {
+    const panel = document.getElementById('controlPanel');
+    panel.classList.toggle('show');
+    if (panel.classList.contains('show')) {
+        updateCategorySelect();
+        updateCategoryList();
+    }
+}
+
+// 添加分类
+function addCategory() {
+    const input = document.getElementById('newCategoryInput');
+    const categoryName = input.value.trim();
+    
+    if (!categoryName) {
+        showToast('请输入分类名称', 'error');
+        return;
+    }
+    
+    if (userKeywordsConfig[categoryName]) {
+        showToast('分类已存在', 'error');
+        return;
+    }
+    
+    userKeywordsConfig[categoryName] = [];
+    mergeConfigs();
+    saveToDatabase();
+    input.value = '';
+    updateCategorySelect();
+    updateCategoryList();
+    renderKeywords();
+    showToast(`分类"${categoryName}" 已添加`);
+}
+
+// 添加关键词
+function addKeyword() {
+    const categorySelect = document.getElementById('categorySelect');
+    const keywordInput = document.getElementById('newKeywordInput');
+    const category = categorySelect.value;
+    const keyword = keywordInput.value.trim();
+    
+    if (!category) {
+        showToast('请选择分类', 'error');
+        return;
+    }
+    
+    if (!keyword) {
+        showToast('请输入关键词', 'error');
+        return;
+    }
+    
+    // 确定关键词应该添加到哪个配置中
+    let targetConfig = userKeywordsConfig;
+    
+    // 如果分类在系统配置中，则添加到用户配置中（创建一个同名的用户分类）
+    if (systemKeywordsConfig[category] && !userKeywordsConfig[category]) {
+        userKeywordsConfig[category] = [];
+    }
+    
+    if (userKeywordsConfig[category].includes(keyword)) {
+        showToast('关键词已存在', 'error');
+        return;
+    }
+    
+    userKeywordsConfig[category].push(keyword);
+    mergeConfigs();
+    saveToDatabase();
+    keywordInput.value = '';
+    renderKeywords();
+    showToast(`关键词"${keyword}" 已添加到"${category}"`);
+}
+
+// 删除分类
+function deleteCategory(category) {
+    if (confirm(`确定要删除分类"${category}"吗？`)) {
+        // 只能删除用户创建的分类，不能删除系统分类
+        if (systemKeywordsConfig[category]) {
+            showToast('不能删除系统分类', 'error');
+            return;
+        }
+        
+        delete userKeywordsConfig[category];
+        mergeConfigs();
+        saveToDatabase();
+        updateCategorySelect();
+        updateCategoryList();
+        renderKeywords();
+        showToast(`分类"${category}" 已删除`);
+    }
+}
+
+// 删除关键词
+function deleteKeyword(category, keyword) {
+    if (confirm(`确定要删除关键词"${keyword}"吗？`)) {
+        // 确定关键词在哪个配置中
+        let targetConfig = userKeywordsConfig;
+        
+        // 如果分类在系统配置中，且关键词也在系统配置中，则不能删除
+        if (systemKeywordsConfig[category] && systemKeywordsConfig[category].includes(keyword)) {
+            // 如果用户配置中也有这个关键词，则只删除用户配置中的
+            if (userKeywordsConfig[category] && userKeywordsConfig[category].includes(keyword)) {
+                const index = userKeywordsConfig[category].indexOf(keyword);
+                if (index > -1) {
+                    userKeywordsConfig[category].splice(index, 1);
+                }
+            } else {
+                showToast('不能删除系统关键词', 'error');
+                return;
+            }
+        } else {
+            // 删除用户配置中的关键词
+            const index = userKeywordsConfig[category].indexOf(keyword);
+            if (index > -1) {
+                userKeywordsConfig[category].splice(index, 1);
+            }
+        }
+        
+        mergeConfigs();
+        saveToDatabase();
+        renderKeywords();
+        showToast(`关键词"${keyword}" 已删除`);
+    }
+}
+
+// 更新分类选择器
+function updateCategorySelect() {
+    const select = document.getElementById('categorySelect');
+    select.innerHTML = '<option value="">选择分类</option>';
+    
+    // 添加所有分类（系统+用户）
+    Object.keys(keywordsConfig).forEach(category => {
+        const option = document.createElement('option');
+        option.value = category;
+        option.textContent = category;
+        select.appendChild(option);
+    });
+}
+
+// 更新分类列表
+function updateCategoryList() {
+    const list = document.getElementById('categoryList');
+    list.innerHTML = '';
+    
+    // 显示所有分类，但标记系统分类和用户分类
+    Object.entries(keywordsConfig).forEach(([category, keywords]) => {
+        const item = document.createElement('div');
+        item.className = 'category-item';
+        
+        const isSystemCategory = systemKeywordsConfig[category] ? true : false;
+        const categoryLabel = isSystemCategory ? `${category} (系统)` : `${category} (用户)`;
+        
+        item.innerHTML = `
+            <span>${categoryLabel} (${keywords.length})</span>
+            ${!isSystemCategory ? `<button class="control-btn danger" onclick="deleteCategory('${category}')">删除</button>` : ''}
+        `;
+        list.appendChild(item);
+    });
+}
+
+// 合并系统配置和用户配置
+function mergeConfigs() {
+    keywordsConfig = {};
+    
+    // 首先添加系统配置
+    Object.keys(systemKeywordsConfig).forEach(category => {
+        keywordsConfig[category] = [...systemKeywordsConfig[category]];
+    });
+    
+    // 然后添加用户配置，如果有同名的分类，则合并关键词
+    Object.keys(userKeywordsConfig).forEach(category => {
+        if (keywordsConfig[category]) {
+            // 合并关键词，避免重复
+            userKeywordsConfig[category].forEach(keyword => {
+                if (!keywordsConfig[category].includes(keyword)) {
+                    keywordsConfig[category].push(keyword);
+                }
+            });
+        } else {
+            keywordsConfig[category] = [...userKeywordsConfig[category]];
+        }
+    });
+}
+
+// 保存用户数据到数据库 - 修改为直接存储JSON
+async function saveToDatabase() {
+    try {
+        // 直接存储JSON对象到用户存储区，不再包装为JavaScript代码
+        await IDB.put('user_keywords_config', userKeywordsConfig, 'userdata');
+        debugLog('用户配置已保存到数据库', 'success');
+    } catch (error) {
+        debugLog(`保存失败: ${error.message}`, 'error');
+    }
+}
+
+// 复制关键词到剪贴板
+function copyKeyword(keyword) {
+    navigator.clipboard.writeText(keyword).then(() => {
+        showToast(`已复制: ${keyword}`);
+        debugLog(`关键词已复制: ${keyword}`, 'success');
+    }).catch(() => {
+        showToast('复制失败，请手动复制');
+        debugLog('关键词复制失败', 'error');
+    });
+}
+
+// 渲染关键词卡片
+function renderKeywords() {
+    debugLog('开始渲染关键词卡片', 'info');
+    const container = document.getElementById('keywordsContainer');
+    const pagination = document.getElementById('pagination');
+    const stats = document.getElementById('stats');
+    
+    allCategories = Object.keys(keywordsConfig);
+    
+    // 计算当前页的分类
+    const startIndex = (currentPage - 1) * categoriesPerPage;
+    const endIndex = startIndex + categoriesPerPage;
+    const currentCategories = allCategories.slice(startIndex, endIndex);
+    
+    container.innerHTML = '';
+    
+    // 按分类渲染
+    currentCategories.forEach((category, index) => {
+        const section = document.createElement('div');
+        section.className = 'category-section';
+        
+        const title = document.createElement('h2');
+        title.className = 'category-title';
+        
+        // 标记系统分类和用户分类
+        const isSystemCategory = systemKeywordsConfig[category] ? true : false;
+        title.textContent = isSystemCategory ? `${category} (系统)` : `${category} (用户)`;
+        
+        section.appendChild(title);
+        
+        const grid = document.createElement('div');
+        grid.className = 'keywords-grid';
+        
+        const keywords = keywordsConfig[category] || [];
+        keywords.forEach((keyword, keywordIndex) => {
+            const card = document.createElement('div');
+            card.className = 'keyword-card';
+            card.style.animationDelay = `${(index * keywords.length + keywordIndex) * 0.02}s`;
+            
+            // 标记系统关键词和用户关键词
+            const isSystemKeyword = systemKeywordsConfig[category] && 
+                                   systemKeywordsConfig[category].includes(keyword);
+            const keywordTag = isSystemKeyword ? '系统关键词' : '用户关键词';
+            
+            card.innerHTML = `
+                <div class="keyword-text">${keyword}</div>
+                <div class="keyword-tag">${keywordTag}</div>
+            `;
+            
+            card.onclick = () => copyKeyword(keyword);
+            grid.appendChild(card);
+        });
+        
+        section.appendChild(grid);
+        container.appendChild(section);
+    });
+    
+    // 渲染分页
+    const totalPages = Math.ceil(allCategories.length / categoriesPerPage);
+    pagination.innerHTML = '';
+    
+    for (let i = 1; i <= totalPages; i++) {
+        const btn = document.createElement('button');
+        btn.className = 'page-btn';
+        if (i === currentPage) btn.classList.add('active');
+        btn.textContent = i;
+        btn.onclick = () => {
+            currentPage = i;
+            renderKeywords();
+        };
+        pagination.appendChild(btn);
+    }
+    
+    // 更新统计信息
+    const totalKeywords = Object.values(keywordsConfig).reduce((sum, keywords) => sum + keywords.length, 0);
+    const systemKeywordsCount = Object.values(systemKeywordsConfig).reduce((sum, keywords) => sum + keywords.length, 0);
+    const userKeywordsCount = Object.values(userKeywordsConfig).reduce((sum, keywords) => sum + keywords.length, 0);
+    
+    stats.textContent = `第 ${currentPage}/${totalPages} 页 | 共 ${allCategories.length} 个分类 | ${totalKeywords} 个关键词 (系统: ${systemKeywordsCount}, 用户: ${userKeywordsCount})`;
+    
+    debugLog(`关键词卡片渲染完成，当前页: ${currentPage}/${totalPages}`, 'success');
+}
+
+// 加载系统关键词配置（带缓存）
+async function loadSystemKeywordsConfig() {
+    const configFileName = '5_关键词配置.js';
+    
+    try {
+        // ①优先从系统存储区读取
+        const cachedConfig = await IDB.get(configFileName, 'official');
+        if (cachedConfig) {
+            debugLog('系统存储区命中配置文件', 'success');
+            showDbTip('⚡从系统存储区加载');
+            return cachedConfig;
+        }
+        
+        debugLog('系统存储区未命中，开始网络请求', 'info');
+        showDbTip('🌐首次拉取');
+        
+        // ②系统存储区没有才fetch
+        const resp = await fetch(configFileName);
+        if (!resp.ok) {
+            throw new Error(`配置文件加载失败: ${configFileName} (状态: ${resp.status})`);
+        }
+        
+        const text = await resp.text();
+        debugLog(`配置文件加载成功，大小: ${text.length} 字符`, 'success');
+        
+        // ③立即写库到系统存储区
+        await IDB.put(configFileName, text, 'official');
+        debugLog('配置文件已缓存到系统存储区', 'success');
+        
+        return text;
+    } catch (error) {
+        debugLog(`配置文件加载失败: ${error.message}`, 'error');
+        throw error;
+    }
+}
+
+// 加载用户关键词配置 - 修改为直接读取JSON
+async function loadUserKeywordsConfig() {
+    try {
+        // 从用户存储区读取用户配置（直接JSON对象）
+        const cachedConfig = await IDB.get('user_keywords_config', 'userdata');
+        if (cachedConfig) {
+            debugLog('用户存储区命中用户配置', 'success');
+            showDbTip('⚡从用户存储区加载');
+            return cachedConfig;
+        }
+        
+        debugLog('用户存储区未命中，使用空配置', 'info');
+        showDbTip('📝使用空配置');
+        return {};
+    } catch (error) {
+        debugLog(`用户配置加载失败: ${error.message}`, 'error');
+        return {};
+    }
+}
+
+// 页面加载完成后初始化
+document.addEventListener('DOMContentLoaded', async () => {
+    debugLog('页面加载完成，开始初始化', 'info');
+    
+    try {
+        // 等待数据库初始化
+        debugLog('初始化数据库', 'info');
+        await IDB.init();
+        debugLog('数据库初始化完成', 'success');
+        
+        // 加载系统配置文件（带缓存）
+        const systemConfigText = await loadSystemKeywordsConfig();
+        
+        // 执行系统配置代码
+        eval(systemConfigText);
+        
+        // 检查系统配置是否加载成功
+        if (!window.KEYWORDS_CONFIG) {
+            throw new Error('配置文件格式错误，未找到KEYWORDS_CONFIG');
+        }
+        
+        systemKeywordsConfig = window.KEYWORDS_CONFIG;
+        
+        // 加载用户配置（直接JSON对象）
+        userKeywordsConfig = await loadUserKeywordsConfig();
+        
+        // 合并系统配置和用户配置
+        mergeConfigs();
+        
+        allCategories = Object.keys(keywordsConfig);
+        
+        // 渲染关键词
+        renderKeywords();
+        
+        showToast('关键词记忆站已加载！');
+        debugLog('关键词记忆站初始化完成', 'success');
+    } catch (error) {
+        debugLog(`初始化失败: ${error.message}`, 'error');
+        console.error('初始化失败:', error);
+        
+        // 显示错误信息
+        const container = document.getElementById('keywordsContainer');
+        container.innerHTML = `
+            <div style="color: #f87171; text-align: center; padding: 40px;">
+                <h3>加载失败</h3>
+                <p>${error.message}</p>
+            </div>
+        `;
+        showToast('初始化失败', 'error');
+    }
+});
+
+// 点击其他地方关闭控制面板
+document.addEventListener('click', (e) => {
+    const panel = document.getElementById('controlPanel');
+    const btn = document.querySelector('.control-panel-btn');
+    if (!panel.contains(e.target) && !btn.contains(e.target)) {
+        panel.classList.remove('show');
+    }
+});
+</script>
+</body>
+</html>

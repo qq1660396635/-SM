@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>交互式文件合并工具</title>
+    
+        <!-- prism.js 语法高亮   -->
+      <script src="/A2_全局中心/B_插件缓存-CDN/1.prism代码高亮/1.prism-css-白色主题.js"></script>   
+      <script src="/A2_全局中心/B_插件缓存-CDN/1.prism代码高亮/prism-core.min.js"></script>    <!-- 核心文件 -->
+      <script src="/A2_全局中心/B_插件缓存-CDN/1.prism代码高亮/prism-python.min.js"></script>   <!-- Python语言支持 -->   
+    
+     <!-- 引入缩放插件 -->
+    <script src="/A2_全局中心/B_插件工具/3.插件_字体缩放.js"></script>
+    
+    <style>
+        /* 1. 基础样式重置 */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        /* 2. 页面主体样式 - 柔和背景与纹理 */
+        body { 
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace; 
+            /* 柔和的绿色渐变背景 + 简洁的斜线纹理 */
+            background: 
+                repeating-linear-gradient(
+                    45deg,
+                    rgba(255, 255, 255, 0.03),
+                    rgba(255, 255, 255, 0.03) 10px,
+                    transparent 10px,
+                    transparent 20px
+                ),
+                repeating-linear-gradient(
+                    -45deg,
+                    rgba(255, 255, 255, 0.02),
+                    rgba(255, 255, 255, 0.02) 10px,
+                    transparent 10px,
+                    transparent 20px
+                ),
+                linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 25%, #a5d6a7 50%, #81c784 75%, #66bb6a 100%);
+            color: #2c3e50; 
+            line-height: 1.6; 
+            padding: 20px; 
+            min-height: 100vh;
+        }
+        
+        /* 3. 主容器 */
+        .container { max-width: 1200px; margin: 0 auto; animation: fadeIn 0.5s ease-in; }
+        
+        /* 4. 页面标题 */
+        h3 { color: #2e7d32; margin-bottom: 30px; font-size: 28px; display: flex; align-items: center; gap: 12px; text-shadow: 0 2px 4px rgba(46, 125, 50, 0.2); animation: slideDown 0.6s ease-out; }
+        
+        /* 5. 代码块容器 */
+        .code-container { background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1); border: 1px solid #e1e8ed; transition: transform 0.3s ease, box-shadow 0.3s ease; }
+        
+        /* 6. 代码块悬停效果 */
+        .code-container:hover { transform: translateY(-2px); box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15); }
+        
+        /* 7. 代码头部 */
+        .code-header { background: linear-gradient(90deg, #f8f9fa 0%, #e9ecef 100%); padding: 15px 20px; border-bottom: 1px solid #dee2e6; display: flex; justify-content: space-between; align-items: center; }
+        
+        /* 8. 代码标题 */
+        .code-title { color: #6c757d; font-size: 14px; font-weight: 600; letter-spacing: 0.5px; }
+        
+        /* 9. 复制按钮 */
+        .copy-btn { background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%); color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.3s ease; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 4px rgba(39, 174, 96, 0.3); }
+        
+        /* 10. 复制按钮悬停效果 */
+        .copy-btn:hover { background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%); transform: scale(1.05); box-shadow: 0 4px 8px rgba(39, 174, 96, 0.4); }
+        
+        /* 11. 复制按钮已复制状态 */
+        .copy-btn.copied { background: linear-gradient(135deg, #3498db 0%, #2980b9 100%); }
+        
+        /* 12. 代码内容区 */
+        pre { background: #f8f9fa; padding: 20px; overflow-x: auto; font-size: 13px; line-height: 1.5; border-radius: 0 0 12px 12px; margin: 0; }
+        
+        /* 13. 代码标签 */
+        code { color: #495057; font-family: inherit; white-space: pre; }
+        
+        /* 14. 底部信息区 - 更紧凑 */
+        .info-section { margin-top: 20px; padding: 15px; background: rgba(255, 255, 255, 0.9); border-radius: 12px; backdrop-filter: blur(10px); border: 1px solid #e1e8ed; }
+        
+        /* 15. 信息区标题 */
+        .info-section h2 { color: #27ae60; margin-bottom: 8px; font-size: 18px; }
+        
+        /* 16. 信息网格布局 - 更紧凑 */
+        .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; margin-top: 10px; }
+        
+        /* 17. 信息项 - 更紧凑 */
+        .info-item { background: rgba(248, 249, 250, 0.9); padding: 10px; border-radius: 8px; border-left: 3px solid #27ae60; transition: transform 0.3s ease, box-shadow 0.3s ease; }
+        
+        /* 18. 信息项悬停效果 */
+        .info-item:hover { transform: translateX(5px); box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); }
+        
+        /* 19. 信息标签 - 更紧凑 */
+        .info-label { color: #6c757d; font-size: 11px; margin-bottom: 3px; text-transform: uppercase; letter-spacing: 0.5px; }
+        
+        /* 20. 信息内容 - 更紧凑 */
+        .info-content { color: #2c3e50; font-size: 12px; }
+        
+        /* 21. Toast提示 */
+        .toast { position: fixed; bottom: 20px; right: 20px; background: #27ae60; color: white; padding: 12px 20px; border-radius: 6px; font-size: 14px; z-index: 1000; opacity: 0; transform: translateY(10px); transition: all 0.3s ease; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); }
+        
+        /* 22. Toast显示状态 */
+        .toast.show { opacity: 1; transform: translateY(0); }
+        
+        /* 23. 响应式设计 */
+        @media (max-width: 768px) { body { padding: 10px; } pre { padding: 15px; font-size: 12px; } .info-grid { grid-template-columns: 1fr; } }
+        
+        /* 24. 动画定义 */
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        
+        /* 25. 滑入动画 */
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h3>交互式文件合并工具</h3>
+        
+        <div class="code-container">
+            <div class="code-header">
+                <span class="code-title">interactive_file_merger.py</span>
+                <button class="copy-btn" id="copyBtn">
+                    <span>📋</span>
+                    <span id="copyBtnText">复制</span>
+                </button>
+            </div>
+            <pre><code id="codeContent" class="language-python">#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+1. 文件名: interactive_file_merger.py
+2. 功能: 交互式文件合并工具
+3. 创建时间: 2025年11月
+4. 描述: 支持合并TXT、Python、DOCX文件，以及除HTML外的所有文件
+"""
+
+import os
+import re
+import sys
+from pathlib import Path
+from datetime import datetime
+
+# 5. 尝试导入Word处理库
+try:
+    from docx import Document
+    from docxcompose.composer import Composer
+    from docx.shared import Pt
+    from docx.enum.text import WD_ALIGN_PARAGRAPH
+    DOCX_AVAILABLE = True
+except ImportError:
+    DOCX_AVAILABLE = False
+
+class InteractiveFileMerger:
+    """6. 交互式文件合并器"""
+    
+    def __init__(self):
+        self.directory = ""
+        self.output_file = ""
+        
+    def display_menu(self):
+        """7. 显示主菜单"""
+        print("=" * 60)
+        print("           交互式文件合并工具")
+        print("=" * 60)
+        print("\n请选择要合并的文件类型：")
+        print("1. 合并TXT文件")
+        print("2. 合并Python文件")
+        print("3. 合并DOCX文件")
+        print("4. 合并除HTML外的所有文件")
+        print("q. 退出程序")
+        
+    def get_user_choice(self):
+        """8. 获取用户选择"""
+        self.display_menu()
+        
+        while True:
+            choice = input("\n请输入选择 (1/2/3/4/q): ").strip()
+            
+            if choice.lower() == 'q':
+                return None
+            
+            if choice in ['1', '2', '3', '4']:
+                if choice == '3' and not DOCX_AVAILABLE:
+                    print("❌ DOCX合并功能不可用，请先安装库：")
+                    print("   pip install python-docx docxcompose")
+                    continue
+                return choice
+            
+            print("❌ 无效选择，请重新输入！")
+    
+    def get_directory(self):
+        """9. 获取用户输入的目录路径"""
+        default_dir = "/storage/emulated/0/Download/"
+        
+        print(f"\n请输入文件所在目录路径：")
+        print(f"（直接回车使用默认目录: {default_dir}）")
+        
+        while True:
+            user_input = input("> ").strip()
+            
+            if not user_input:
+                self.directory = default_dir
+            else:
+                self.directory = user_input
+            
+            if os.path.exists(self.directory):
+                print(f"✅ 使用目录: {self.directory}")
+                return True
+            else:
+                print(f"❌ 目录不存在: {self.directory}")
+                print("请重新输入或按 Ctrl+C 退出")
+    
+    def get_files_by_type(self, merge_type):
+        """10. 根据合并类型获取文件列表"""
+        files = []
+        output_name = ""
+        merge_type_name = ""
+        
+        if merge_type == "1":  # TXT文件
+            pattern = "*.txt"
+            files = list(Path(self.directory).glob(pattern))
+            output_name = "合并_TXT文件.txt"
+            merge_type_name = "TXT文件"
+            
+        elif merge_type == "2":  # Python文件
+            pattern = "*.py"
+            files = list(Path(self.directory).glob(pattern))
+            output_name = "合并_Python文件.txt"
+            merge_type_name = "Python文件"
+            
+        elif merge_type == "3":  # DOCX文件
+            pattern = "*.docx"
+            files = list(Path(self.directory).glob(pattern))
+            output_name = "合并_DOCX文件.docx"
+            merge_type_name = "DOCX文件"
+            
+        elif merge_type == "4":  # 除HTML外的所有文件
+            all_files = list(Path(self.directory).glob("*"))
+            files = [f for f in all_files 
+                    if f.is_file() 
+                    and f.suffix.lower() not in ['.html', '.htm']
+                    and f.name != output_name]
+            output_name = "合并_除HTML外所有文件.txt"
+            merge_type_name = "除HTML外的所有文件"
+        
+        # 11. 排除输出文件
+        files = [f for f in files if f.name != output_name]
+        
+        # 12. 自然排序
+        files.sort(key=lambda x: self.natural_sort_key(x.name))
+        
+        return files, output_name, merge_type_name
+    
+    def natural_sort_key(self, filename):
+        """13. 自然排序函数"""
+        return [int(text) if text.isdigit() else text.lower() 
+                for text in re.split(r'(\d+)', filename)]
+    
+    def merge_text_files(self, files, output_path, merge_type_name):
+        """14. 合并文本文件（TXT、Python、其他）"""
+        try:
+            with open(output_path, 'w', encoding='utf-8') as outfile:
+                # 15. 写入文件大纲
+                outfile.write("===== 文件大纲 =====\n")
+                outfile.write(f"合并时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+                outfile.write(f"合并类型: {merge_type_name}\n")
+                outfile.write(f"文件数量: {len(files)}\n")
+                outfile.write(f"目录路径: {self.directory}\n")
+                outfile.write("=========================\n\n")
+                
+                # 16. 列出所有文件
+                for i, file_path in enumerate(files, 1):
+                    outfile.write(f"{i:2d}. {file_path.name}\n")
+                
+                outfile.write("\n===== 文件内容 =====\n\n")
+                
+                # 17. 写入每个文件的内容
+                for file_path in files:
+                    outfile.write(f"--- {file_path.name} ⬇️⬇️⬇️⬇️⬇️ ---\n")
+                    
+                    try:
+                        file_size = file_path.stat().st_size
+                        mod_time = datetime.fromtimestamp(file_path.stat().st_mtime).strftime('%Y-%m-%d %H:%M:%S')
+                        
+                        outfile.write(f"文件大小: {file_size} 字节\n")
+                        outfile.write(f"修改时间: {mod_time}\n")
+                        outfile.write("-------------------------\n")
+                        
+                        # 18. 读取文件内容
+                        try:
+                            with open(file_path, 'r', encoding='utf-8') as infile:
+                                content = infile.read()
+                                outfile.write(content)
+                        except UnicodeDecodeError:
+                            try:
+                                with open(file_path, 'r', encoding='gbk') as infile:
+                                    content = infile.read()
+                                    outfile.write(content)
+                            except:
+                                outfile.write("【无法读取文件内容：编码问题】\n")
+                        except Exception as e:
+                            outfile.write(f"【读取文件出错: {str(e)}】\n")
+                            
+                    except Exception as e:
+                        outfile.write(f"【获取文件信息出错: {str(e)}】\n")
+                    
+                    outfile.write("\n")
+            
+            return True
+            
+        except Exception as e:
+            print(f"❌ 合并文本文件时出错: {e}")
+            return False
+    
+    def merge_docx_files(self, files, output_path):
+        """19. 合并DOCX文件"""
+        if not DOCX_AVAILABLE:
+            print("❌ DOCX文档合并功能不可用，请安装：pip install python-docx docxcompose")
+            return False
+        
+        try:
+            # 20. 创建主文档
+            master_doc = Document()
+            composer = Composer(master_doc)
+            
+            # 21. 创建目录文档
+            toc_doc = Document()
+            
+            # 22. 添加目录标题
+            title_paragraph = toc_doc.add_paragraph()
+            title_run = title_paragraph.add_run("===== 大纲 =====")
+            title_run.bold = True
+            title_run.font.size = Pt(18)
+            title_paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            
+            toc_doc.add_paragraph()  # 空行
+            
+            # 23. 添加目录内容
+            for i, file_path in enumerate(files, 1):
+                clean_name = file_path.stem
+                para = toc_doc.add_paragraph(f"{i:2d}. {clean_name}", style='ListNumber')
+            
+            # 24. 合并目录页
+            composer.append(toc_doc)
+            
+            # 25. 合并所有文档内容
+            for i, file_path in enumerate(files, 1):
+                try:
+                    clean_name = file_path.stem
+                    print(f"正在处理: {file_path.name}")
+                    
+                    # 26. 添加分隔符
+                    separator_doc = Document()
+                    self.add_file_separator(separator_doc, clean_name)
+                    composer.append(separator_doc)
+                    
+                    # 27. 合并原文档
+                    source_doc = Document(str(file_path))
+                    composer.append(source_doc)
+                    
+                    print(f"✅ 已添加: {file_path.name}")
+                    
+                except Exception as e:
+                    print(f"❌ 处理文件 {file_path.name} 时出错: {e}")
+                    continue
+            
+            # 28. 保存文档
+            composer.save(output_path)
+            return True
+            
+        except Exception as e:
+            print(f"❌ 合并DOCX文档时出错: {e}")
+            return False
+    
+    def add_file_separator(self, doc, filename):
+        """29. 为DOCX文档添加文件分隔符"""
+        doc.add_page_break()
+        
+        title_paragraph = doc.add_paragraph()
+        title_run = title_paragraph.add_run(f"--- {filename} ⬇️⬇️⬇️⬇️⬇️ ---")
+        title_run.bold = True
+        title_run.font.size = Pt(14)
+        title_paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        
+        doc.add_paragraph()
+    
+    def run_merge(self, choice):
+        """30. 执行合并操作"""
+        # 31. 获取文件列表
+        files, output_name, merge_type_name = self.get_files_by_type(choice)
+        
+        if not files:
+            print("❌ 未找到任何符合条件的文件！")
+            return False
+        
+        print(f"\n📁 找到 {len(files)} 个{merge_type_name}，按以下顺序合并：")
+        for i, f in enumerate(files, 1):
+            print(f"  {i:2d}. {f.name}")
+        
+        # 32. 设置输出文件路径
+        self.output_file = os.path.join(self.directory, output_name)
+        
+        # 33. 根据选择执行不同的合并
+        if choice == "3":  # DOCX文件
+            print(f"\n🔄 开始合并DOCX文件...")
+            success = self.merge_docx_files(files, self.output_file)
+        else:  # 文本文件
+            print(f"\n🔄 开始合并{merge_type_name}...")
+            success = self.merge_text_files(files, self.output_file, merge_type_name)
+        
+        # 34. 显示结果
+        if success:
+            output_size = os.path.getsize(self.output_file)
+            print(f"\n🎉 文件合并完成！")
+            print(f"📄 输出文件: {self.output_file}")
+            print(f"📊 合并文件数: {len(files)}")
+            print(f"💾 文件大小: {output_size} 字节")
+            return True
+        else:
+            print("❌ 合并失败！")
+            return False
+
+def main():
+    """35. 主函数"""
+    merger = InteractiveFileMerger()
+    
+    # 36. 获取用户选择
+    choice = merger.get_user_choice()
+    if choice is None:
+        print("👋 程序已退出")
+        return
+    
+    # 37. 获取目录路径
+    if not merger.get_directory():
+        return
+    
+    # 38. 执行合并
+    merger.run_merge(choice)
+    
+    print("\n✨ 所有任务已完成！")
+
+if __name__ == "__main__":
+    main()</code></pre>
+        </div>
+        
+        <div class="info-section">
+            <h2>📋 脚本功能</h2>
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label">🎯 功能</div>
+                    <div class="info-content">交互式合并TXT、Python、DOCX及除HTML外的所有文件</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">📁 输出</div>
+                    <div class="info-content">生成包含大纲和内容的合并文件</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">⚡ 特性</div>
+                    <div class="info-content">自然排序、文件信息记录、编码自动检测</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">🛠️ 依赖</div>
+                    <div class="info-content">DOCX合并需要安装 python-docx 和 docxcompose</div>
+                     <div class="info-content"> 保存为xx.py，termux运行</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Toast 提示 -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // 1. 复制按钮点击事件处理
+        document.getElementById('copyBtn').addEventListener('click', function() {
+            const copyBtn = this;
+            const copyBtnText = document.getElementById('copyBtnText');
+            const toast = document.getElementById('toast');
+            
+            // 获取纯文本内容（去除HTML标签）
+            const codeElement = document.getElementById('codeContent');
+            const textContent = codeElement.textContent || codeElement.innerText;
+            
+            // 使用现代API复制
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(textContent).then(function() {
+                    // 显示成功提示
+                    handleCopySuccess(copyBtn, copyBtnText, toast);
+                }).catch(function(err) {
+                    showCopyError(copyBtn, copyBtnText, toast);
+                });
+            } else {
+                // 备用方法
+                fallbackCopy(textContent, copyBtn, copyBtnText, toast);
+            }
+        });
+        
+        // 2. 处理复制成功
+        function handleCopySuccess(copyBtn, copyBtnText, toast) {
+            copyBtn.classList.add('copied');
+            copyBtnText.textContent = '已复制';
+            
+            // 显示toast
+            toast.textContent = '✅ 脚本已复制到剪贴板';
+            toast.classList.add('show');
+            
+            // 2秒后恢复按钮状态
+            setTimeout(function() {
+                copyBtn.classList.remove('copied');
+                copyBtnText.textContent = '复制';
+            }, 2000);
+            
+            // 3秒后隐藏toast
+            setTimeout(function() {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+        
+        // 3. 备用复制方法
+        function fallbackCopy(text, copyBtn, copyBtnText, toast) {
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            textArea.style.position = 'fixed';
+            textArea.style.opacity = '0';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    handleCopySuccess(copyBtn, copyBtnText, toast);
+                } else {
+                    showCopyError(copyBtn, copyBtnText, toast);
+                }
+            } catch (err) {
+                showCopyError(copyBtn, copyBtnText, toast);
+            }
+            
+            document.body.removeChild(textArea);
+        }
+        
+        // 4. 显示复制错误
+        function showCopyError(copyBtn, copyBtnText, toast) {
+            // 显示错误提示
+            toast.textContent = '❌ 复制失败，请手动选择复制';
+            toast.style.background = '#e74c3c';
+            toast.classList.add('show');
+            
+            // 3秒后隐藏toast
+            setTimeout(function() {
+                toast.classList.remove('show');
+                toast.style.background = '#27ae60';
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,1073 @@
+<!DOCTYPE html> 
+<html lang="zh-CN"> 
+<head>
+    <meta charset="UTF-8"> 
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>围棋AI 对战- 13 路棋盘</title> 
+    <style>
+        * {
+            margin: 0; 
+            padding: 0; 
+            box-sizing: border-box; 
+            -webkit-tap-highlight-color: transparent;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%); 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            min-height: 100vh; 
+            padding: 10px;
+        }
+        .container {
+            width: 100%; 
+            max-width: 500px; 
+            background: white; 
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2); 
+            border-radius: 10px; 
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white; 
+            padding: 15px; 
+            text-align: center; 
+            position: relative;
+        }
+        .header h3 {
+            font-size: 18px; 
+            margin-bottom: 5px;
+        }
+        .stats-info {
+            display: flex;
+            justify-content: space-around;
+            margin: 8px 0;
+            font-size: 15px;
+            font-weight: bold;
+        }
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .wins {
+            color: #4CAF50;
+        }
+        .losses {
+            color: #f44336;
+        }
+        .score-info {
+            display: flex; 
+            justify-content: space-around; 
+            margin-top: 10px; 
+            font-size: 14px;
+        }
+        .score-item {
+            display: flex; 
+            align-items: center; 
+            gap: 5px;
+        }
+        .score-dot {
+            width: 12px; 
+            height: 12px; 
+            border-radius: 50%; 
+            display: inline-block;
+        }
+        .board-container {
+            padding: 20px; 
+            background: #dcb35c; 
+            position: relative;
+        }
+        .board {
+            position: relative; 
+            width: 100%; 
+            padding-bottom: 100%; 
+            background: #dcb35c; 
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.1);
+        }
+        .grid {
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            right: 0;
+            bottom: 0;
+        }
+        .line {
+            position: absolute; 
+            background: #333;
+        }
+        .h-line {
+            height: 1px; 
+            width: 100%;
+        }
+        .v-line {
+            width: 1px; 
+            height: 100%;
+        }
+        .star-point {
+            position: absolute; 
+            width: 6px; 
+            height: 6px; 
+            background: #333; 
+            border-radius: 50%; 
+            transform: translate(-50%, -50%); 
+            z-index: 1;
+        }
+        .point {
+            position: absolute; 
+            width: 7.69%; 
+            height: 7.69%; 
+            cursor: pointer; 
+            z-index: 2;
+        }
+        .point:hover::before {
+            content: ''; 
+            position: absolute;
+            top: 50%; 
+            left: 50%; 
+            transform: translate(-50%, -50%); 
+            width: 70%; 
+            height: 70%;
+            border-radius: 50%; 
+            opacity: 0.5;
+        }
+        .point.preview-black:hover::before {
+            background: radial-gradient(circle at 30% 30%, #555, #000);
+        }
+        .point.preview-white:hover::before {
+            background: radial-gradient(circle at 30% 30%, #fff, #ddd); 
+            border: 1px solid #999;
+        }
+        .stone {
+            position: absolute; 
+            top: 50%; 
+            left: 50%; 
+            transform: translate(-50%, -50%); 
+            width: 85%; 
+            height: 85%; 
+            border-radius: 50%; 
+            animation: placeStone 0.3s ease-out;
+        }
+        @keyframes placeStone {
+            from {
+                transform: translate(-50%, -50%) scale(0); 
+            } 
+            to {
+                transform: translate(-50%, -50%) scale(1);
+            }
+        }
+        .black {
+            background: radial-gradient(circle at 30% 30%, #555, #000); 
+            box-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        .white {
+            background: radial-gradient(circle at 30% 30%, #fff, #ddd); 
+            border: 1px solid #999; 
+            box-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+        .last-move {
+            position: absolute; 
+            top: 50%; 
+            left: 50%; 
+            transform: translate(-50%, -50%); 
+            width: 30%; 
+            height: 30%; 
+            border: 2px solid; 
+            border-radius: 50%; 
+            z-index: 3; 
+            pointer-events: none;
+        }
+        .last-black {
+            border-color: white;
+        }
+        .last-white {
+            border-color: black;
+        }
+        .eye-marker {
+            position: absolute; 
+            top: 50%; 
+            left: 50%; 
+            transform: translate(-50%, -50%); 
+            width: 40%; 
+            height: 40%; 
+            border: 3px solid #ff6b6b; 
+            border-radius: 50%; 
+            z-index: 4; 
+            pointer-events: none; 
+            background: rgba(255, 107, 107, 0.2);
+        }
+        .controls {
+            padding: 15px; 
+            display: flex; 
+            gap: 10px; 
+            justify-content: center; 
+            background: #f8f9fa;
+        }
+        button {
+            padding: 10px 20px; 
+            border: none; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            font-size: 14px; 
+            font-weight: 500; 
+            transition: all 0.3s ease; 
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        button:hover {
+            transform: translateY(-2px); 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        .pass {
+            background: linear-gradient(135deg, #4CAF50, #45a049); 
+            color: white;
+        }
+        .reset {
+            background: linear-gradient(135deg, #f44336, #da190b); 
+            color: white;
+        }
+        .info {
+            padding: 10px; 
+            text-align: center; 
+            background: #e8f4f8; 
+            font-size: 14px; 
+            min-height: 40px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+        }
+        .thinking {
+            color: #ff6b6b; 
+            font-weight: bold; 
+            animation: pulse 1s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1; 
+            } 
+            50% {
+                opacity: 0.5;
+            }
+        }
+        .captured-info {
+            display: flex; 
+            justify-content: space-around; 
+            padding: 10px; 
+            background: #fff; 
+            border-top: 1px solid #eee; 
+            font-size: 13px;
+        }
+        .captured-item {
+            display: flex; 
+            align-items: center; 
+            gap: 5px;
+        }
+    </style> 
+</head> 
+<body>
+    <div class="container">
+        <div class="header">
+            <h3 id="status">你的回合(黑棋)</h3>
+            <div class="stats-info">
+                <div class="stat-item wins">
+                    <span>胜利: <span id="wins">0</span></span>
+                </div>
+                <div class="stat-item losses">
+                    <span>失败: <span id="losses">0</span></span>
+                </div>
+            </div>
+            <div class="score-info">
+                <div class="score-item">
+                    <span class="score-dot" style="background:radial-gradient(circle at 30% 30%, #555, #000);"></span>
+                    <span>黑棋: <span id="blackScore">0</span></span> 
+                </div> 
+                <div class="score-item">
+                    <span class="score-dot" style="background:radial-gradient(circle at 30% 30%, #fff, #ddd); border: 1px solid #999;"></span>
+                    <span>白棋: <span id="whiteScore">0</span></span> 
+                </div> 
+            </div> 
+        </div> 
+        <div class="board-container">
+            <div class="board" id="board">
+                <div class="grid" id="grid"></div> 
+            </div> 
+        </div> 
+        <div class="captured-info">
+            <div class="captured-item">
+                <span> 黑 棋 提 子 : <span id="blackCaptured">0</span></span>
+            </div> 
+            <div class="captured-item">
+                <span> 白 棋 提 子 : <span id="whiteCaptured">0</span></span>
+            </div> 
+        </div> 
+        <div class="controls">
+            <button class="pass" onclick="game.pass()">虚手Pass</button> 
+            <button class="reset" onclick="game.reset()">重新开始</button> 
+        </div> 
+        <div class="info" id="info"></div> 
+    </div>
+    <script>
+        class GoGame {
+            constructor(size = 13) {
+                this.size = size; 
+                this.board = []; 
+                this.currentPlayer = 'black'; 
+                this.lastMove = null; 
+                this.koPoint = null; 
+                this.passCount = 0; 
+                this.capturedStones = { black: 0, white: 0 }; 
+                this.territory = { black: 0, white: 0 }; 
+                this.gameOver = false; 
+                this.moveHistory = []; 
+                this.eyes = []; 
+                this.wins = 0;
+                this.losses = 0;
+                
+                // 尝试从localStorage恢复游戏状态
+                this.loadGameState();
+                
+                // 如果没有保存的状态，初始化新游戏
+                if (!this.gameStateLoaded) {
+                    this.init();
+                }
+                
+                // 加载胜负统计
+                this.loadStats();
+            }
+            
+            // 从localStorage加载游戏状态
+            loadGameState() {
+                const savedState = localStorage.getItem('goAIGameState');
+                if (savedState) {
+                    try {
+                        const state = JSON.parse(savedState);
+                        this.board = state.board || Array(this.size).fill(null).map(() => Array(this.size).fill(null));
+                        this.currentPlayer = state.currentPlayer || 'black';
+                        this.lastMove = state.lastMove || null;
+                        this.koPoint = state.koPoint || null;
+                        this.passCount = state.passCount || 0;
+                        this.capturedStones = state.capturedStones || { black: 0, white: 0 };
+                        this.territory = state.territory || { black: 0, white: 0 };
+                        this.gameOver = state.gameOver || false;
+                        this.moveHistory = state.moveHistory || [];
+                        this.eyes = state.eyes || [];
+                        
+                        this.gameStateLoaded = true;
+                        this.renderBoard();
+                        this.updateStatus();
+                        this.renderStones();
+                        this.updateCapturedDisplay();
+                        this.updateScoreDisplay();
+                        
+                        // 如果当前是AI回合且游戏未结束，继续AI下棋
+                        if (this.currentPlayer === 'white' && !this.gameOver) {
+                            this.showInfo('AI 思考中...', 'thinking');
+                            setTimeout(() => {
+                                this.aiMove();
+                            }, 500);
+                        }
+                    } catch (e) {
+                        console.error('Failed to load game state:', e);
+                        this.gameStateLoaded = false;
+                    }
+                } else {
+                    this.gameStateLoaded = false;
+                }
+            }
+            
+            // 保存游戏状态到localStorage
+            saveGameState() {
+                const state = {
+                    board: this.board,
+                    currentPlayer: this.currentPlayer,
+                    lastMove: this.lastMove,
+                    koPoint: this.koPoint,
+                    passCount: this.passCount,
+                    capturedStones: this.capturedStones,
+                    territory: this.territory,
+                    gameOver: this.gameOver,
+                    moveHistory: this.moveHistory,
+                    eyes: this.eyes
+                };
+                localStorage.setItem('goAIGameState', JSON.stringify(state));
+            }
+            
+            // 加载胜负统计
+            loadStats() {
+                const stats = localStorage.getItem('goAIStats');
+                if (stats) {
+                    try {
+                        const statsData = JSON.parse(stats);
+                        this.wins = statsData.wins || 0;
+                        this.losses = statsData.losses || 0;
+                    } catch (e) {
+                        console.error('Failed to load stats:', e);
+                    }
+                }
+                this.updateStatsDisplay();
+            }
+            
+            // 保存胜负统计
+            saveStats() {
+                const stats = {
+                    wins: this.wins,
+                    losses: this.losses
+                };
+                localStorage.setItem('goAIStats', JSON.stringify(stats));
+                this.updateStatsDisplay();
+            }
+            
+            // 更新统计显示
+            updateStatsDisplay() {
+                document.getElementById('wins').textContent = this.wins;
+                document.getElementById('losses').textContent = this.losses;
+            }
+            
+            init() { 
+                this.board = Array(this.size).fill(null).map(() => Array(this.size).fill(null) );
+                this.eyes = [];
+                this.renderBoard(); 
+                this.updateStatus();
+                this.saveGameState();
+            }
+            
+            renderBoard() { 
+                const grid = document.getElementById('grid'); 
+                grid.innerHTML = '';
+                
+                for (let i = 0; i < this.size; i++) { 
+                    const hLine = document.createElement('div'); 
+                    hLine.className = 'line h-line'; 
+                    hLine.style.top = `${(i * 100 / (this.size - 1))}%`; 
+                    grid.appendChild(hLine);
+                    
+                    const vLine = document.createElement('div'); 
+                    vLine.className = 'line v-line'; 
+                    vLine.style.left = `${(i * 100 / (this.size - 1))}%`; 
+                    grid.appendChild(vLine);
+                }
+                
+                const starPoints = this.getStarPoints(); 
+                starPoints.forEach(([x, y]) => { 
+                    const star = document.createElement('div'); 
+                    star.className = 'star-point'; 
+                    star.style.left = `${(x * 100 / (this.size - 1))}%`; 
+                    star.style.top = `${(y * 100 / (this.size - 1))}%`; 
+                    grid.appendChild(star); 
+                });
+                
+                for (let y = 0; y < this.size; y++) { 
+                    for (let x = 0; x < this.size; x++) { 
+                        const point = document.createElement('div'); 
+                        point.className = 'point'; 
+                        point.style.left = `${(x * 100 / (this.size - 1) - 3.845)}%`;
+                        point.style.top = `${(y * 100 / (this.size - 1) - 3.845)}%`;
+                        point.dataset.x = x; 
+                        point.dataset.y = y; 
+                        point.classList.add(`preview-${this.currentPlayer}`); 
+                        point.onclick = () => this.handleClick(x, y); 
+                        grid.appendChild(point);
+                    }
+                }
+                
+                this.renderStones();
+            }
+            
+            getStarPoints() { 
+                if (this.size === 13) { 
+                    return [[3, 3], [9, 3], [6, 6], [3, 9], [9, 9]]; 
+                } 
+                return [];
+            }
+            
+            renderStones() { 
+                document.querySelectorAll('.stone, .last-move, .eye-marker').forEach(el => el.remove());
+                
+                for (let y = 0; y < this.size; y++) { 
+                    for (let x = 0; x < this.size; x++) { 
+                        if (this.board[y][x]) { 
+                            const point = document.querySelector(`.point[data-x="${x}"][data-y="${y}"]`);
+                            const stone = document.createElement('div'); 
+                            stone.className = `stone ${this.board[y][x]}`; 
+                            point.appendChild(stone);
+                        }
+                    }
+                }
+                
+                if (this.lastMove) { 
+                    const point = document.querySelector(`.point[data-x="${this.lastMove.x}"][data-y="${this.lastMove.y}"]`);
+                    const lastMoveMarker = document.createElement('div'); 
+                    lastMoveMarker.className = `last-move last-${this.board[this.lastMove.y][this.lastMove.x]}`;
+                    point.appendChild(lastMoveMarker);
+                }
+                
+                this.eyes.forEach(([x, y]) => { 
+                    const point = document.querySelector(`.point[data-x="${x}"][data-y="${y}"]`);
+                    if (point) { 
+                        const eyeMarker = document.createElement('div'); 
+                        eyeMarker.className = 'eye-marker'; 
+                        point.appendChild(eyeMarker);
+                    }
+                });
+            }
+            
+            checkForEyes() { 
+                for (let y = 1; y < this.size - 1; y++) { 
+                    for (let x = 1; x < this.size - 1; x++) { 
+                        if (this.board[y][x] === null) { 
+                            const isEye = this.eyes.some(([ex, ey]) => ex === x && ey === y);
+                            if (!isEye) { 
+                                const neighbors = [ 
+                                    [x-1, y], [x+1, y], [x, y-1], [x, y+1], [x-1, y-1], [x+1, y-1], [x-1, y+1], [x+1, y+1]
+                                ];
+                                let blackCount = 0; 
+                                let whiteCount = 0;
+                                for (const [nx, ny] of neighbors) { 
+                                    if (nx >= 0 && nx < this.size && ny >= 0 && ny < this.size) { 
+                                        if (this.board[ny][nx] === 'black') blackCount++;
+                                        else if (this.board[ny][nx] === 'white') whiteCount++;
+                                    }
+                                }
+                                if (blackCount === 7 || whiteCount === 7) { 
+                                    const color = blackCount === 7 ? 'black' : 'white';
+                                    this.eyes.push([x, y]);
+                                    this.showInfo(`${color === 'black' ? '黑棋' : '白棋'}在(${x+1}, ${y+1})处形成眼！`);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            handleClick(x, y) { 
+                if (this.gameOver) { 
+                    this.showInfo('游戏已结束，请重新开始'); 
+                    return;
+                }
+                
+                if (this.currentPlayer === 'white') { 
+                    this.showInfo('请等待AI 下棋'); 
+                    return;
+                }
+                
+                if (this.board[y][x] !== null) { 
+                    this.showInfo('此处已有棋子'); 
+                    return;
+                }
+                
+                const isEye = this.eyes.some(([ex, ey]) => ex === x && ey === y);
+                if (isEye) { 
+                    this.showInfo('此处为已形成的眼，不能下子'); 
+                    return;
+                }
+                
+                if (this.makeMove(x, y)) { 
+                    this.passCount = 0; 
+                    this.renderStones();
+                    
+                    if (!this.gameOver) { 
+                        this.currentPlayer = 'white'; 
+                        this.updateStatus(); 
+                        this.updatePreview();
+                        this.showInfo('AI 思考中...', 'thinking');
+                        setTimeout(() => { 
+                            this.aiMove(); 
+                        }, 500);
+                    }
+                    
+                    // 保存游戏状态
+                    this.saveGameState();
+                }
+            }
+            
+            makeMove(x, y) { 
+                if (this.koPoint && this.koPoint.x === x && this.koPoint.y === y) { 
+                    this.showInfo('此处为劫，不能立即提回');
+                    return false;
+                }
+                
+                this.board[y][x] = this.currentPlayer; 
+                const opponent = this.currentPlayer === 'black' ? 'white' : 'black';
+                const capturedGroups = [];
+                
+                const neighbors = this.getNeighbors(x, y); 
+                for (const [nx, ny] of neighbors) { 
+                    if (this.board[ny][nx] === opponent) { 
+                        const group = this.getGroup(nx, ny); 
+                        if (!this.hasLiberty(group)) { 
+                            capturedGroups.push(group);
+                        }
+                    }
+                }
+                
+                let capturedCount = 0; 
+                for (const group of capturedGroups) { 
+                    for (const [gx, gy] of group) { 
+                        this.board[gy][gx] = null; 
+                        capturedCount++;
+                    }
+                }
+                
+                const myGroup = this.getGroup(x, y); 
+                if (!this.hasLiberty(myGroup) && capturedCount === 0) { 
+                    this.board[y][x] = null; 
+                    this.showInfo('不能自杀'); 
+                    return false;
+                }
+                
+                if (capturedCount > 0) { 
+                    this.capturedStones[this.currentPlayer] += capturedCount;
+                    document.getElementById(`${this.currentPlayer}Captured`).textContent = this.capturedStones[this.currentPlayer];
+                    
+                    if (capturedCount === 1 && myGroup.length === 1) { 
+                        this.koPoint = capturedGroups[0][0]; 
+                    } else { 
+                        this.koPoint = null;
+                    }
+                } else { 
+                    this.koPoint = null;
+                }
+                
+                this.lastMove = { x, y }; 
+                this.moveHistory.push({ x, y, player: this.currentPlayer });
+                this.checkForEyes();
+                return true;
+            }
+            
+            getNeighbors(x, y) { 
+                const neighbors = []; 
+                const directions = [[0, 1], [1, 0], [0, -1], [-1, 0]];
+                for (const [dx, dy] of directions) { 
+                    const nx = x + dx; 
+                    const ny = y + dy; 
+                    if (nx >= 0 && nx < this.size && ny >= 0 && ny < this.size) { 
+                        neighbors.push([nx, ny]);
+                    }
+                } 
+                return neighbors;
+            }
+            
+            getGroup(x, y) { 
+                const color = this.board[y][x]; 
+                if (!color) return [];
+                
+                const group = []; 
+                const visited = new Set(); 
+                const stack = [[x, y]];
+                
+                while (stack.length > 0) { 
+                    const [cx, cy] = stack.pop(); 
+                    const key = `${cx},${cy}`;
+                    if (visited.has(key)) continue; 
+                    visited.add(key); 
+                    group.push([cx, cy]);
+                    
+                    const neighbors = this.getNeighbors(cx, cy); 
+                    for (const [nx, ny] of neighbors) { 
+                        if (this.board[ny][nx] === color && !visited.has(`${nx},${ny}`)) { 
+                            stack.push([nx, ny]);
+                        }
+                    }
+                }
+                
+                return group;
+            }
+            
+            hasLiberty(group) { 
+                for (const [x, y] of group) { 
+                    const neighbors = this.getNeighbors(x, y); 
+                    for (const [nx, ny] of neighbors) { 
+                        if (this.board[ny][nx] === null) { 
+                            return true;
+                        }
+                    }
+                } 
+                return false;
+            }
+            
+            countEyes(group) { 
+                const emptyPoints = new Set();
+                for (const [x, y] of group) { 
+                    const neighbors = this.getNeighbors(x, y); 
+                    for (const [nx, ny] of neighbors) { 
+                        if (this.board[ny][nx] === null) { 
+                            emptyPoints.add(`${nx},${ny}`);
+                        }
+                    }
+                }
+                
+                let eyeCount = 0; 
+                for (const point of emptyPoints) { 
+                    const [x, y] = point.split(',').map(Number); 
+                    const neighbors = this.getNeighbors(x, y); 
+                    let isEye = true;
+                    for (const [nx, ny] of neighbors) { 
+                        if (this.board[ny][nx] !== null && this.board[ny][nx] !== this.board[group[0][1]][group[0][0]]) { 
+                            isEye = false; 
+                            break;
+                        }
+                    }
+                    if (isEye) eyeCount++;
+                }
+                
+                return eyeCount;
+            }
+            
+            aiMove() { 
+                if (this.gameOver) return;
+                
+                // 首先检查是否有能吃子的位置 
+                const captureMoves = this.getCaptureMoves('white'); 
+                if (captureMoves.length > 0) { 
+                    // 如果能吃子，立即选择吃子最多的位置 
+                    captureMoves.sort((a, b) => b.capturedCount - a.capturedCount);
+                    const bestCapture = captureMoves[0]; 
+                    this.makeMove(bestCapture.x, bestCapture.y); 
+                    this.passCount = 0; 
+                    this.renderStones(); 
+                    this.currentPlayer = 'black'; 
+                    this.updateStatus(); 
+                    this.updatePreview();
+                    this.showInfo(`AI 吃掉了${bestCapture.capturedCount}个棋子！`);
+                    
+                    // 保存游戏状态
+                    this.saveGameState();
+                    return;
+                }
+                
+                // 如果不能吃子，再考虑其他策略 
+                const move = this.getBestMove(); 
+                if (move) { 
+                    this.makeMove(move.x, move.y); 
+                    this.passCount = 0; 
+                    this.renderStones();
+                } else { 
+                    this.pass(); 
+                    return;
+                }
+                
+                this.currentPlayer = 'black'; 
+                this.updateStatus(); 
+                this.updatePreview(); 
+                this.showInfo('');
+                
+                // 保存游戏状态
+                this.saveGameState();
+            }
+            
+            // 获取所有能吃子的位置 
+            getCaptureMoves(color) { 
+                const captureMoves = []; 
+                const opponent = color === 'black' ? 'white' : 'black';
+                
+                for (let y = 0; y < this.size; y++) { 
+                    for (let x = 0; x < this.size; x++) { 
+                        if (this.board[y][x] === null) { 
+                            // 检查是否是已形成的眼 
+                            const isEye = this.eyes.some(([ex, ey]) => ex === x && ey === y);
+                            if (isEye) continue;
+                            
+                            this.board[y][x] = color; 
+                            const neighbors = this.getNeighbors(x, y); 
+                            let totalCaptured = 0; 
+                            let canCapture = false;
+                            
+                            for (const [nx, ny] of neighbors) { 
+                                if (this.board[ny][nx] === opponent) { 
+                                    const oppGroup = this.getGroup(nx, ny); 
+                                    if (!this.hasLiberty(oppGroup)) { 
+                                        canCapture = true; 
+                                        totalCaptured += oppGroup.length;
+                                    }
+                                }
+                            }
+                            
+                            const myGroup = this.getGroup(x, y); 
+                            const hasLiberty = this.hasLiberty(myGroup); 
+                            const isKo = this.koPoint && this.koPoint.x === x && this.koPoint.y === y;
+                            
+                            this.board[y][x] = null;
+                            
+                            if (canCapture && hasLiberty && !isKo) { 
+                                captureMoves.push({ x, y, capturedCount: totalCaptured });
+                            }
+                        }
+                    }
+                }
+                
+                return captureMoves;
+            }
+            
+            getBestMove() { 
+                const moves = this.getAllValidMoves('white'); 
+                if (moves.length === 0) return null;
+                
+                const scoredMoves = moves.map(move => { 
+                    const score = this.evaluateMove(move.x, move.y, 'white'); 
+                    return { ...move, score }; 
+                });
+                
+                scoredMoves.sort((a, b) => b.score - a.score); 
+                const topMoves = scoredMoves.slice(0, Math.min(3, scoredMoves.length));
+                
+                return topMoves[Math.floor(Math.random() * topMoves.length)];
+            }
+            
+            getAllValidMoves(color) { 
+                const validMoves = [];
+                
+                for (let y = 0; y < this.size; y++) { 
+                    for (let x = 0; x < this.size; x++) { 
+                        if (this.board[y][x] === null) { 
+                            const isEye = this.eyes.some(([ex, ey]) => ex === x && ey === y);
+                            if (isEye) continue;
+                            
+                            this.board[y][x] = color; 
+                            const group = this.getGroup(x, y); 
+                            const hasLiberty = this.hasLiberty(group);
+                            
+                            let canCapture = false; 
+                            const opponent = color === 'black' ? 'white' : 'black';
+                            const neighbors = this.getNeighbors(x, y);
+                            
+                            for (const [nx, ny] of neighbors) { 
+                                if (this.board[ny][nx] === opponent) { 
+                                    const oppGroup = this.getGroup(nx, ny); 
+                                    if (!this.hasLiberty(oppGroup)) { 
+                                        canCapture = true; 
+                                        break;
+                                    }
+                                }
+                            }
+                            
+                            const isKo = this.koPoint && this.koPoint.x === x && this.koPoint.y === y;
+                            
+                            this.board[y][x] = null;
+                            
+                            if ((hasLiberty || canCapture) && !isKo) { 
+                                validMoves.push({ x, y });
+                            }
+                        }
+                    }
+                }
+                
+                return validMoves;
+            }
+            
+            evaluateMove(x, y, color) { 
+                let score = Math.random() * 10;
+                
+                // 1. 最高优先级：占边星位 
+                const starPoints = this.getStarPoints(); 
+                for (const [sx, sy] of starPoints) { 
+                    if (x === sx && y === sy) { 
+                        score += 500; 
+                        break;
+                    }
+                }
+                
+                // 2. 次高优先级：阻止对方做眼 
+                this.board[y][x] = color; 
+                const opponent = color === 'black' ? 'white' : 'black'; 
+                const neighbors = this.getNeighbors(x, y);
+                
+                for (const [nx, ny] of neighbors) { 
+                    if (this.board[ny][nx] === opponent) { 
+                        const oppGroup = this.getGroup(nx, ny);
+                        const oppEyeCount = this.countEyes(oppGroup); 
+                        if (oppEyeCount >= 1) { 
+                            score += 200;
+                        }
+                    }
+                }
+                
+                // 3. 包围对方棋子 
+                let surroundCount = 0; 
+                for (const [nx, ny] of neighbors) { 
+                    if (this.board[ny][nx] === opponent) { 
+                        surroundCount++;
+                    }
+                } 
+                if (surroundCount >= 2) { 
+                    score += 100;
+                }
+                
+                // 4. 检查自己是否危险 
+                const myGroup = this.getGroup(x, y); 
+                if (!this.hasLiberty(myGroup)) { 
+                    score -= 500; 
+                } else { 
+                    const liberties = this.getLiberties(myGroup); 
+                    if (liberties.length === 1) { 
+                        score += 80;
+                    } else if (liberties.length === 2) { 
+                        score += 40;
+                    }
+                }
+                
+                // 5. 优先攻击对方的弱棋 
+                for (let py = 0; py < this.size; py++) { 
+                    for (let px = 0; px < this.size; px++) { 
+                        if (this.board[py][px] === opponent) { 
+                            const oppGroup = this.getGroup(px, py); 
+                            const oppLiberties = this.getLiberties(oppGroup); 
+                            if (oppLiberties.length <= 2) { 
+                                const dist = Math.abs(x - px) + Math.abs(y - py);
+                                if (dist <= 2) { 
+                                    score += 50;
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                this.board[y][x] = null;
+                
+                return score;
+            }
+            
+            getLiberties(group) { 
+                const liberties = new Set();
+                
+                for (const [x, y] of group) { 
+                    const neighbors = this.getNeighbors(x, y); 
+                    for (const [nx, ny] of neighbors) { 
+                        if (this.board[ny][nx] === null) { 
+                            liberties.add(`${nx},${ny}`);
+                        }
+                    }
+                }
+                
+                return Array.from(liberties).map(point => { 
+                    const [x, y] = point.split(',').map(Number); 
+                    return [x, y]; 
+                });
+            }
+            
+            pass() { 
+                this.passCount++;
+                this.showInfo(`${this.currentPlayer === 'black' ? '黑棋' : '白棋'}虚手`);
+                
+                if (this.passCount >= 2) { 
+                    this.endGame(); 
+                } else { 
+                    this.currentPlayer = this.currentPlayer === 'black' ? 'white' : 'black'; 
+                    this.updateStatus(); 
+                    this.updatePreview();
+                    
+                    if (this.currentPlayer === 'white') { 
+                        setTimeout(() => { 
+                            this.aiMove(); 
+                        }, 500);
+                    }
+                }
+                
+                // 保存游戏状态
+                this.saveGameState();
+            }
+            
+            endGame() { 
+                this.gameOver = true; 
+                this.calculateScore();
+                
+                const winner = this.territory.black > this.territory.white ? '黑棋' : '白棋';
+                
+                // 更新胜负统计
+                if (winner === '黑棋') {
+                    this.wins++;
+                } else {
+                    this.losses++;
+                }
+                this.saveStats();
+                
+                this.showInfo(` 游 戏 结 束 ！${winner} 获 胜 ！黑 棋:${this.territory.black}目，白棋: ${this.territory.white}目`);
+                
+                // 保存游戏状态
+                this.saveGameState();
+            }
+            
+            calculateScore() { 
+                let blackStones = 0; 
+                let whiteStones = 0;
+                
+                for (let y = 0; y < this.size; y++) { 
+                    for (let x = 0; x < this.size; x++) { 
+                        if (this.board[y][x] === 'black') blackStones++; 
+                        else if (this.board[y][x] === 'white') whiteStones++;
+                    }
+                }
+                
+                this.territory.black = blackStones + this.capturedStones.black; 
+                this.territory.white = whiteStones + this.capturedStones.white + 6.5;
+                
+                document.getElementById('blackScore').textContent = this.territory.black; 
+                document.getElementById('whiteScore').textContent = this.territory.white;
+            }
+            
+            reset() { 
+                this.board = Array(this.size).fill(null).map(() => Array(this.size).fill(null) );
+                this.currentPlayer = 'black'; 
+                this.lastMove = null; 
+                this.koPoint = null; 
+                this.passCount = 0; 
+                this.capturedStones = { black: 0, white: 0 }; 
+                this.territory = { black: 0, white: 0 }; 
+                this.gameOver = false; 
+                this.moveHistory = []; 
+                this.eyes = [];
+                
+                document.getElementById('blackCaptured').textContent = '0'; 
+                document.getElementById('whiteCaptured').textContent = '0'; 
+                document.getElementById('blackScore').textContent = '0'; 
+                document.getElementById('whiteScore').textContent = '0';
+                
+                this.renderStones(); 
+                this.updateStatus(); 
+                this.updatePreview(); 
+                this.showInfo('');
+                
+                // 保存游戏状态
+                this.saveGameState();
+            }
+            
+            updateStatus() { 
+                const statusText = this.gameOver ? '游戏结束' : this.currentPlayer === 'black' ? '你的回合(黑棋)' : 'AI 思考中(白棋)';
+                document.getElementById('status').textContent = statusText;
+            }
+            
+            updatePreview() { 
+                document.querySelectorAll('.point').forEach(point => { 
+                    point.classList.remove('preview-black', 'preview-white');
+                    if (!this.gameOver && this.board[point.dataset.y][point.dataset.x] === null) { 
+                        const isEye = this.eyes.some(([ex, ey]) => ex === parseInt(point.dataset.x) && ey === parseInt(point.dataset.y));
+                        if (!isEye) { 
+                            point.classList.add(`preview-${this.currentPlayer}`);
+                        }
+                    }
+                });
+            }
+            
+            updateCapturedDisplay() {
+                document.getElementById('blackCaptured').textContent = this.capturedStones.black;
+                document.getElementById('whiteCaptured').textContent = this.capturedStones.white;
+            }
+            
+            updateScoreDisplay() {
+                document.getElementById('blackScore').textContent = this.territory.black;
+                document.getElementById('whiteScore').textContent = this.territory.white;
+            }
+            
+            showInfo(message, className = '') { 
+                const info = document.getElementById('info'); 
+                info.textContent = message; 
+                info.className = 'info ' + className;
+            }
+        }
+        
+        const game = new GoGame(13); 
+    </script> 
+</body> 
+</html>

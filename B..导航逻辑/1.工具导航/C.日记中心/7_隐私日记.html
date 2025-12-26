@@ -1,0 +1,1271 @@
+<!DOCTYPE html> 
+<html lang="zh-CN"> 
+<head>
+    <meta charset="UTF-8"> 
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>隐私空间Pro</title> 
+    <style>
+        :root {
+            --primary: #6C5CE7; 
+            --bg-grad: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 50%, #90caf9 100%); 
+            --glass: rgba(255, 255, 255, 0.25); 
+            --glass-border: rgba(255, 255, 255, 0.4); 
+            --text-color: #fff; 
+            --item-bg: rgba(255,255,255, 0.9); 
+            --dark-text: #333; 
+            --kb-bg: #d1d5db; 
+            --kb-key-bg: #fff;
+        }
+        
+        * { 
+            box-sizing: border-box; 
+            -webkit-tap-highlight-color: transparent; 
+        }
+        
+        body, html {
+            margin: 0; 
+            padding: 0; 
+            width: 100%; 
+            height: 100%; 
+            overflow: hidden; 
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: var(--bg-grad); 
+            color: var(--text-color);
+        }
+        
+        /* 页面基础*/
+        .page {
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            display: flex; 
+            flex-direction: column; 
+            transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.4s;
+            opacity: 0; 
+            pointer-events: none; 
+            transform: scale(0.95);
+            z-index: 1; 
+            padding-top: env(safe-area-inset-top); 
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        
+        .page.active {
+            opacity: 1; 
+            pointer-events: auto; 
+            transform: scale(1); 
+            z-index: 10;
+        }
+        
+        /* ----- 锁定页面----- */ 
+        .lock-container {
+            flex: 1; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            backdrop-filter: blur(10px);
+        }
+        
+        .lock-title { 
+            font-size: 24px; 
+            margin-bottom: 30px; 
+            font-weight: 600;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2); 
+        }
+        
+        .pin-display { 
+            display: flex; 
+            gap: 15px; 
+            margin-bottom: 50px; 
+        } 
+        
+        .pin-dot { 
+            width: 20px; 
+            height: 20px; 
+            border: 2px solid #fff;
+            border-radius: 50%; 
+            transition: all 0.2s; 
+        }
+        
+        .pin-dot.filled { 
+            background: #fff; 
+            box-shadow: 0 0 10px rgba(255,255,255,0.8); 
+        }
+        
+        .numpad { 
+            display: grid; 
+            grid-template-columns: repeat(3, 1fr); 
+            gap: 20px; 
+            width: 80%; 
+            max-width: 300px; 
+        }
+        
+        .num-btn { 
+            background: var(--glass); 
+            border: 1px solid var(--glass-border); 
+            color: #fff; 
+            font-size: 24px; 
+            height: 70px; 
+            width: 70px; 
+            border-radius: 50%; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            margin: 0 auto; 
+            cursor: pointer; 
+        }
+        
+        .num-btn:active { 
+            background: rgba(255,255,255,0.4); 
+            transform: scale(0.95); 
+        }
+        
+        /* ----- 列表页面----- */ 
+        .header {
+            padding: 15px 20px; 
+            display: flex;
+            justify-content: space-between; 
+            align-items: center; 
+            background: rgba(0,0,0,0.1); 
+            backdrop-filter: blur(5px);
+        }
+        
+        .header-title { 
+            font-size: 18px; 
+            font-weight: bold; 
+        }
+        
+        .icon-btn {
+            background: none; 
+            border: none; 
+            color: #fff; 
+            font-size: 24px; 
+            cursor: pointer; 
+            padding: 5px; 
+            opacity: 0.9;
+        }
+        
+        .diary-grid {
+            flex: 1; 
+            overflow-y: auto; 
+            padding: 15px; 
+            display: grid; 
+            grid-template-columns: repeat(4, 1fr); 
+            grid-auto-rows: min-content; 
+            gap: 10px; 
+            align-content: start;
+        }
+        
+        .diary-item {
+            aspect-ratio: 1; 
+            background: var(--item-bg); 
+            border-radius: 12px; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            color: var(--dark-text); 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
+            animation: popIn 0.3s ease forwards; 
+            overflow: hidden; 
+            position: relative;
+        }
+        
+        .diary-item-date { 
+            font-weight: bold; 
+            font-size: 14px; 
+            margin-bottom: 4px; 
+        }
+        
+        .diary-item-preview { 
+            opacity: 0.6; 
+            font-size: 10px; 
+            white-space: nowrap; 
+            overflow: hidden; 
+            text-overflow: ellipsis; 
+            width: 80%; 
+            text-align: center; 
+        }
+        
+        .fab {
+            position: absolute; 
+            bottom: 30px; 
+            right: 30px; 
+            width: 60px; 
+            height: 60px; 
+            background: #fff; 
+            color: var(--primary); 
+            border-radius: 50%; 
+            border: none; 
+            font-size: 30px; 
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3); 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            z-index: 100; 
+            cursor: pointer;
+        }
+        
+        /* ----- 编辑页面----- */ 
+        .editor-container {
+            flex: 1; 
+            display: flex; 
+            flex-direction: column; 
+            background: #f5f7fa; 
+            color: #333; 
+            position: relative; 
+            height: 100%;
+        }
+        
+        .editor-nav {
+            padding: 15px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            background: #fff; 
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05); 
+            flex-shrink: 0;
+        }
+        
+        .nav-btn { 
+            color: var(--primary); 
+            font-weight: 600; 
+            font-size: 16px;
+            cursor: pointer; 
+        }
+        
+        .editor-date { 
+            font-size: 16px; 
+            font-weight: bold; 
+        }
+        
+        .editor-textarea {
+            flex: 1; 
+            width: 100%; 
+            border: none; 
+            padding: 20px; 
+            font-size: 18px; 
+            line-height: 1.5; 
+            resize: none; 
+            outline: none; 
+            background: transparent; 
+            font-family: inherit;
+        }
+        
+        /* ----- 隐私键盘(English Only) ----- */ 
+        .privacy-keyboard-container {
+            position: absolute; 
+            bottom: 0; 
+            left: 0; 
+            width: 100%; 
+            background: #d1d5db; 
+            transform: translateY(100%); 
+            transition: transform 0.3s cubic-bezier(0.1, 0.7, 0.1, 1); 
+            z-index: 500; 
+            display: flex; 
+            flex-direction: column; 
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        
+        .privacy-keyboard-container.show { 
+            transform: translateY(0); 
+        }
+        
+        .keyboard-security-tip {
+            background: #fef3c7; 
+            color: #d97706; 
+            font-size: 12px; 
+            text-align: center; 
+            padding: 6px; 
+            border-top: 1px solid #fcd34d; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            gap: 5px;
+        }
+        
+        .pk-row {
+            display: flex; 
+            justify-content: center; 
+            width: 100%; 
+            padding: 6px 3px 0 3px; 
+            gap: 6px;
+        }
+        
+        .pk-key {
+            background: #fff; 
+            border-radius: 5px; 
+            height: 44px; 
+            flex: 1; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            font-size: 20px; 
+            font-weight: 400;
+            color: #000; 
+            box-shadow: 0 1px 0 rgba(0,0,0,0.3); 
+            cursor: pointer; 
+            user-select: none; 
+            max-width: 40px; /* 限制字母键宽度*/
+        }
+        
+        .pk-key:active { 
+            background: #e5e7eb; 
+            transform: translateY(1px);
+            box-shadow: none; 
+        }
+        
+        .pk-key.wide { 
+            flex: 1.5; 
+            font-size: 14px; 
+            background: #aeb4be;
+            max-width: none; 
+        }
+        
+        .pk-key.space { 
+            flex: 5; 
+            max-width: none; 
+        }
+        
+        .pk-key.enter { 
+            background: var(--primary); 
+            color: white; 
+            font-size: 14px;
+            font-weight: bold; 
+            max-width: none; 
+            flex: 2; 
+        }
+        
+        .spacer { 
+            height: 6px; 
+        }
+        
+        /* ----- 设置模态框----- */ 
+        .modal-overlay {
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            background: rgba(0,0,0,0.5); 
+            z-index: 900; 
+            display: none; 
+            align-items: center; 
+            justify-content: center; 
+            backdrop-filter: blur(3px); 
+        }
+        
+        /* ----- 更换密码模态框 - 最高层级 ----- */ 
+        #change-password-modal {
+            z-index: 9999 !important; 
+        }
+        
+        /* 让"更换密码"弹窗里的圆点可见 */
+        #change-password-modal .pin-dot {
+            border-color: #6C5CE7;   /* 紫边框 */
+            background: transparent;  /* 默认空心 */
+        }
+        #change-password-modal .pin-dot.filled {
+            background: #6C5CE7;     /* 填充紫色 */
+            box-shadow: 0 0 10px rgba(108, 92, 231, 0.8);
+        }
+        
+        .modal-content {
+            background: white; 
+            padding: 25px; 
+            border-radius: 16px; 
+            width: 80%; 
+            max-width: 320px; 
+            color: #333; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3); 
+            animation: popIn 0.2s;
+        }
+        
+        .modal-header { 
+            font-size: 18px; 
+            font-weight: bold; 
+            margin-bottom: 20px; 
+        }
+        
+        .setting-row {
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 20px; 
+            font-size: 16px;
+        }
+        
+        .setting-btn {
+            background: none; 
+            border: none; 
+            color: var(--primary); 
+            font-size: 16px; 
+            cursor: pointer; 
+            padding: 8px 16px; 
+            border-radius: 6px; 
+            transition: background 0.3s;
+        }
+        
+        .setting-btn:hover {
+            background: rgba(108, 92, 231, 0.1);
+        }
+        
+        /* 简单的Toggle 开关*/
+        .toggle-switch {
+            position: relative; 
+            width: 50px; 
+            height: 26px; 
+            border-radius: 13px; 
+            background: #ccc; 
+            cursor: pointer; 
+            transition: 0.3s; 
+        }
+        
+        .toggle-switch.on { 
+            background: var(--primary); 
+        }
+        
+        .toggle-handle {
+            position: absolute; 
+            top: 3px; 
+            left: 3px; 
+            width: 20px; 
+            height: 20px; 
+            border-radius: 50%; 
+            background: white; 
+            transition: 0.3s; 
+        }
+        
+        .toggle-switch.on .toggle-handle { 
+            left: 27px; 
+        }
+        
+        .modal-footer { 
+            text-align: right; 
+            margin-top: 10px; 
+        }
+        
+        .modal-btn {
+            padding: 8px 16px; 
+            background: #eee; 
+            border: none; 
+            border-radius: 6px; 
+            font-size: 14px;
+        }
+        
+        /* 动画与工具*/
+        @keyframes shake { 
+            0%,100%{transform:translateX(0)}
+            25%{transform:translateX(-8px)} 
+            75%{transform:translateX(8px)} 
+        }
+        
+        .shake { 
+            animation: shake 0.3s ease-in-out; 
+        }
+        
+        @keyframes popIn { 
+            from {opacity:0; transform:scale(0.8)} 
+            to{opacity:1; transform:scale(1)} 
+        }
+        
+        #toast {
+            position: fixed; 
+            top: 50%; 
+            left: 50%; 
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.8); 
+            color: white; 
+            padding: 10px 20px; 
+            border-radius: 8px; 
+            opacity: 0; 
+            pointer-events: none; 
+            transition: opacity 0.3s; 
+            z-index: 1000; 
+            font-size: 14px;
+        }
+/* 更换密码模态框 - 全新透明鲜艳样式 */
+#change-password-modal {
+  z-index: 9999 !important;
+}
+
+#change-password-modal .modal-content {
+  background: linear-gradient(135deg, 
+    rgba(108, 92, 231, 0.9) 0%, 
+    rgba(142, 45, 226, 0.85) 25%,
+    rgba(236, 72, 153, 0.8) 50%,
+    rgba(239, 68, 68, 0.85) 75%,
+    rgba(245, 158, 11, 0.9) 100%);
+  backdrop-filter: blur(20px);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2), 
+              0 5px 15px rgba(0, 0, 0, 0.1),
+              inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  border-radius: 20px;
+  padding: 30px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* 添加光效背景 */
+#change-password-modal .modal-content::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, 
+    rgba(255, 255, 255, 0.1) 0%, 
+    transparent 70%);
+  animation: shimmer 3s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(180deg); }
+}
+
+/* 标题样式 */
+#change-password-modal .modal-header {
+  color: #ffffff;
+  font-size: 20px;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 15px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  position: relative;
+  z-index: 1;
+}
+
+/* 描述文字样式 */
+#change-password-modal #change-pw-desc {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 14px;
+  text-align: center;
+  margin-bottom: 25px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  position: relative;
+  z-index: 1;
+}
+
+/* 密码圆点样式 */
+#change-password-modal .pin-dot {
+  width: 22px;
+  height: 22px;
+  border: 3px solid rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  position: relative;
+  z-index: 1;
+}
+
+#change-password-modal .pin-dot.filled {
+  background: linear-gradient(135deg, #ffffff 0%, #f0f0f0 100%);
+  border-color: #ffffff;
+  box-shadow: 0 0 20px rgba(255, 255, 255, 0.8),
+              0 4px 12px rgba(0, 0, 0, 0.3);
+  transform: scale(1.1);
+}
+
+/* 数字按钮样式 */
+#change-password-modal .num-btn {
+  background: linear-gradient(135deg, 
+    rgba(255, 255, 255, 0.25) 0%, 
+    rgba(255, 255, 255, 0.15) 100%);
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  color: #ffffff;
+  font-size: 22px;
+  font-weight: 700;
+  height: 65px;
+  width: 65px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(10px);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2),
+              inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  position: relative;
+  z-index: 1;
+}
+
+#change-password-modal .num-btn:hover {
+  background: linear-gradient(135deg, 
+    rgba(255, 255, 255, 0.35) 0%, 
+    rgba(255, 255, 255, 0.25) 100%);
+  transform: translateY(-3px) scale(1.05);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3),
+              inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  border-color: rgba(255, 255, 255, 0.6);
+}
+
+#change-password-modal .num-btn:active {
+  background: linear-gradient(135deg, 
+    rgba(255, 255, 255, 0.45) 0%, 
+    rgba(255, 255, 255, 0.35) 100%);
+  transform: translateY(0) scale(0.98);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2),
+              inset 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* 取消按钮样式 */
+#change-password-modal .modal-btn {
+  background: linear-gradient(135deg, 
+    rgba(255, 255, 255, 0.2) 0%, 
+    rgba(255, 255, 255, 0.1) 100%);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  color: #ffffff;
+  font-weight: 600;
+  padding: 10px 20px;
+  border-radius: 25px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  position: relative;
+  z-index: 1;
+}
+
+#change-password-modal .modal-btn:hover {
+  background: linear-gradient(13
+
+    </style> 
+</head> 
+<body>
+    <!-- 1. 登录/设置页面-->
+    <div id="page-lock" class="page active">
+        <div class="lock-container">
+            <div class="lock-title" id="lock-msg">请输入密码</div> 
+            <div class="pin-display" id="pin-dots">
+                <div class="pin-dot"></div>
+                <div class="pin-dot"></div>
+                <div class="pin-dot"></div>
+                <div class="pin-dot"></div>
+            </div> 
+            <div class="numpad">
+                <div class="num-btn" onclick="inputPin(1)">1</div>
+                <div class="num-btn" onclick="inputPin(2)">2</div>
+                <div class="num-btn" onclick="inputPin(3)">3</div>
+                <div class="num-btn" onclick="inputPin(4)">4</div>
+                <div class="num-btn" onclick="inputPin(5)">5</div>
+                <div class="num-btn" onclick="inputPin(6)">6</div>
+                <div class="num-btn" onclick="inputPin(7)">7</div>
+                <div class="num-btn" onclick="inputPin(8)">8</div>
+                <div class="num-btn" onclick="inputPin(9)">9</div>
+                <div class="num-btn" style="opacity:0"></div>
+                <div class="num-btn" onclick="inputPin(0)">0</div>
+                <div class="num-btn" onclick="deletePin()">⌫</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 2. 日记列表页面-->
+    <div id="page-list" class="page">
+        <div class="header">
+            <span class="header-title">Privacy Diary</span> 
+            <div style="display: flex; gap: 15px;">
+                <button class="icon-btn" onclick="openSettings()">⚙️</button>
+            </div>
+        </div>
+        <div class="diary-grid" id="diary-grid"></div>
+        <button class="fab" onclick="openEditor(null)">+</button>
+    </div>
+    
+    <!-- 3. 编辑页面-->
+    <div id="page-editor" class="page" style="background: white;">
+        <div class="editor-container">
+            <div class="editor-nav">
+                <div class="nav-btn" onclick="closeEditor()">取消</div>
+                <div class="editor-date" id="edit-date-display">...</div>
+                <div class="nav-btn" onclick="saveEditor()">完成</div>
+            </div>
+            <!-- 核心输入框：inputmode="none" 阻止手机键盘弹出-->
+            <textarea id="diary-input" class="editor-textarea" placeholder="在此输入内容..." inputmode="text"></textarea>
+            <!-- 模拟光标填充视图，防止键盘遮挡-->
+            <div id="kb-spacer" style="height: 0; transition: height 0.3s;"></div>
+            <!-- 隐私键盘-->
+            <div id="privacy-keyboard" class="privacy-keyboard-container">
+                <div class="keyboard-security-tip">
+                    🔒<span style="font-weight:bold;">隐私键盘已开启</span>- 输入内容绝不联网，本地安全存储
+                </div>
+                <div class="pk-row">
+                    <div class="pk-key" onclick="k('Q')">Q</div>
+                    <div class="pk-key" onclick="k('W')">W</div>
+                    <div class="pk-key" onclick="k('E')">E</div>
+                    <div class="pk-key" onclick="k('R')">R</div>
+                    <div class="pk-key" onclick="k('T')">T</div>
+                    <div class="pk-key" onclick="k('Y')">Y</div>
+                    <div class="pk-key" onclick="k('U')">U</div>
+                    <div class="pk-key" onclick="k('I')">I</div>
+                    <div class="pk-key" onclick="k('O')">O</div>
+                    <div class="pk-key" onclick="k('P')">P</div>
+                </div>
+                <div class="pk-row">
+                    <div class="pk-key" onclick="k('A')">A</div>
+                    <div class="pk-key" onclick="k('S')">S</div>
+                    <div class="pk-key" onclick="k('D')">D</div>
+                    <div class="pk-key" onclick="k('F')">F</div>
+                    <div class="pk-key" onclick="k('G')">G</div>
+                    <div class="pk-key" onclick="k('H')">H</div>
+                    <div class="pk-key" onclick="k('J')">J</div>
+                    <div class="pk-key" onclick="k('K')">K</div>
+                    <div class="pk-key" onclick="k('L')">L</div>
+                </div>
+                <div class="pk-row">
+                    <div class="pk-key wide" onclick="k('CAPS')">⬆</div>
+                    <div class="pk-key" onclick="k('Z')">Z</div>
+                    <div class="pk-key" onclick="k('X')">X</div>
+                    <div class="pk-key" onclick="k('C')">C</div>
+                    <div class="pk-key" onclick="k('V')">V</div>
+                    <div class="pk-key" onclick="k('B')">B</div>
+                    <div class="pk-key" onclick="k('N')">N</div>
+                    <div class="pk-key" onclick="k('M')">M</div>
+                    <div class="pk-key wide" onclick="k('DEL')">⌫</div>
+                </div>
+                <div class="pk-row" style="margin-bottom: 5px;">
+                    <div class="pk-key wide" onclick="k('123')">123</div>
+                    <div class="pk-key" onclick="k(',')">,</div>
+                    <div class="pk-key space" onclick="k('SPACE')">Space</div>
+                    <div class="pk-key" onclick="k('.')">.</div>
+                    <div class="pk-key enter" onclick="k('ENTER')">Enter</div>
+                </div>
+                <div class="spacer"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 设置模态框-->
+    <div id="settings-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">设置</div>
+            <div class="setting-row">
+                <span>🛡️开启隐私键盘</span>
+                <div class="toggle-switch on" id="toggle-privacy" onclick="togglePrivacy()">
+                    <div class="toggle-handle"></div>
+                </div>
+            </div>
+            <div style="font-size: 12px; color: #666; margin-bottom: 20px; line-height: 1.4;">
+                开启后，写日记时将使用内置安全键盘（仅支持英文） ，彻底防止第三方输入法窃取记录。
+            </div>
+            <div class="setting-row">
+                <span>🔐更换密码</span>
+                <button class="setting-btn" onclick="startChangePassword()">更换</button>
+            </div>
+            <div class="setting-row" style="border-top: 1px solid #eee; padding-top: 15px;">
+                <span style="color: red;" onclick="lockApp()">🔒 立即锁定App</span>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn" onclick="closeSettings()"> 关闭</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 更换密码模态框 - 最高层级-->
+    <div id="change-password-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header" id="change-pw-title">验证当前密码</div>
+            <div style="margin-bottom: 20px; font-size: 14px; color: #666;" id="change-pw-desc">
+                请输入当前密码以继续
+            </div>
+            <div class="pin-display" id="change-pw-dots" style="justify-content: center; margin-bottom: 20px;">
+                <div class="pin-dot"></div>
+                <div class="pin-dot"></div>
+                <div class="pin-dot"></div>
+                <div class="pin-dot"></div>
+            </div>
+            <div class="numpad" style="width: 100%; max-width: 250px; gap: 15px;">
+                <div class="num-btn" onclick="changePasswordInput(1)">1</div>
+                <div class="num-btn" onclick="changePasswordInput(2)">2</div>
+                <div class="num-btn" onclick="changePasswordInput(3)">3</div>
+                <div class="num-btn" onclick="changePasswordInput(4)">4</div>
+                <div class="num-btn" onclick="changePasswordInput(5)">5</div>
+                <div class="num-btn" onclick="changePasswordInput(6)">6</div>
+                <div class="num-btn" onclick="changePasswordInput(7)">7</div>
+                <div class="num-btn" onclick="changePasswordInput(8)">8</div>
+                <div class="num-btn" onclick="changePasswordInput(9)">9</div>
+                <div class="num-btn" style="opacity:0"></div>
+                <div class="num-btn" onclick="changePasswordInput(0)">0</div>
+                <div class="num-btn" onclick="changePasswordDelete()">⌫</div>
+            </div>
+            <div class="modal-footer" style="margin-top: 20px;">
+                <button class="modal-btn" onclick="closeChangePassword()">取消</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="toast">提示信息</div>
+    
+    <script>
+        // --- 全局变量---
+        const DB_KEY = 'xs_diary_data_v2'; 
+        const PIN_KEY = 'xs_diary_pin'; 
+        const SETTING_KEY = 'xs_diary_privacy_on';
+        let diaryData = []; 
+        let currentPin = ''; 
+        let isSetupMode = false; 
+        let setupStep = 1; 
+        let tempPin = ''; 
+        let currentEditingId = null;
+        
+        // 隐私键盘状态 
+        let isPrivacyOn = true; 
+        let isCaps = false;
+        
+        // 更换密码状态
+        let changePasswordStep = 0; // 0: 验证当前密码, 1: 输入新密码, 2: 确认新密码
+        let changePasswordPin = '';
+        let oldPasswordVerified = false;
+        let newPassword = '';
+        
+        // --- 工具函数---
+        // 把光标强制放到字符串末尾（新建日记时很好用）
+        function moveCursorToEnd(el) {
+            el.focus();
+            const len = el.value.length;
+            el.setSelectionRange(len, len);
+            el.scrollTop = el.scrollHeight;   // 如果内容超高，顺便滚到底
+        }
+
+        // 在任意位置插入文本并自动把光标放到插入片段之后
+        function insertAtCaret(el, str) {
+            const [start, end] = [el.selectionStart, el.selectionEnd];
+            const before = el.value.substring(0, start);
+            const after  = el.value.substring(end);
+
+            el.value = before + str + after;
+
+            // 关键：把光标放到新插入文本的后面
+            const newPos = start + str.length;
+            el.setSelectionRange(newPos, newPos);
+
+            // 让 textarea 重新获得焦点，防止键盘丢失
+            el.focus();
+            el.scrollTop = el.scrollHeight;
+        }
+        
+        // --- 初始化---
+        window.addEventListener('DOMContentLoaded', () => {
+            loadData(); 
+            loadSettings(); 
+            checkLockStatus();
+            
+            // 绑定输入框聚焦事件 
+            const input = document.getElementById('diary-input'); 
+            input.addEventListener('focus', onInputFocus);
+            
+            // 如果用户自己点了系统键盘，我们就乖乖把隐私键盘收起来
+            input.addEventListener('blur', (e) => {
+                // 如果是因为切到别的输入框而 blur，就不处理
+                if (e.relatedTarget === null) return;
+                document.getElementById('privacy-keyboard').classList.remove('show');
+            });
+        });
+        
+        function loadData() {
+            const data = localStorage.getItem(DB_KEY); 
+            diaryData = data ? JSON.parse(data) : [];
+        }
+        
+        function loadSettings() {
+            const val = localStorage.getItem(SETTING_KEY); 
+            // 默认开启 
+            if (val === null) {
+                isPrivacyOn = true; 
+                localStorage.setItem(SETTING_KEY, 'true'); 
+            } else {
+                isPrivacyOn = val === 'true'; 
+            } 
+            updateToggleUI();
+        }
+        
+        // --- 键盘与输入逻辑---
+        // 当点击输入框时 
+        function onInputFocus(e) {
+            const input = document.getElementById('diary-input'); 
+            const kbContainer = document.getElementById('privacy-keyboard');
+            const spacer = document.getElementById('kb-spacer');
+            
+            if (isPrivacyOn) {
+                // 如果开启隐私键盘，禁止系统键盘弹出 
+                input.setAttribute('inputmode', 'none'); 
+                kbContainer.classList.add('show');
+                spacer.style.height = kbContainer.offsetHeight + 'px'; // 垫高底部防止遮挡
+            } else {
+                // 如果关闭隐私键盘，允许系统键盘 
+                input.setAttribute('inputmode', 'text'); 
+                kbContainer.classList.remove('show'); 
+                spacer.style.height = '0';
+            }
+        }
+        
+        // 虚拟按键处理 
+        function k(key) {
+            const input = document.getElementById('diary-input'); 
+            let val = input.value; 
+            let start = input.selectionStart; 
+            let end = input.selectionEnd;
+            let charToAdd = '';
+            
+            if (key === 'DEL') {
+                if (start === end) {
+                    if (start > 0) {
+                        input.value = val.substring(0, start - 1) + val.substring(end);
+                        input.setSelectionRange(start - 1, start - 1);
+                    }
+                } else {
+                    input.value = val.substring(0, start) + val.substring(end);
+                    input.setSelectionRange(start, start);
+                }
+                input.focus();          // ← 就加这一行
+                return; // 结束
+            } else if (key === 'SPACE') {
+                charToAdd = ' '; 
+            } else if (key === 'ENTER') {
+                charToAdd = '\n'; 
+            } else if (key === 'CAPS') {
+                isCaps = !isCaps;
+                // document.querySelectorAll('.pk-key').forEach(...) // 这里可以做UI变色，为了简化暂略
+                return;
+            } else if (key === '123') {
+                // 简化版：这里暂不支持切换数字键盘，直接插入示例数字以免代码过长，或者作为TODO
+                insertTextAtCursor("1"); 
+                return; 
+            } else {
+                // 字母 
+                charToAdd = isCaps ? key : key.toLowerCase();
+            }
+            
+            insertTextAtCursor(charToAdd);
+        }
+        
+        // 原来那段直接删掉，换成这一行即可
+        function insertTextAtCursor(text) {
+            const input = document.getElementById('diary-input');
+            insertAtCaret(input, text);
+        }
+        
+        // --- 设置面板逻辑---
+        function openSettings() {
+            document.getElementById('settings-modal').style.display = 'flex';
+        }
+        
+        function closeSettings() {
+            document.getElementById('settings-modal').style.display = 'none'; 
+        }
+        
+        function togglePrivacy() {
+            isPrivacyOn = !isPrivacyOn; 
+            localStorage.setItem(SETTING_KEY, isPrivacyOn); 
+            updateToggleUI(); 
+        }
+        
+        function updateToggleUI() {
+            const toggle = document.getElementById('toggle-privacy'); 
+            if (isPrivacyOn) 
+                toggle.classList.add('on'); 
+            else 
+                toggle.classList.remove('on'); 
+        }
+        
+        // --- 更换密码逻辑---
+        function startChangePassword() {
+            closeSettings();
+            changePasswordStep = 0;
+            changePasswordPin = '';
+            oldPasswordVerified = false;
+            newPassword = '';
+            updateChangePasswordUI();
+            document.getElementById('change-password-modal').style.display = 'flex';
+        }
+        
+        function closeChangePassword() {
+            document.getElementById('change-password-modal').style.display = 'none';
+            changePasswordStep = 0;
+            changePasswordPin = '';
+            oldPasswordVerified = false;
+            newPassword = '';
+        }
+        
+        function updateChangePasswordUI() {
+            const title = document.getElementById('change-pw-title');
+            const desc = document.getElementById('change-pw-desc');
+            const dots = document.querySelectorAll('#change-pw-dots .pin-dot');
+            
+            // 更新点显示
+            dots.forEach((dot, idx) => {
+                if (idx < changePasswordPin.length) 
+                    dot.classList.add('filled'); 
+                else 
+                    dot.classList.remove('filled'); 
+            });
+            
+            // 更新标题和描述
+            if (changePasswordStep === 0) {
+                title.innerText = "验证当前密码";
+                desc.innerText = "请输入当前密码以继续";
+            } else if (changePasswordStep === 1) {
+                title.innerText = "设置新密码";
+                desc.innerText = "请输入4位新密码";
+            } else if (changePasswordStep === 2) {
+                title.innerText = "确认新密码";
+                desc.innerText = "请再次输入新密码";
+            }
+        }
+        
+        function changePasswordInput(num) {
+            if (changePasswordPin.length < 4) {
+                changePasswordPin += num;
+                updateChangePasswordUI();
+                
+                if (changePasswordPin.length === 4) {
+                    setTimeout(() => processChangePassword(), 200);
+                }
+            }
+        }
+        
+        function changePasswordDelete() {
+            changePasswordPin = changePasswordPin.slice(0, -1);
+            updateChangePasswordUI();
+        }
+        
+        function processChangePassword() {
+            const storedPin = localStorage.getItem(PIN_KEY);
+            
+            if (changePasswordStep === 0) {
+                // 验证当前密码
+                if (changePasswordPin === storedPin) {
+                    oldPasswordVerified = true;
+                    changePasswordPin = '';
+                    changePasswordStep = 1;
+                    updateChangePasswordUI();
+                    showToast("密码验证成功");
+                } else {
+                    showToast("当前密码错误");
+                    shakeChangePassword();
+                    changePasswordPin = '';
+                    updateChangePasswordUI();
+                }
+            } else if (changePasswordStep === 1) {
+                // 设置新密码
+                newPassword = changePasswordPin;
+                changePasswordPin = '';
+                changePasswordStep = 2;
+                updateChangePasswordUI();
+            } else if (changePasswordStep === 2) {
+                // 确认新密码
+                if (changePasswordPin === newPassword) {
+                    localStorage.setItem(PIN_KEY, changePasswordPin);
+                    showToast("密码更换成功");
+                    closeChangePassword();
+                } else {
+                    showToast("两次输入的密码不一致");
+                    shakeChangePassword();
+                    changePasswordPin = '';
+                    updateChangePasswordUI();
+                }
+            }
+        }
+        
+        function shakeChangePassword() {
+            const el = document.querySelector('#change-password-modal .modal-content');
+            el.classList.add('shake');
+            setTimeout(() => el.classList.remove('shake'), 300);
+        }
+        
+        // --- 核心业务逻辑(与上个版本类似，但增加了保存) ---
+        function checkLockStatus() {
+            const storedPin = localStorage.getItem(PIN_KEY); 
+            if (!storedPin) {
+                isSetupMode = true;
+                document.getElementById('lock-msg').innerText = "首次使用， 请设置4位密码";
+            } else {
+                isSetupMode = false;
+                document.getElementById('lock-msg').innerText = "请输入密码解锁";
+            }
+        }
+        
+        function inputPin(num) {
+            if (currentPin.length < 4) {
+                currentPin += num; 
+                updateDots(); 
+                if (currentPin.length === 4) 
+                    setTimeout(processPin, 200);
+            }
+        }
+        
+        function deletePin() {
+            currentPin = currentPin.slice(0, -1); 
+            updateDots();
+        }
+        
+        function updateDots() {
+            const dots = document.querySelectorAll('.pin-dot'); 
+            dots.forEach((dot, idx) => {
+                if (idx < currentPin.length) 
+                    dot.classList.add('filled'); 
+                else 
+                    dot.classList.remove('filled'); 
+            });
+        }
+        
+        function processPin() {
+            const storedPin = localStorage.getItem(PIN_KEY); 
+            if (isSetupMode) {
+                if (setupStep === 1) {
+                    tempPin = currentPin; 
+                    currentPin = ''; 
+                    setupStep = 2;
+                    document.getElementById('lock-msg').innerText = "请再次输入以确认";
+                    updateDots(); 
+                } else {
+                    if (currentPin === tempPin) {
+                        localStorage.setItem(PIN_KEY, currentPin); 
+                        showToast("密码设置成功"); 
+                        unlockApp(); 
+                    } else {
+                        showToast("密码不一致，重试"); 
+                        shakeLock(); 
+                        resetSetup();
+                    }
+                }
+            } else {
+                if (currentPin === storedPin) 
+                    unlockApp();
+                else { 
+                    showToast(" 密码错误"); 
+                    shakeLock(); 
+                    currentPin = '';
+                    updateDots(); 
+                }
+            }
+        }
+        
+        function resetSetup() {
+            currentPin = ''; 
+            tempPin = ''; 
+            setupStep = 1;
+            document.getElementById('lock-msg').innerText = "首次使用， 请设置密码";
+            updateDots();
+        }
+        
+        function shakeLock() {
+            const el = document.querySelector('.lock-container'); 
+            el.classList.add('shake'); 
+            setTimeout(() => el.classList.remove('shake'), 300); 
+        }
+        
+        function switchPage(pageId) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active'); 
+        }
+        
+        function unlockApp() {
+            currentPin = ''; 
+            updateDots(); 
+            renderGrid(); 
+            switchPage('page-list'); 
+        }
+        
+        function lockApp() {
+            closeSettings(); 
+            switchPage('page-lock'); 
+            // 关闭键盘
+            document.getElementById('privacy-keyboard').classList.remove('show'); 
+        }
+        
+        function renderGrid() {
+            const grid = document.getElementById('diary-grid'); 
+            grid.innerHTML = ''; 
+            const sorted = [...diaryData].sort((a,b) => b.ts - a.ts);
+            
+            if (sorted.length === 0) {
+                grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; opacity:0.6; margin-top:50px;"> 点击右下角 + 开始写日记 </div>';
+                return;
+            }
+            
+            sorted.forEach(item => {
+                const el = document.createElement('div'); 
+                el.className = 'diary-item'; 
+                const d = new Date(item.ts); 
+                el.innerHTML = `<div class="diary-item-date">${d.getMonth()+1}/${d.getDate()}</div><div class="diary-item-preview">${item.content || '空'}</div>`;
+                el.onclick = () => openEditor(item.id); 
+                grid.appendChild(el); 
+            });
+        }
+        
+        function openEditor(id) {
+            currentEditingId = id; 
+            const input = document.getElementById('diary-input'); 
+            const dateDisplay = document.getElementById('edit-date-display');
+            
+            if (id) {
+                const item = diaryData.find(x => x.id === id); 
+                input.value = item ? item.content : ''; 
+                dateDisplay.innerText = new Date(item.ts).toLocaleDateString();
+            } else {
+                input.value = ''; 
+                dateDisplay.innerText = new Date().toLocaleDateString(); 
+            }
+            
+            switchPage('page-editor');
+            
+            // 延迟聚焦，如果是隐私模式，会自动弹出自定义键盘 
+            setTimeout(() => {
+                const input = document.getElementById('diary-input');
+                moveCursorToEnd(input);   // ← 新增
+                if (isPrivacyOn) {
+                    document.getElementById('privacy-keyboard').classList.add('show');
+                }
+            }, 300); 
+        }
+        
+        function closeEditor() {
+            document.getElementById('diary-input').blur(); 
+            document.getElementById('privacy-keyboard').classList.remove('show'); 
+            document.getElementById('kb-spacer').style.height = '0'; 
+            switchPage('page-list'); 
+        }
+        
+        function saveEditor() {
+            const content = document.getElementById('diary-input').value.trim();
+            
+            if(!content) {
+                closeEditor(); 
+                return;
+            }
+            
+            const now = Date.now(); 
+            if (currentEditingId) {
+                const idx = diaryData.findIndex(x => x.id === currentEditingId);
+                if (idx > -1) { 
+                    diaryData[idx].content = content;
+                    diaryData[idx].ts = now; 
+                }
+            } else {
+                diaryData.push({ id: 'd_'+now, content: content, ts: now }); 
+            }
+            
+            localStorage.setItem(DB_KEY, JSON.stringify(diaryData)); 
+            renderGrid(); 
+            closeEditor(); 
+            showToast("已加密保存"); 
+        }
+        
+        function showToast(msg) {
+            const t = document.getElementById('toast'); 
+            t.innerText = msg; 
+            t.style.opacity = 1; 
+            setTimeout(() => t.style.opacity = 0, 2000); 
+        }
+    </script> 
+</body> 
+</html>

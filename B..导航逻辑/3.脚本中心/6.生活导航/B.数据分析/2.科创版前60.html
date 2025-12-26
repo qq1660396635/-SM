@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>科创板股票数据</title>
+    <style>
+        * { 
+            margin: 0; 
+            padding: 0; 
+            box-sizing: border-box; 
+        }
+        
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4efe9 100%);
+            min-height: 100vh;
+            padding: 8px;
+        }
+        
+        .container {
+            max-width: 720px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+            overflow: hidden;
+        }
+        
+        .table-container {
+            padding: 0 16px;
+        }
+        
+        h1 { 
+            text-align: center; 
+            font-size: 20px; 
+            margin: 16px 0;
+            color: #2c3e50;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+        
+        .header-icon {
+            font-size: 22px;
+            margin-right: 6px;
+            vertical-align: middle;
+        }
+        
+        table { 
+            width: 100%; 
+            border-collapse: separate;
+            border-spacing: 0;
+            font-size: 14px;
+            background: white;
+        }
+        
+        th, td { 
+            padding: 12px 8px; 
+            border-bottom: 1px solid #eaeaea;
+            text-align: left;
+            vertical-align: middle;
+        }
+        
+        th { 
+            background: #f8f9fa;
+            color: #495057;
+            font-weight: 600;
+            font-size: 13px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            border-bottom: 2px solid #dee2e6;
+        }
+        
+        tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+        
+        tr:hover {
+            background-color: #e9ecef;
+            transition: background-color 0.2s ease;
+        }
+        
+        .rank {
+            width: 8%;
+            text-align: center;
+            font-weight: 600;
+            color: #6c757d;
+            font-size: 13px;
+        }
+        
+        .name { 
+            width: 30%; 
+            font-weight: 500;
+            color: #212529;
+            font-size: 13px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .desc {
+            width: 20%;
+            font-size: 11px;
+            color: #6c757d;
+            font-weight: 400;
+        }
+        
+        .pe { 
+            width: 21%; 
+            text-align: right;
+            font-weight: 600;
+            font-size: 12px;
+        }
+        
+        .market { 
+            width: 21%; 
+            text-align: right;
+            font-weight: 600;
+            color: #495057;
+            font-size: 12px;
+        }
+        
+        .nav { 
+            text-align: center; 
+            margin: 0;
+            padding: 16px;
+            background: #f8f9fa;
+            border-top: 1px solid #eaeaea;
+        }
+        
+        .nav button { 
+            padding: 8px 20px; 
+            margin: 0 4px; 
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            background: white;
+            color: #495057;
+            transition: all 0.2s ease;
+        }
+        
+        .nav button:hover {
+            background: #e9ecef;
+            border-color: #adb5bd;
+        }
+        
+        .nav button.active { 
+            background: #20c997;
+            color: white;
+            border-color: #20c997;
+            box-shadow: 0 2px 8px rgba(32, 201, 151, 0.3);
+        }
+        
+        .neg { 
+            color: #dc3545;
+        }
+        
+        .pos { 
+            color: #198754;
+        }
+        
+        .page { 
+            display: none; 
+        }
+        
+        .page.active { 
+            display: block; 
+        }
+        
+        .top-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #20c997;
+            color: white;
+            height: 16px;
+            min-width: 32px;
+            border-radius: 8px;
+            font-size: 9px;
+            margin-left: 6px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        
+        .name-wrapper {
+            display: flex;
+            align-items: center;
+            min-width: 0;
+        }
+        
+        .name-text {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            flex: 1;
+        }
+        
+        /* 移动端优化 */
+        @media (max-width: 480px) {
+            .container {
+                border-radius: 12px;
+            }
+            
+            .table-container {
+                padding: 0 8px;
+            }
+            
+            h1 {
+                font-size: 18px;
+                margin: 12px 0;
+            }
+            
+            th, td {
+                padding: 10px 6px;
+                font-size: 12px;
+            }
+            
+            .rank {
+                font-size: 12px;
+                width: 7%;
+            }
+            
+            .name {
+                font-size: 12px;
+                width: 28%;
+            }
+            
+            .desc {
+                font-size: 10px;
+                width: 22%;
+            }
+            
+            .pe, .market {
+                font-size: 11px;
+                width: 21.5%;
+            }
+            
+            .nav button {
+                padding: 6px 14px;
+                font-size: 12px;
+                margin: 0 2px;
+            }
+            
+            .nav {
+                padding: 12px;
+            }
+            
+            .top-badge {
+                height: 14px;
+                min-width: 28px;
+                font-size: 8px;
+                margin-left: 4px;
+            }
+        }
+        
+        /* 超小屏幕优化 */
+        @media (max-width: 360px) {
+            .name {
+                width: 26%;
+            }
+            
+            .desc {
+                width: 24%;
+            }
+            
+            .pe, .market {
+                width: 21.5%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1><span class="header-icon">📊</span>2025年12月科创板前60强</h1>
+        
+        <div class="table-container">
+            <div id="page1" class="page active"></div>
+            <div id="page2" class="page"></div>
+            <div id="page3" class="page"></div>
+        </div>
+        
+        <div class="nav">
+            <button onclick="showPage(1)" class="active">1-20</button>
+            <button onclick="showPage(2)">21-40</button>
+            <button onclick="showPage(3)">41-60</button>
+        </div>
+    </div>
+
+    <script>
+        const data = [
+            ["中芯国际", 178.04, "9064亿", "半导体制造"], 
+            ["寒武纪-U", 259.30, "5548亿", "AI芯片"], 
+            ["海光信息", 184.06, "4814亿", "CPU芯片"],
+            ["百济神州-U", 275.43, "4181亿", "生物医药"], 
+            ["摩尔线程-U", -348.27, "3360亿", "GPU芯片"], 
+            ["N沐曦-U", -720.78, "3320亿", "GPU芯片"],
+            ["华虹公司", 526.46, "1764亿", "半导体制造"], 
+            ["中微公司", 108.24, "1748亿", "半导体设备"], 
+            ["百利天恒", -220.15, "1452亿", "生物医药"],
+            ["金山办公", 92.10, "1447亿", "软件服务"], 
+            ["澜起科技", 61.72, "1343亿", "芯片设计"], 
+            ["联影医疗", 70.33, "1050亿", "医疗设备"],
+            ["影石创新", 92.69, "978.4亿", "影像设备"], 
+            ["拓荆科技", 127.70, "947.5亿", "半导体设备"], 
+            ["西安奕材-U", -125.73, "935.2亿", "半导体材料"],
+            ["生益电子", 59.49, "884.1亿", "PCB制造"], 
+            ["盛美上海", 49.35, "833.1亿", "半导体设备"], 
+            ["传音控股", 27.92, "799.6亿", "手机制造"],
+            ["华润微", 109.72, "768.8亿", "半导体制造"], 
+            ["屹唐股份", 105.75, "727.1亿", "半导体设备"], 
+            ["晶合集成", 98.88, "725.3亿", "半导体制造"],
+            ["芯原股份", -149.49, "691.0亿", "芯片设计"], 
+            ["时代电气", 18.52, "671.6亿", "电力电子"], 
+            ["沪硅产业", -78.56, "661.3亿", "半导体材料"],
+            ["大全能源", -41.44, "592.9亿", "光伏"], 
+            ["中国通号", 18.85, "574.0亿", "轨道交通"], 
+            ["源杰科技", 404.20, "570.7亿", "光通信芯片"],
+            ["龙芯中科", -108.59, "570.2亿", "CPU芯片"], 
+            ["阿特斯", 42.66, "562.5亿", "光伏"], 
+            ["华海清科", 53.27, "562.2亿", "半导体设备"],
+            ["盛科通信-U", 4336.87, "541.8亿", "通信芯片"], 
+            ["芯联集成-U", -87.71, "541.5亿", "半导体制造"], 
+            ["晶科能源", -10.28, "537.3亿", "光伏"],
+            ["中科飞测", -2714.04, "531.9亿", "半导体检测"], 
+            ["佰维存储", 1278.29, "518.4亿", "存储芯片"], 
+            ["复旦微电", 116.95, "515.0亿", "芯片设计"],
+            ["国盾量子", -1457.43, "514.4亿", "量子通信"], 
+            ["东芯股份", -254.33, "495.7亿", "存储芯片"], 
+            ["仕佳光子", 116.99, "467.5亿", "光通信"],
+            ["海博思创", 56.26, "467.1亿", "储能"], 
+            ["国博电子", 140.99, "464.5亿", "射频芯片"], 
+            ["荣昌生物", -62.88, "461.7亿", "生物医药"],
+            ["艾力斯", 21.01, "452.7亿", "生物医药"], 
+            ["西部超导", 52.15, "451.7亿", "超导材料"], 
+            ["天岳先进", 28041.13, "418.7亿", "第三代半导体"],
+            ["九号公司-WD", 17.28, "411.8亿", "智能短交通"], 
+            ["金盘科技", 63.00, "407.9亿", "电力电子"], 
+            ["石头科技", 29.14, "403.3亿", "智能清洁"],
+            ["格科微", 597.31, "399.7亿", "图像传感器"], 
+            ["睿创微纳", 42.30, "398.7亿", "红外成像"], 
+            ["诺诚健华-U", -461.26, "396.2亿", "生物医药"],
+            ["上纬新材", 484.70, "391.3亿", "复合材料"], 
+            ["天合光能", -6.97, "390.5亿", "光伏"], 
+            ["燕东微", -2164.53, "386.7亿", "半导体制造"],
+            ["柏楚电子", 32.02, "386.0亿", "激光控制"], 
+            ["中控技术", 65.83, "378.8亿", "工业自动化"], 
+            ["君实生物-U", -46.59, "370.0亿", "生物医药"],
+            ["厦钨新能", 50.24, "369.9亿", "电池材料"], 
+            ["华丰科技", 124.15, "369.3亿", "电子元器件"], 
+            ["恒玄科技", 55.17, "369.0亿", "音频芯片"]
+        ];
+
+        function renderTable(pageNum) {
+            const start = (pageNum - 1) * 20;
+            const end = start + 20;
+            const pageData = data.slice(start, end);
+            
+            let html = '<table><tr><th>排名</th><th>名称</th><th>行业</th><th>市盈率</th><th>总市值</th></tr>';
+            pageData.forEach((row, index) => {
+                const globalRank = start + index + 1;
+                const peClass = row[1] < 0 ? 'neg' : 'pos';
+                const rankBadge = globalRank <= 3 ? `<span class="top-badge">TOP${globalRank}</span>` : '';
+                
+                html += `<tr>
+                    <td class="rank">${globalRank}</td>
+                    <td class="name">
+                        <div class="name-wrapper">
+                            <span class="name-text">${row[0]}</span>
+                            ${rankBadge}
+                        </div>
+                    </td>
+                    <td class="desc">${row[3]}</td>
+                    <td class="pe ${peClass}">${row[1]}</td>
+                    <td class="market">${row[2]}</td>
+                </tr>`;
+            });
+            html += '</table>';
+            
+            document.getElementById(`page${pageNum}`).innerHTML = html;
+        }
+
+        function showPage(pageNum) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
+            
+            document.getElementById(`page${pageNum}`).classList.add('active');
+            document.querySelectorAll('.nav button')[pageNum - 1].classList.add('active');
+            
+            if (!document.getElementById(`page${pageNum}`).innerHTML) {
+                renderTable(pageNum);
+            }
+        }
+
+        // 初始化第一页
+        renderTable(1);
+    </script>
+</body>
+</html>

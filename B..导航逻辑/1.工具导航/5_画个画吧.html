@@ -1,0 +1,1282 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AI 绘画书架- 创意收藏</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* 书架界面 */
+        .bookshelf {
+            display: none;
+            padding: 20px;
+            height: 100vh;
+            overflow-y: auto;
+        }
+
+        .bookshelf.active {
+            display: block;
+        }
+
+        .bookshelf-title {
+            text-align: center;
+            color: white;
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 30px;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+
+        .artworks-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            max-width: 600px;
+            margin: 0 auto;
+            padding-bottom: 100px;
+        }
+
+        .artwork-slot {
+            aspect-ratio: 1;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            position: relative;
+        }
+
+        .artwork-slot:hover {
+            transform: translateY(-5px) scale(1.05);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+        }
+
+        .artwork-slot.empty {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.8);
+            border: 3px dashed rgba(79, 172, 254, 0.5);
+        }
+
+        .artwork-slot.empty:hover {
+            background: rgba(255, 255, 255, 0.95);
+            border-color: #4facfe;
+        }
+
+        .add-icon {
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            border-radius: 50%;
+            color: white;
+            font-size: 30px;
+            transition: all 0.3s ease;
+        }
+
+        .artwork-slot.empty:hover .add-icon {
+            transform: rotate(90deg) scale(1.1);
+        }
+
+        .artwork-thumbnail {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .artwork-info {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
+            color: white;
+            padding: 10px;
+            font-size: 12px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .artwork-slot:hover .artwork-info {
+            opacity: 1;
+        }
+
+        /* 分页控制 */
+        .pagination-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            margin-top: 20px;
+            padding-bottom: 30px;
+        }
+
+        .page-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.9);
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 16px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        .page-btn:hover {
+            transform: scale(1.1);
+            background: white;
+        }
+
+        .page-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .page-info {
+            color: white;
+            font-size: 16px;
+            font-weight: 500;
+            min-width: 80px;
+            text-align: center;
+        }
+
+        /* 绘画界面 */
+        .drawing-area {
+            display: none;
+            height: 100vh;
+            position: relative;
+        }
+
+        .drawing-area.active {
+            display: block;
+        }
+
+        #canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            background: white;
+            cursor: crosshair;
+            touch-action: none;
+        }
+
+        /* 返回按钮 */
+        .back-btn {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            width: 45px;
+            height: 45px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            z-index: 1000;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .back-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+
+        /* 底部工具栏 */
+        .toolbar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 20px 20px 0 0;
+            box-shadow: 0 -5px 30px rgba(0,0,0,0.2);
+            z-index: 999;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        .toolbar.collapsed {
+            transform: translateY(calc(100% - 50px));
+        }
+
+        /* 工具栏把手 */
+        .toolbar-handle {
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .handle-bar {
+            width: 40px;
+            height: 4px;
+            background: #ccc;
+            border-radius: 2px;
+            transition: all 0.3s ease;
+        }
+
+        .toolbar.collapsed .handle-bar {
+            width: 60px;
+            background: #4facfe;
+        }
+
+        /* 工具内容区 */
+        .toolbar-content {
+            padding: 15px;
+        }
+
+        .tool-section {
+            margin-bottom: 15px;
+        }
+
+        .tool-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: #666;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        /* 工具行布局 */
+        .tool-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        /* 颜色选择器紧凑版 */
+        .color-picker-compact {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex: 1;
+        }
+
+        .color-preview-small {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            border: 2px solid #e0e0e0;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .color-sliders-compact {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .slider-compact {
+            width: 100%;
+            height: 4px;
+            border-radius: 2px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .slider-compact::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: white;
+            border: 2px solid #4facfe;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        /* 快捷颜色 */
+        .quick-colors-compact {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
+
+        .quick-color-small {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .quick-color-small:hover {
+            transform: scale(1.15);
+            border-color: #4facfe;
+        }
+
+        /* 画笔大小紧凑版 */
+        .brush-size-compact {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .size-preview-small {
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f5f5f5;
+            border-radius: 6px;
+        }
+
+        .size-dot-small {
+            background: #333;
+            border-radius: 50%;
+        }
+
+        /* 按钮紧凑版 */
+        .btn-compact {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            flex: 1;
+        }
+
+        .btn-primary-compact {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+        }
+
+        .btn-secondary-compact {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .btn-danger-compact {
+            background: #ff4757;
+            color: white;
+        }
+
+        .btn-success-compact {
+            background: #00b894;
+            color: white;
+        }
+
+        /* 模式选择紧凑版 */
+        .mode-selector-compact {
+            display: flex;
+            gap: 5px;
+            background: #f0f0f0;
+            padding: 3px;
+            border-radius: 8px;
+        }
+
+        .mode-btn-compact {
+            flex: 1;
+            padding: 8px;
+            border: none;
+            background: transparent;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 12px;
+        }
+
+        .mode-btn-compact.active {
+            background: white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        /* 速度选择紧凑版 */
+        .speed-selector-compact {
+            display: flex;
+            gap: 5px;
+            background: #f0f0f0;
+            padding: 3px;
+            border-radius: 8px;
+        }
+
+        .speed-btn-compact {
+            flex: 1;
+            padding: 6px 10px;
+            border: none;
+            background: transparent;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 11px;
+        }
+
+        .speed-btn-compact.active {
+            background: white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        /* AI 指示器 */
+        .ai-indicator {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 8px 16px;
+            border-radius: 20px;
+            display: none;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            font-size: 13px;
+            z-index: 1001;
+        }
+
+        .ai-indicator.active {
+            display: flex;
+        }
+
+        .ai-indicator-dot {
+            width: 6px;
+            height: 6px;
+            background: #4facfe;
+            border-radius: 50%;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.2); }
+        }
+
+        /* 保存提示 */
+        .save-toast {
+            position: fixed;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 184, 148, 0.95);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            display: none;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            font-size: 13px;
+            z-index: 1002;
+        }
+
+        .save-toast.show {
+            display: flex;
+            animation: slideDown 0.3s ease;
+        }
+
+        @keyframes slideDown {
+            from { transform: translateX(-50%) translateY(-100%); opacity: 0; }
+            to { transform: translateX(-50%) translateY(0); opacity: 1; }
+        }
+
+        /* 响应式调整 */
+        @media (max-width: 375px) {
+            .artworks-grid {
+                gap: 10px;
+            }
+            .toolbar {
+                max-height: 80vh;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 书架界面 -->
+    <div class="bookshelf active" id="bookshelf">
+        <h1 class="bookshelf-title">🎨 我的作品书架</h1>
+        <div class="artworks-grid" id="artworksGrid">
+            <!-- 动态生成9个位置 -->
+        </div>
+        <div class="pagination-controls" id="paginationControls">
+            <button class="page-btn" id="prevBtn" onclick="previousPage()">‹</button>
+            <div class="page-info" id="pageInfo">1/1</div>
+            <button class="page-btn" id="nextBtn" onclick="nextPage()">›</button>
+        </div>
+    </div>
+
+    <!-- 绘画界面 -->
+    <div class="drawing-area" id="drawingArea">
+        <canvas id="canvas"></canvas>
+        
+        <!-- 返回按钮 -->
+        <div class="back-btn" onclick="backToBookshelf()">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
+        </div>
+        
+        <!-- AI 指示器 -->
+        <div class="ai-indicator" id="aiIndicator">
+            <div class="ai-indicator-dot"></div>
+            <span>AI 正在创作...</span>
+        </div>
+        
+        <!-- 底部工具栏 -->
+        <div class="toolbar" id="toolbar">
+            <!-- 把手 -->
+            <div class="toolbar-handle" onclick="toggleToolbar()">
+                <div class="handle-bar"></div>
+            </div>
+            
+            <!-- 工具内容 -->
+            <div class="toolbar-content">
+                <!-- 模式和速度 -->
+                <div class="tool-row">
+                    <div class="tool-section" style="flex: 1;">
+                        <div class="tool-title">🎨 模式</div>
+                        <div class="mode-selector-compact">
+                            <button class="mode-btn-compact active" onclick="setMode('draw')">手动</button>
+                            <button class="mode-btn-compact" onclick="setMode('ai')">AI</button>
+                        </div>
+                    </div>
+                    <div class="tool-section" style="flex: 1;">
+                        <div class="tool-title">⚡ 速度</div>
+                        <div class="speed-selector-compact">
+                            <button class="speed-btn-compact" onclick="setSpeed('slow')">慢</button>
+                            <button class="speed-btn-compact active" onclick="setSpeed('medium')">中</button>
+                            <button class="speed-btn-compact" onclick="setSpeed('fast')">快</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 颜色选择 -->
+                <div class="tool-section">
+                    <div class="tool-title">🎨 颜色</div>
+                    <div class="color-picker-compact">
+                        <div class="color-preview-small" id="colorPreview" onclick="randomColor()"></div>
+                        <div class="color-sliders-compact">
+                            <input type="range" class="slider-compact" id="hueSlider" min="0" max="360" value="200">
+                            <input type="range" class="slider-compact" id="saturationSlider" min="0" max="100" value="70">
+                            <input type="range" class="slider-compact" id="lightnessSlider" min="0" max="100" value="50">
+                        </div>
+                    </div>
+                    <div class="quick-colors-compact" style="margin-top: 8px;">
+                        <div class="quick-color-small" style="background: #000000" onclick="setQuickColor('#000000')"></div>
+                        <div class="quick-color-small" style="background: #ff4757" onclick="setQuickColor('#ff4757')"></div>
+                        <div class="quick-color-small" style="background: #ffa502" onclick="setQuickColor('#ffa502')"></div>
+                        <div class="quick-color-small" style="background: #fffa65" onclick="setQuickColor('#fffa65')"></div>
+                        <div class="quick-color-small" style="background: #32ff7e" onclick="setQuickColor('#32ff7e')"></div>
+                        <div class="quick-color-small" style="background: #18dcff" onclick="setQuickColor('#18dcff')"></div>
+                        <div class="quick-color-small" style="background: #7d5fff" onclick="setQuickColor('#7d5fff')"></div>
+                        <div class="quick-color-small" style="background: #ff6b9d" onclick="setQuickColor('#ff6b9d')"></div>
+                    </div>
+                </div>
+                
+                <!-- 画笔大小 -->
+                <div class="tool-section">
+                    <div class="tool-title">✏️ 画笔</div>
+                    <div class="brush-size-compact">
+                        <div class="size-preview-small">
+                            <div class="size-dot-small" id="sizePreview"></div>
+                        </div>
+                        <input type="range" class="slider-compact" id="brushSize" min="1" max="50" value="5" style="flex: 1;">
+                        <span id="sizeValue" style="font-size: 12px; min-width: 30px;">5px</span>
+                    </div>
+                </div>
+                
+                <!-- 操作按钮 -->
+                <div class="tool-row">
+                    <button class="btn-compact btn-primary-compact" onclick="toggleAIDrawing()" id="aiToggleBtn">
+                        <span>🤖</span> AI 绘画
+                    </button>
+                    <button class="btn-compact btn-secondary-compact" onclick="undoLast()">
+                        <span>↶</span> 撤销
+                    </button>
+                    <button class="btn-compact btn-danger-compact" onclick="clearCanvas()">
+                        <span>🗑️</span> 清空
+                    </button>
+                </div>
+                <div class="tool-row">
+                    <button class="btn-compact btn-success-compact" onclick="saveCurrentArtwork()">
+                        <span>💾</span> 保存
+                    </button>
+                    <button class="btn-compact btn-secondary-compact" onclick="downloadImage()">
+                        <span>⬇️</span> 下载
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 保存提示 -->
+    <div class="save-toast" id="saveToast">
+        <span>✓</span>
+        <span id="saveMessage">作品已保存</span>
+    </div>
+
+    <script>
+        // ========== 全局变量 ==========
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // 界面状态
+        let currentView = 'bookshelf'; // 'bookshelf' or 'drawing'
+        let currentArtworkId = null;
+        let isDrawing = false;
+        let currentMode = 'draw';
+        let currentColor = 'hsl(200, 70%, 50%)';
+        let brushSize = 5;
+        let speed = 'medium';
+        let isAIDrawing = false;
+        let aiAnimationId = null;
+        let drawingHistory = [];
+        let currentPath = [];
+        let lastSaveTime = Date.now();
+        
+        // AI 绘画参数
+        let aiTime = 0;
+        let aiPatterns = [];
+        
+        // 分页参数
+        let currentPage = 1;
+        const itemsPerPage = 8; // 每页显示8个作品，第9个位置是添加按钮
+        
+        // 存储键名
+        const STORAGE_KEYS = {
+            artworks: 'aiDrawing_artworks',
+            currentArtwork: 'aiDrawing_current'
+        };
+        
+        // ========== 初始化 ==========
+        function init() {
+            resizeCanvas();
+            loadArtworks();
+            updateColor();
+            updateBrushSize();
+            setupEventListeners();
+        }
+        
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        
+        window.addEventListener('resize', resizeCanvas);
+        
+        // ========== 书架功能 ==========
+        function loadArtworks() {
+            const grid = document.getElementById('artworksGrid');
+            const artworks = getArtworks();
+            grid.innerHTML = '';
+            
+            // 计算分页
+            const totalPages = Math.ceil(artworks.length / itemsPerPage) || 1;
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = Math.min(startIndex + itemsPerPage, artworks.length);
+            const currentPageArtworks = artworks.slice(startIndex, endIndex);
+            
+            // 生成当前页的作品（最多8个）
+            for (let i = 0; i < itemsPerPage; i++) {
+                const slot = document.createElement('div');
+                slot.className = 'artwork-slot';
+                
+                if (i < currentPageArtworks.length) {
+                    // 显示作品
+                    const artwork = currentPageArtworks[i];
+                    slot.innerHTML = `
+                        <img src="${artwork.thumbnail}" class="artwork-thumbnail" alt="${artwork.name}">
+                        <div class="artwork-info">
+                            <div>${artwork.name}</div>
+                            <div style="font-size: 10px; opacity:0.8;">${artwork.date}</div>
+                        </div>
+                    `;
+                    slot.onclick = () => openArtwork(artwork.id);
+                } else {
+                    // 空位置，可点击添加
+                    slot.className += ' empty';
+                    slot.innerHTML = '<div class="add-icon">+</div>';
+                    slot.onclick = createNewArtwork;
+                }
+                grid.appendChild(slot);
+            }
+            
+            // 第9个位置固定为添加按钮
+            const addSlot = document.createElement('div');
+            addSlot.className = 'artwork-slot empty';
+            addSlot.innerHTML = '<div class="add-icon">+</div>';
+            addSlot.onclick = createNewArtwork;
+            grid.appendChild(addSlot);
+            
+            // 更新分页信息
+            updatePagination(totalPages);
+        }
+        
+        function updatePagination(totalPages) {
+            document.getElementById('pageInfo').textContent = `${currentPage}/${totalPages}`;
+            document.getElementById('prevBtn').disabled = currentPage === 1;
+            document.getElementById('nextBtn').disabled = currentPage === totalPages;
+        }
+        
+        function previousPage() {
+            if (currentPage > 1) {
+                currentPage--;
+                loadArtworks();
+            }
+        }
+        
+        function nextPage() {
+            const artworks = getArtworks();
+            const totalPages = Math.ceil(artworks.length / itemsPerPage) || 1;
+            if (currentPage < totalPages) {
+                currentPage++;
+                loadArtworks();
+            }
+        }
+        
+        function getArtworks() {
+            try {
+                const artworks = localStorage.getItem(STORAGE_KEYS.artworks);
+                return artworks ? JSON.parse(artworks) : [];
+            } catch (e) {
+                return [];
+            }
+        }
+        
+        function saveArtworks(artworks) {
+            try {
+                localStorage.setItem(STORAGE_KEYS.artworks, JSON.stringify(artworks));
+            } catch (e) {
+                console.error('保存作品失败:', e);
+            }
+        }
+        
+        function createNewArtwork() {
+            currentArtworkId = Date.now();
+            clearCanvas(false);
+            switchToDrawingView();
+        }
+        
+        function openArtwork(id) {
+            const artworks = getArtworks();
+            const artwork = artworks.find(a => a.id === id);
+            if (artwork) {
+                currentArtworkId = id;
+                loadArtwork(artwork);
+                switchToDrawingView();
+            }
+        }
+        
+        function loadArtwork(artwork) {
+            const img = new Image();
+            img.onload = function() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0);
+                drawingHistory = artwork.history || [];
+            };
+            img.src = artwork.data;
+        }
+        
+        function saveCurrentArtwork() {
+            const artworks = getArtworks();
+            const existingIndex = artworks.findIndex(a => a.id === currentArtworkId);
+            
+            const artwork = {
+                id: currentArtworkId,
+                name: `作品${existingIndex + 1 || artworks.length + 1}`,
+                data: canvas.toDataURL(),
+                thumbnail: createThumbnail(),
+                history: drawingHistory,
+                date: new Date().toLocaleString('zh-CN'),
+                timestamp: Date.now()
+            };
+            
+            if (existingIndex >= 0) {
+                artworks[existingIndex] = artwork;
+            } else {
+                artworks.unshift(artwork);
+            }
+            
+            saveArtworks(artworks);
+            showSaveToast('作品已保存到书架');
+        }
+        
+        function createThumbnail() {
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCanvas.width = 200;
+            tempCanvas.height = 200;
+            tempCtx.drawImage(canvas, 0, 0, 200, 200);
+            return tempCanvas.toDataURL();
+        }
+        
+        // ========== 界面切换 ==========
+        function switchToBookshelf() {
+            document.getElementById('bookshelf').classList.add('active');
+            document.getElementById('drawingArea').classList.remove('active');
+            currentView = 'bookshelf';
+            saveCurrentArtwork();
+            loadArtworks();
+        }
+        
+        function switchToDrawingView() {
+            document.getElementById('bookshelf').classList.remove('active');
+            document.getElementById('drawingArea').classList.add('active');
+            currentView = 'drawing';
+        }
+        
+        function backToBookshelf() {
+            if (confirm('返回书架前是否保存当前作品？')) {
+                saveCurrentArtwork();
+            }
+            switchToBookshelf();
+        }
+        
+        // ========== 工具栏控制 ==========
+        function toggleToolbar() {
+            const toolbar = document.getElementById('toolbar');
+            toolbar.classList.toggle('collapsed');
+        }
+        
+        // ========== 颜色控制 ==========
+        function updateColor() {
+            const h = document.getElementById('hueSlider').value;
+            const s = document.getElementById('saturationSlider').value;
+            const l = document.getElementById('lightnessSlider').value;
+            currentColor = `hsl(${h}, ${s}%, ${l}%)`;
+            document.getElementById('colorPreview').style.background = currentColor;
+        }
+        
+        function randomColor() {
+            document.getElementById('hueSlider').value = Math.random() * 360;
+            document.getElementById('saturationSlider').value = 50 + Math.random() * 50;
+            document.getElementById('lightnessSlider').value = 30 + Math.random() * 40;
+            updateColor();
+        }
+        
+        function setQuickColor(hex) {
+            const rgb = hexToRgb(hex);
+            const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
+            document.getElementById('hueSlider').value = hsl.h;
+            document.getElementById('saturationSlider').value = hsl.s;
+            document.getElementById('lightnessSlider').value = hsl.l;
+            updateColor();
+        }
+        
+        function hexToRgb(hex) {
+            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            return result ? {
+                r: parseInt(result[1], 16),
+                g: parseInt(result[2], 16),
+                b: parseInt(result[3], 16)
+            } : null;
+        }
+        
+        function rgbToHsl(r, g, b) {
+            r /= 255;
+            g /= 255;
+            b /= 255;
+            const max = Math.max(r, g, b), min = Math.min(r, g, b);
+            let h, s, l = (max + min) / 2;
+            
+            if (max === min) {
+                h = s = 0;
+            } else {
+                const d = max - min;
+                s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+                switch (max) {
+                    case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+                    case g: h = ((b - r) / d + 2) / 6; break;
+                    case b: h = ((r - g) / d + 4) / 6; break;
+                }
+            }
+            
+            return {
+                h: Math.round(h * 360),
+                s: Math.round(s * 100),
+                l: Math.round(l * 100)
+            };
+        }
+        
+        // ========== 画笔控制 ==========
+        function updateBrushSize() {
+            brushSize = document.getElementById('brushSize').value;
+            document.getElementById('sizeValue').textContent = brushSize + 'px';
+            const size = Math.min(brushSize, 20);
+            document.getElementById('sizePreview').style.width = size + 'px';
+            document.getElementById('sizePreview').style.height = size + 'px';
+        }
+        
+        // ========== 模式和速度控制 ==========
+        function setMode(mode) {
+            currentMode = mode;
+            document.querySelectorAll('.mode-btn-compact').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            if (mode === 'ai' && !isAIDrawing) {
+                toggleAIDrawing();
+            } else if (mode === 'draw' && isAIDrawing) {
+                toggleAIDrawing();
+            }
+        }
+        
+        function setSpeed(newSpeed) {
+            speed = newSpeed;
+            document.querySelectorAll('.speed-btn-compact').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+        }
+        
+        // ========== 绘画功能 ==========
+        function startDrawing(e) {
+            if (currentMode !== 'draw') return;
+            isDrawing = true;
+            currentPath = [];
+            const pos = getPosition(e);
+            ctx.beginPath();
+            ctx.moveTo(pos.x, pos.y);
+            currentPath.push({x: pos.x, y: pos.y, color: currentColor, size: brushSize});
+        }
+        
+        function draw(e) {
+            if (!isDrawing || currentMode !== 'draw') return;
+            const pos = getPosition(e);
+            ctx.strokeStyle = currentColor;
+            ctx.lineWidth = brushSize;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.lineTo(pos.x, pos.y);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(pos.x, pos.y);
+            currentPath.push({x: pos.x, y: pos.y});
+        }
+        
+        function stopDrawing() {
+            if (isDrawing && currentPath.length > 0) {
+                drawingHistory.push([...currentPath]);
+                if (drawingHistory.length > 50) {
+                    drawingHistory.shift();
+                }
+                autoSave();
+            }
+            isDrawing = false;
+        }
+        
+        function getPosition(e) {
+            const rect = canvas.getBoundingClientRect();
+            if (e.touches) {
+                return {
+                    x: e.touches[0].clientX - rect.left,
+                    y: e.touches[0].clientY - rect.top
+                };
+            }
+            return {
+                x: e.clientX - rect.left,
+                y: e.clientY - rect.top
+            };
+        }
+        
+        // ========== AI 绘画功能 ==========
+        function initAIPatterns() {
+            aiPatterns = [
+                {
+                    type: 'sine',
+                    amplitude: 50 + Math.random() * 100,
+                    frequency: 0.01 + Math.random() * 0.02,
+                    phase: Math.random() * Math.PI * 2,
+                    color: `hsl(${Math.random() * 360}, 70%, 50%)`
+                },
+                {
+                    type: 'circle',
+                    radius: 20 + Math.random() * 80,
+                    speed: 0.02 + Math.random() * 0.03,
+                    color: `hsl(${Math.random() * 360}, 70%, 50%)`
+                },
+                {
+                    type: 'spiral',
+                    growth: 0.5 + Math.random() * 1.5,
+                    angleSpeed: 0.05 + Math.random() * 0.1,
+                    color: `hsl(${Math.random() * 360}, 70%, 50%)`
+                },
+                {
+                    type: 'random',
+                    step: 5 + Math.random() * 15,
+                    color: `hsl(${Math.random() * 360}, 70%, 50%)`
+                }
+            ];
+        }
+        
+        function toggleAIDrawing() {
+            isAIDrawing = !isAIDrawing;
+            const btn = document.getElementById('aiToggleBtn');
+            const indicator = document.getElementById('aiIndicator');
+            
+            if (isAIDrawing) {
+                btn.innerHTML = '<span>⏸️</span> 停止';
+                btn.classList.remove('btn-primary-compact');
+                btn.classList.add('btn-danger-compact');
+                indicator.classList.add('active');
+                initAIPatterns();
+                aiTime = 0;
+                animateAIDrawing();
+            } else {
+                btn.innerHTML = '<span>🤖</span> AI 绘画';
+                btn.classList.remove('btn-danger-compact');
+                btn.classList.add('btn-primary-compact');
+                indicator.classList.remove('active');
+                if (aiAnimationId) {
+                    cancelAnimationFrame(aiAnimationId);
+                }
+                autoSave();
+            }
+        }
+        
+        function animateAIDrawing() {
+            if (!isAIDrawing) return;
+            
+            const speedMultiplier = speed === 'slow' ? 0.5 : speed === 'fast' ? 2 : 1;
+            aiTime += speedMultiplier;
+            
+            aiPatterns.forEach((pattern, index) => {
+                ctx.strokeStyle = pattern.color;
+                ctx.lineWidth = 2 + Math.sin(aiTime * 0.01 + index) * 1;
+                ctx.globalAlpha = 0.7;
+                
+                switch(pattern.type) {
+                    case 'sine':
+                        drawSineWave(pattern, aiTime);
+                        break;
+                    case 'circle':
+                        drawCircles(pattern, aiTime);
+                        break;
+                    case 'spiral':
+                        drawSpiral(pattern, aiTime);
+                        break;
+                    case 'random':
+                        drawRandom(pattern, aiTime);
+                        break;
+                }
+            });
+            
+            ctx.globalAlpha = 1;
+            
+            if (Math.random() < 0.01 * speedMultiplier) {
+                const randomPattern = aiPatterns[Math.floor(Math.random() * aiPatterns.length)];
+                randomPattern.color = `hsl(${Math.random() * 360}, 70%, 50%)`;
+            }
+            
+            aiAnimationId = requestAnimationFrame(animateAIDrawing);
+        }
+        
+        function drawSineWave(pattern, time) {
+            ctx.beginPath();
+            for (let x = 0; x < canvas.width; x += 5) {
+                const y = canvas.height/2 + 
+                    Math.sin(x * pattern.frequency + time * 0.01 + pattern.phase) * pattern.amplitude +
+                    Math.sin(x * pattern.frequency * 2 + time * 0.02) * pattern.amplitude * 0.3;
+                if (x === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            }
+            ctx.stroke();
+        }
+        
+        function drawCircles(pattern, time) {
+            const centerX = canvas.width/2 + Math.cos(time * pattern.speed) * 100;
+            const centerY = canvas.height/2 + Math.sin(time * pattern.speed) * 100;
+            
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, pattern.radius + Math.sin(time * 0.05) * 20, 0, Math.PI * 2);
+            ctx.stroke();
+            
+            for (let i = 0; i < 3; i++) {
+                const angle = (Math.PI * 2 / 3) * i + time * 0.02;
+                const x = centerX + Math.cos(angle) * pattern.radius;
+                const y = centerY + Math.sin(angle) * pattern.radius;
+                ctx.beginPath();
+                ctx.arc(x, y, 10, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+        }
+        
+        function drawSpiral(pattern, time) {
+            ctx.beginPath();
+            const centerX = canvas.width/2;
+            const centerY = canvas.height/2;
+            
+            for (let i = 0; i < 200; i++) {
+                const angle = i * 0.1 + time * pattern.angleSpeed;
+                const radius = i * pattern.growth;
+                const x = centerX + Math.cos(angle) * radius;
+                const y = centerY + Math.sin(angle) * radius;
+                
+                if (i === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            }
+            ctx.stroke();
+        }
+        
+        function drawRandom(pattern, time) {
+            const numPoints = 5;
+            ctx.beginPath();
+            
+            for (let i = 0; i < numPoints; i++) {
+                const x = Math.random() * canvas.width;
+                const y = Math.random() * canvas.height;
+                
+                if (i === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.quadraticCurveTo(
+                        Math.random() * canvas.width, 
+                        Math.random() * canvas.height, 
+                        x, y
+                    );
+                }
+            }
+            ctx.stroke();
+        }
+        
+        // ========== 其他功能 ==========
+        function undoLast() {
+            if (drawingHistory.length > 0) {
+                drawingHistory.pop();
+                redrawCanvas();
+                autoSave();
+            }
+        }
+        
+        function redrawCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            drawingHistory.forEach(path => {
+                if (path.length > 0) {
+                    ctx.beginPath();
+                    ctx.strokeStyle = path[0].color || currentColor;
+                    ctx.lineWidth = path[0].size || brushSize;
+                    ctx.lineCap = 'round';
+                    ctx.lineJoin = 'round';
+                    ctx.moveTo(path[0].x, path[0].y);
+                    
+                    for (let i = 1; i < path.length; i++) {
+                        ctx.lineTo(path[i].x, path[i].y);
+                    }
+                    ctx.stroke();
+                }
+            });
+        }
+        
+        function clearCanvas(confirmClear = true) {
+            if (confirmClear && !confirm('确定要清空画布吗？')) {
+                return;
+            }
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawingHistory = [];
+            autoSave();
+        }
+        
+        function downloadImage() {
+            const link = document.createElement('a');
+            link.download = `artwork-${Date.now()}.png`;
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+        
+        function autoSave() {
+            const now = Date.now();
+            if (now - lastSaveTime > 2000) {
+                lastSaveTime = now;
+                // 自动保存到当前作品
+                if (currentArtworkId) {
+                    saveCurrentArtwork();
+                }
+            }
+        }
+        
+        function showSaveToast(message) {
+            const toast = document.getElementById('saveToast');
+            document.getElementById('saveMessage').textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2000);
+        }
+        
+        // ========== 事件监听器 ==========
+        function setupEventListeners() {
+            // 颜色滑块
+            document.getElementById('hueSlider').addEventListener('input', updateColor);
+            document.getElementById('saturationSlider').addEventListener('input', updateColor);
+            document.getElementById('lightnessSlider').addEventListener('input', updateColor);
+            
+            // 画笔大小
+            document.getElementById('brushSize').addEventListener('input', updateBrushSize);
+            
+            // 触摸事件
+            canvas.addEventListener('touchstart', startDrawing, {passive: false});
+            canvas.addEventListener('touchmove', draw, {passive: false});
+            canvas.addEventListener('touchend', stopDrawing);
+            
+            // 鼠标事件
+            canvas.addEventListener('mousedown', startDrawing);
+            canvas.addEventListener('mousemove', draw);
+            canvas.addEventListener('mouseup', stopDrawing);
+            canvas.addEventListener('mouseout', stopDrawing);
+            
+            // 防止页面滚动
+            document.body.addEventListener('touchmove', (e) => {
+                if (e.target === canvas) {
+                    e.preventDefault();
+                }
+            }, {passive: false});
+            
+            // 页面关闭前保存
+            window.addEventListener('beforeunload', () => {
+                if (currentView === 'drawing' && currentArtworkId) {
+                    saveCurrentArtwork();
+                }
+            });
+        }
+        
+        // 启动应用
+        init();
+    </script>
+</body>
+</html>

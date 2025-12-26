@@ -1,0 +1,661 @@
+<!DOCTYPE html> 
+<html lang="zh-CN"> 
+<head> 
+<meta charset="UTF-8"> 
+<meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+<title>Linux5.15 常用头文件</title> 
+<style> 
+:root { 
+--primary-color: #ff6b35; 
+--secondary-color: #f7931e; 
+--accent-color: #ff8c42; 
+--text-color: #2c3e50; 
+--text-secondary: #7f8c8d; 
+--bg-color: #fff5f0; 
+--border-color: #ffe4d6; 
+--hover-bg: #ffe0cc; 
+--code-bg: #ffffff; 
+--tree-line: #ffb380; 
+} 
+
+* { 
+margin: 0; 
+padding: 0; 
+box-sizing: border-box; 
+} 
+
+body { 
+font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace; 
+font-size: 13px; 
+line-height: 1.5; 
+color: var(--text-color); 
+background: linear-gradient(135deg, #fff5f0 0%, #ffe4d6 50%, #ffd4b3 100%); 
+overflow: hidden; 
+height: 100vh; 
+width: 100vw; 
+display: flex; 
+flex-direction: column; 
+} 
+
+.container { 
+flex: 1; 
+display: flex; 
+flex-direction: column; 
+background-color: rgba(255, 255, 255, 0.95); 
+overflow: hidden; 
+box-shadow: 0 4px 20px rgba(255, 107, 53, 0.1); 
+margin: 8px; 
+border-radius: 8px; 
+border: 1px solid rgba(255, 228, 214, 0.3); 
+} 
+
+header { 
+background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)); 
+color: #fff; 
+padding: 12px 16px; 
+text-align: left; 
+border-bottom: 1px solid rgba(255, 255, 255, 0.2); 
+flex-shrink: 0; 
+display: flex; 
+align-items: center; 
+justify-content: space-between; 
+} 
+
+.header-content h1 { 
+font-size: 18px; 
+font-weight: 600; 
+margin-bottom: 4px; 
+} 
+
+.header-content p { 
+opacity: 0.9; 
+font-size: 12px; 
+} 
+
+.header-search { 
+position: relative; 
+} 
+
+#searchInput { 
+padding: 6px 10px; 
+border: 1px solid var(--border-color); 
+border-radius: 6px; 
+background-color: rgba(255, 245, 240, 0.8); 
+color: var(--text-color); 
+font-size: 12px; 
+font-family: inherit; 
+width: 180px; 
+transition: all 0.3s; 
+} 
+
+#searchInput:focus { 
+outline: none; 
+border-color: var(--accent-color); 
+background: rgba(255, 255, 255, 0.95); 
+box-shadow: 0 0 0 2px rgba(255, 140, 66, 0.2); 
+} 
+
+.controls { 
+padding: 10px 16px; 
+background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%); 
+border-bottom: 1px solid var(--border-color); 
+display: flex; 
+justify-content: space-between; 
+align-items: center; 
+flex-wrap: wrap; 
+gap: 8px; 
+flex-shrink: 0; 
+} 
+
+.controls button { 
+background: linear-gradient(135deg, var(--accent-color), var(--secondary-color)); 
+color: white; 
+border: none; 
+padding: 6px 12px; 
+border-radius: 6px; 
+cursor: pointer; 
+transition: all 0.3s; 
+font-size: 12px; 
+font-family: inherit; 
+font-weight: 500; 
+box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); 
+} 
+
+.controls button:hover { 
+background: linear-gradient(135deg, var(--secondary-color), var(--primary-color)); 
+transform: translateY(-1px); 
+box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15); 
+} 
+
+.tree-container { 
+flex: 1; 
+padding: 12px; 
+overflow: auto; 
+background: linear-gradient(180deg, rgba(255, 245, 240, 0.4) 0%, rgba(255, 245, 240, 0.2) 100%); 
+} 
+
+.tree ul { 
+list-style-type: none; 
+padding-left: 16px; 
+margin: 0; 
+} 
+
+.tree li { 
+position: relative; 
+padding: 1px 0; 
+white-space: nowrap; 
+} 
+
+.tree li::before { 
+content: ""; 
+position: absolute; 
+left: -10px; 
+top: 8px; 
+width: 10px; 
+height: 1px; 
+background-color: var(--tree-line); 
+} 
+
+.tree li::after { 
+content: ""; 
+position: absolute; 
+left: -10px; 
+top: -2px; 
+width: 1px; 
+height: 100%; 
+background-color: var(--tree-line); 
+} 
+
+.tree li:last-child::after { 
+height: 10px; 
+} 
+
+.tree > ul > li::before, .tree > ul > li::after { 
+display: none; 
+} 
+
+.tree-node { 
+display: flex; 
+align-items: center; 
+cursor: pointer; 
+padding: 2px 4px; 
+border-radius: 4px; 
+transition: all 0.2s; 
+} 
+
+.tree-node:hover { 
+background: linear-gradient(135deg, rgba(255, 107, 53, 0.08) 0%, rgba(247, 147, 30, 0.05) 100%); 
+transform: translateX(2px); 
+} 
+
+.tree-node .toggle { 
+color: #94a3b8; 
+margin-right: 3px; 
+font-size: 9px; 
+transition: transform 0.2s; 
+} 
+
+.tree-node .icon { 
+margin-right: 6px; 
+font-size: 12px; 
+} 
+
+.tree-node .folder { 
+color: var(--primary-color); 
+} 
+
+.tree-node .file { 
+color: var(--text-secondary); 
+} 
+
+.tree-content { 
+flex: 1; 
+display: flex; 
+align-items: center; 
+min-width: 0; 
+} 
+
+.tree-name { 
+font-weight: 500; 
+font-size: 13px; 
+overflow: hidden; 
+text-overflow: ellipsis; 
+color: var(--text-color); 
+white-space: nowrap; 
+flex-shrink: 0; 
+} 
+
+.tree-desc { 
+font-style: normal !important; 
+white-space: nowrap !important; 
+overflow: hidden !important; 
+text-overflow: ellipsis !important; 
+display: inline-block !important; 
+line-height: 1.4 !important; 
+margin-left: 8px !important; 
+font-size: 11px !important; 
+color: var(--text-secondary) !important; 
+background: rgba(255, 107, 53, 0.06) !important; 
+padding: 1px 4px !important; 
+border-radius: 3px !important; 
+border: 1px solid rgba(255, 107, 53, 0.1) !important; 
+transition: all 0.2s !important; 
+max-width: 300px; 
+} 
+
+.tree-node:hover .tree-desc { 
+background: rgba(255, 107, 53, 0.1) !important; 
+border-color: rgba(255, 107, 53, 0.2) !important; 
+} 
+
+.collapsed > ul { 
+display: none; 
+} 
+
+.highlight { 
+background: linear-gradient(135deg, var(--accent-color), var(--secondary-color)); 
+padding: 0 3px; 
+border-radius: 3px; 
+color: #fff; 
+font-weight: 500; 
+} 
+
+.file-number { 
+color: var(--accent-color); 
+font-weight: 600; 
+margin-right: 8px; 
+min-width: 20px; 
+text-align: right; 
+} 
+
+footer { 
+background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)); 
+color: white; 
+padding: 8px 16px; 
+text-align: center; 
+font-size: 10px; 
+border-top: 1px solid rgba(255, 255, 255, 0.2); 
+flex-shrink: 0; 
+} 
+
+@media (max-width: 768px) { 
+body { font-size: 12px; } 
+.container { margin: 4px; } 
+header h1 { font-size: 16px; } 
+header p { font-size: 11px; } 
+.tree ul { padding-left: 14px; } 
+.tree-name { font-size: 12px; } 
+.tree-desc { font-size: 10px; max-width: 200px; } 
+#searchInput { width: 140px; font-size: 11px; } 
+.controls button { font-size: 11px; padding: 5px 10px; } 
+} 
+
+@media (max-width: 480px) { 
+body { font-size: 11px; } 
+.container { margin: 2px; } 
+header h1 { font-size: 14px; } 
+header p { font-size: 10px; } 
+.tree ul { padding-left: 12px; } 
+.tree-node { padding: 1px 3px; } 
+.tree-name { font-size: 11px; } 
+.tree-desc { font-size: 9px; max-width: 150px; } 
+#searchInput { width: 120px; font-size: 10px; } 
+.controls button { font-size: 10px; padding: 4px 8px; } 
+} 
+</style> 
+</head> 
+<body> 
+<div class="container"> 
+<header> 
+<div class="header-content"> 
+<h1>Linux5.15 常用头文件</h1> 
+<p>Linux Common Headers Reference Manual (2025-12-21)</p> 
+</div> 
+<div class="header-search"> 
+<input type="text" id="searchInput" placeholder=" 搜索头文件..."> 
+</div> 
+</header> 
+<div class="controls"> 
+<div class="action-buttons"> 
+<button id="expandAll">展开全部</button> 
+<button id="collapseAll">折叠全部</button> 
+</div> 
+</div> 
+<div class="tree-container"> 
+<div class="tree" id="treeContainer"></div> 
+</div> 
+<footer> 
+<p>© 2025 Linux 常用头文件| Generated by 凉安</p> 
+</footer> 
+</div> 
+
+<!-- 数据部分--> 
+<script> 
+const kernelHeadersData = [ 
+{ 
+name: "一、核心基础", 
+type: "folder", 
+children: [ 
+{ name: "linux/kernel.h", desc: "内核核心头文件（包含常用宏和函数）", type: "file" }, 
+{ name: "linux/types.h", desc: "基本数据类型（如u8, u32, list_head 等）", type: "file" }, 
+{ name: "linux/errno.h", desc: "错误码定义", type: "file" }, 
+{ name: "linux/printk.h", desc: "内核打印函数", type: "file" }, 
+{ name: "linux/list.h", desc: "内核链表实现", type: "file" }, 
+{ name: "linux/bitmap.h", desc: "位图操作", type: "file" }, 
+{ name: "linux/bug.h", desc: "内核调试与断言（如BUG_ON, WARN_ON）", type: "file" }, 
+{ name: "linux/limits.h", desc: "常量限制定义（如PATH_MAX）", type: "file" } 
+] 
+}, 
+{ 
+name: "二、内存管理", 
+type: "folder", 
+children: [ 
+{ name: "linux/mm.h", desc: "内存管理核心结构与函数", type: "file" }, 
+{ name: "linux/slab.h", desc: "Slab/Slub 内存分配器", type: "file" }, 
+{ name: "linux/gfp.h", desc: "内存分配标志（如GFP_KERNEL）", type: "file" }, 
+{ name: "linux/vmalloc.h", desc: "虚拟内存连续分配接口", type: "file" } 
+] 
+}, 
+{ 
+name: "三、同步与并发", 
+type: "folder", 
+children: [ 
+{ name: "linux/spinlock.h", desc: "自旋锁", type: "file" }, 
+{ name: "linux/mutex.h", desc: "互斥锁", type: "file" }, 
+{ name: "linux/atomic.h", desc: "原子操作", type: "file" }, 
+{ name: "linux/completion.h", desc: "完成量同步机制", type: "file" }, 
+{ name: "linux/rwsem.h", desc: "读写信号量", type: "file" }, 
+{ name: "linux/rcupdate.h", desc: "读-拷贝-更新机制（RCU）", type: "file" } 
+] 
+}, 
+{ 
+name: "四、进程与调度", 
+type: "folder", 
+children: [ 
+{ name: "linux/sched.h", desc: "进程调度核心（包含task_struct）", type: "file" }, 
+{ name: "linux/kthread.h", desc: "内核线程创建与管理", type: "file" }, 
+{ name: "linux/workqueue.h", desc: "工作队列（用于延迟执行任务）", type: "file" }, 
+{ name: "linux/jiffies.h", desc: "全局节拍计数器（内核时间基准）", type: "file" } 
+] 
+}, 
+{ 
+name: "五、设备驱动模型", 
+type: "folder", 
+children: [ 
+{ name: "linux/device.h", desc: "设备模型核心（device, driver结构体）", type: "file" }, 
+{ name: "linux/platform_device.h", desc: "平台设备框架", type: "file" }, 
+{ name: "linux/of.h", desc: "设备树核心接口", type: "file" }, 
+{ name: "linux/of_gpio.h", desc: "设备树GPIO 操作", type: "file" }, 
+{ name: "linux/gpio.h", desc: "GPIO 通用输入输出子系统", type: "file" }, 
+{ name: "linux/pci.h", desc: "PCI 设备接口", type: "file" }, 
+{ name: "linux/interrupt.h", desc: "中断处理框架", type: "file" }, 
+{ name: "linux/module.h", desc: "内核模块加载/卸载框架", type: "file" }, 
+{ name: "linux/init.h", desc: "模块初始化与退出宏（如module_init）", type: "file" }, 
+{ name: "linux/pm.h", desc: "电源管理框架", type: "file" }, 
+{ name: "linux/clk.h", desc: "时钟子系统", type: "file" }, 
+{ name: "linux/reset.h", desc: "复位控制器", type: "file" }, 
+{ name: "linux/regulator/consumer.h", desc: "电压调节器消费者接口", type: "file" } 
+] 
+}, 
+{ 
+name: "六、文件系统与VFS", 
+type: "folder", 
+children: [ 
+{ name: "linux/fs.h", desc: "虚拟文件系统（VFS）核心定义", type: "file" }, 
+{ name: "linux/file.h", desc: "文件结构体与操作", type: "file" }, 
+{ name: "linux/proc_fs.h", desc: "Proc 文件系统接口", type: "file" }, 
+{ name: "linux/seq_file.h", desc: "顺序文件接口（用于Proc/Debugfs）", type: "file" }, 
+{ name: "linux/debugfs.h", desc: "Debugfs 调试文件系统接口", type: "file" }, 
+{ name: "linux/sysfs.h", desc: "Sysfs 文件系统接口", type: "file" }, 
+{ name: "linux/uaccess.h", desc: "用户空间内存访问（如copy_to_user）", type: "file" } 
+] 
+}, 
+{ 
+name: "七、时间与定时器", 
+type: "folder", 
+children: [ 
+{ name: "linux/timer.h", desc: "内核定时器（旧版，低精度）", type: "file" }, 
+{ name: "linux/hrtimer.h", desc: "高精度定时器", type: "file" }, 
+{ name: "linux/time.h", desc: "时间相关结构与函数（如timespec, ktime_get）", type: "file" } 
+] 
+}, 
+{ 
+name: "八、硬件接口", 
+type: "folder", 
+children: [ 
+{ name: "linux/io.h", desc: "I/O 端口访问（如inb, outb）", type: "file" }, 
+{ name: "linux/ioport.h", desc: "I/O 端口与内存区域申请", type: "file" }, 
+{ name: "linux/dma-mapping.h", desc: "DMA 内存映射通用接口", type: "file" } 
+] 
+}, 
+{ 
+name: "九、网络", 
+type: "folder", 
+children: [ 
+{ name: "linux/netdevice.h", desc: "网络设备接口", type: "file" }, 
+{ name: "linux/skbuff.h", desc: "网络套接字缓冲区（sk_buff）", type: "file" } 
+] 
+}, 
+{ 
+name: "十、块设备", 
+type: "folder", 
+children: [ 
+{ name: "linux/blkdev.h", desc: "块设备核心接口", type: "file" }, 
+{ name: "linux/genhd.h", desc: "通用硬盘管理", type: "file" }, 
+{ name: "linux/bio.h", desc: "块I/O 层描述符", type: "file" } 
+] 
+}, 
+{ 
+name: "十一、杂项设备与字符设备", 
+type: "folder", 
+children: [ 
+{ name: "linux/miscdevice.h", desc: "杂项设备框架（简化字符设备注册）", type: "file" }, 
+{ name: "linux/cdev.h", desc: "字符设备核心结构体", type: "file" }, 
+{ name: "linux/input.h", desc: "输入子系统核心", type: "file" } 
+] 
+}, 
+{ 
+name: "十二、其他常用工具", 
+type: "folder", 
+children: [ 
+{ name: "linux/delay.h", desc: "延迟函数（如mdelay, udelay）", type: "file" }, 
+{ name: "linux/scatterlist.h", desc: "散列表（用于DMA）", type: "file" }, 
+{ name: "linux/idr.h", desc: "ID 映射机制", type: "file" }, 
+{ name: "linux/kfifo.h", desc: "内核FIFO 环形队列", type: "file" }, 
+{ name: "linux/string.h", desc: "字符串操作函数", type: "file" }, 
+{ name: "linux/crc32.h", desc: "CRC32 校验和计算", type: "file" } 
+] 
+} 
+]; 
+</script> 
+
+<!-- 图标部分--> 
+<script> 
+const icons = { 
+folder: '📁', 
+file: '📄', 
+toggle: { 
+expanded: '▼', 
+collapsed: '▶' 
+} 
+}; 
+</script> 
+
+<!-- 逻辑部分--> 
+<script> 
+let fileCounter = 1; 
+
+// 创建树节点 
+function createTreeNode(data) { 
+const li = document.createElement('li'); 
+const nodeDiv = document.createElement('div'); 
+nodeDiv.className = 'tree-node'; 
+
+// 折叠图标（仅文件夹） 
+if (data.type === 'folder') { 
+const toggleIcon = document.createElement('span'); 
+toggleIcon.className = 'toggle'; 
+toggleIcon.textContent = icons.toggle.collapsed; 
+nodeDiv.appendChild(toggleIcon); 
+} 
+
+// 文件夹/文件图标 
+const icon = document.createElement('span'); 
+icon.className = 'icon'; 
+icon.textContent = data.type === 'folder' ? icons.folder : icons.file; 
+icon.classList.add(data.type); 
+nodeDiv.appendChild(icon); 
+
+// 内容区域 
+const contentDiv = document.createElement('div'); 
+contentDiv.className = 'tree-content'; 
+
+const nameSpan = document.createElement('span'); 
+nameSpan.className = 'tree-name'; 
+
+// 如果是文件，添加序号 
+if (data.type === 'file') { 
+const numberSpan = document.createElement('span'); 
+numberSpan.className = 'file-number'; 
+numberSpan.textContent = fileCounter + '.'; 
+nameSpan.appendChild(numberSpan); 
+fileCounter++; 
+} 
+
+const nameText = document.createElement('span'); 
+nameText.textContent = data.name; 
+nameSpan.appendChild(nameText); 
+contentDiv.appendChild(nameSpan); 
+
+if (data.desc) { 
+const descSpan = document.createElement('span'); 
+descSpan.className = 'tree-desc'; 
+descSpan.textContent = data.desc; 
+contentDiv.appendChild(descSpan); 
+} 
+
+nodeDiv.appendChild(contentDiv); 
+li.appendChild(nodeDiv); 
+
+// 递归创建子节点 
+if (data.children && data.children.length > 0) { 
+const ul = document.createElement('ul'); 
+data.children.forEach(child => { 
+ul.appendChild(createTreeNode(child)); 
+}); 
+li.appendChild(ul); 
+} 
+
+return li; 
+} 
+
+// 初始化树 
+function initTree() { 
+fileCounter = 1; // 重置计数器 
+const treeContainer = document.getElementById('treeContainer'); 
+treeContainer.innerHTML = ''; 
+
+const ul = document.createElement('ul'); 
+kernelHeadersData.forEach(item => { 
+ul.appendChild(createTreeNode(item)); 
+}); 
+treeContainer.appendChild(ul); 
+
+// 所有文件夹默认折叠 
+document.querySelectorAll('.tree li:has(> ul)').forEach(li => { 
+li.classList.add('collapsed'); 
+const toggle = li.querySelector('.toggle'); 
+if (toggle) { 
+toggle.textContent = icons.toggle.collapsed; 
+} 
+}); 
+} 
+
+// 展开全部 
+function expandAll() { 
+document.querySelectorAll('.tree li.collapsed').forEach(li => { 
+li.classList.remove('collapsed'); 
+const toggle = li.querySelector('.toggle'); 
+if (toggle) { 
+toggle.textContent = icons.toggle.expanded; 
+} 
+}); 
+} 
+
+// 折叠全部 
+function collapseAll() { 
+document.querySelectorAll('.tree li:has(.icon.folder)').forEach(li => { 
+li.classList.add('collapsed'); 
+const toggle = li.querySelector('.toggle'); 
+if (toggle) { 
+toggle.textContent = icons.toggle.collapsed; 
+} 
+}); 
+} 
+
+// 搜索功能 
+function searchTree(term) { 
+// 清除之前的高亮 
+document.querySelectorAll('.highlight').forEach(el => { 
+el.classList.remove('highlight'); 
+}); 
+
+if (term === '') return; 
+
+// 搜索并高亮匹配项 
+document.querySelectorAll('.tree-node').forEach(node => { 
+const text = node.textContent.toLowerCase(); 
+if (text.includes(term)) { 
+node.querySelector('.tree-name').classList.add('highlight'); 
+
+// 展开父节点 
+let parent = node.closest('li'); 
+while (parent && !parent.classList.contains('tree')) { 
+parent.classList.remove('collapsed'); 
+const toggle = parent.querySelector('.toggle'); 
+if (toggle) { 
+toggle.textContent = icons.toggle.expanded; 
+} 
+parent = parent.parentElement.closest('li'); 
+} 
+} 
+}); 
+} 
+
+// 初始化 
+document.addEventListener('DOMContentLoaded', function() { 
+initTree(); 
+
+// 展开全部按钮 
+document.getElementById('expandAll').addEventListener('click', expandAll); 
+
+// 折叠全部按钮 
+document.getElementById('collapseAll').addEventListener('click', collapseAll); 
+
+// 搜索功能 
+document.getElementById('searchInput').addEventListener('input', function(e) { 
+searchTree(e.target.value.toLowerCase()); 
+}); 
+
+// 折叠/展开功能 
+document.getElementById('treeContainer').addEventListener('click', function(e) { 
+const treeNode = e.target.closest('.tree-node'); 
+if (!treeNode) return; 
+
+const folder = treeNode.querySelector('.icon.folder'); 
+if (!folder) return; 
+
+const li = treeNode.parentElement; 
+li.classList.toggle('collapsed'); 
+
+// 更新图标 
+const toggle = treeNode.querySelector('.toggle'); 
+if (toggle) { 
+toggle.textContent = li.classList.contains('collapsed') 
+? icons.toggle.collapsed : icons.toggle.expanded; 
+} 
+}); 
+}); 
+</script> 
+</body> 
+</html>

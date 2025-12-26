@@ -1,0 +1,1267 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>🎯 幸运职业选择器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            position: relative;
+            overflow-x: hidden;
+            touch-action: pan-y;
+        }
+
+        /* 背景动画粒子 */
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .particle {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            animation: float-up 8s linear infinite;
+        }
+
+        @keyframes float-up {
+            0% {
+                transform: translateY(100vh) rotate(0deg);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100vh) rotate(720deg);
+                opacity: 0;
+            }
+        }
+
+        /* 控制面板按钮 */
+        .control-panel-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        .control-panel-btn:hover {
+            transform: scale(1.1) rotate(90deg);
+            box-shadow: 0 6px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .control-panel-btn:active {
+            transform: scale(0.95);
+        }
+
+        .control-panel-btn svg {
+            width: 24px;
+            height: 24px;
+            fill: #667eea;
+        }
+
+        /* 模态框 - 修复竖屏超出问题 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 2000;
+            animation: fadeIn 0.3s ease;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            width: 100%;
+            max-width: 1200px;
+            height: 90vh;
+            max-height: 90vh;
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            animation: slideUp 0.3s ease;
+            display: flex;
+            flex-direction: column;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .modal-header {
+            padding: 15px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .modal-header h2 {
+            font-size: clamp(16px, 4vw, 24px);
+            font-weight: 600;
+        }
+
+        .close-btn {
+            width: 30px;
+            height: 30px;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        .close-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: rotate(90deg);
+        }
+
+        .close-btn::before,
+        .close-btn::after {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 2px;
+            background: white;
+        }
+
+        .close-btn::before {
+            transform: rotate(45deg);
+        }
+
+        .close-btn::after {
+            transform: rotate(-45deg);
+        }
+
+        .modal-body {
+            padding: 15px;
+            overflow-y: auto;
+            flex: 1;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* 分类标签 */
+        .category-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .category-tab {
+            padding: 6px 12px;
+            background: #f0f0f0;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: clamp(11px, 3vw, 14px);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            user-select: none;
+            white-space: nowrap;
+        }
+
+        .category-tab:hover {
+            background: #e0e0e0;
+            transform: translateY(-2px);
+        }
+
+        .category-tab.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        /* 职业网格 */
+        .profession-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 10px;
+        }
+
+        .profession-card {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            padding: 10px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        .profession-card.hot {
+            background: linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 100%);
+        }
+
+        .profession-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .profession-card:hover {
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .profession-card:hover::before {
+            opacity: 0.9;
+        }
+
+        .profession-card:hover .profession-info {
+            color: white;
+        }
+
+        .profession-info {
+            position: relative;
+            z-index: 1;
+        }
+
+        .profession-title {
+            font-size: clamp(11px, 3vw, 14px);
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #333;
+            transition: color 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            line-height: 1.2;
+        }
+
+        .profession-category {
+            font-size: clamp(9px, 2.5vw, 11px);
+            color: #666;
+            margin-bottom: 3px;
+            transition: color 0.3s ease;
+        }
+
+        .profession-salary {
+            font-size: clamp(10px, 2.8vw, 12px);
+            color: #667eea;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+        .hot-badge {
+            display: inline-block;
+            padding: 1px 4px;
+            background: #ff6b6b;
+            color: white;
+            border-radius: 8px;
+            font-size: 8px;
+            margin-left: 3px;
+        }
+
+        /* 主容器 - 修复竖屏布局 */
+        .main-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            min-height: 100vh;
+            padding: 10px;
+            padding-top: 60px;
+            position: relative;
+            z-index: 10;
+            box-sizing: border-box;
+        }
+
+        .title {
+            font-size: clamp(20px, 5vw, 32px);
+            color: white;
+            margin-bottom: 20px;
+            text-align: center;
+            text-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            animation: fadeInDown 1s ease;
+        }
+
+        @keyframes fadeInDown {
+            from { transform: translateY(-30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        /* 老虎机容器 */
+        .slot-machine {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+            animation: fadeInUp 1s ease 0.2s both;
+            position: relative;
+            overflow: hidden;
+            max-width: 95vw;
+            margin-bottom: 20px;
+        }
+
+        .slot-machine::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4, #ffeaa7, #ff6b6b);
+            background-size: 300% 300%;
+            border-radius: 20px;
+            z-index: -1;
+            animation: gradient-border 3s ease infinite;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .slot-machine.spinning::before {
+            opacity: 1;
+        }
+
+        @keyframes gradient-border {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        @keyframes fadeInUp {
+            from { transform: translateY(30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .slot-display {
+            width: clamp(200px, 70vw, 350px);
+            height: clamp(50px, 12vh, 70px);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .slot-text {
+            color: white;
+            font-size: clamp(14px, 4vw, 20px);
+            font-weight: 600;
+            text-align: center;
+            padding: 0 15px;
+            transition: all 0.3s ease;
+            line-height: 1.2;
+        }
+
+        .slot-text.spinning {
+            animation: slot-spin 0.1s linear infinite;
+        }
+
+        @keyframes slot-spin {
+            0% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+            100% { transform: translateY(0); }
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .random-btn {
+            padding: 12px 25px;
+            background: linear-gradient(135deg, #ff6b6b 0%, #ff8e53 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: clamp(14px, 3.5vw, 18px);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+            position: relative;
+            overflow: hidden;
+            flex: 1;
+            min-width: 120px;
+        }
+
+        .random-btn::before {
+            content: '🎲';
+            position: absolute;
+            left: -25px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 16px;
+            transition: left 0.3s ease;
+        }
+
+        .random-btn:hover::before {
+            left: 8px;
+        }
+
+        .random-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(255, 107, 107, 0.4);
+        }
+
+        .random-btn:active {
+            transform: translateY(0);
+        }
+
+        .random-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .search-btn {
+            padding: 12px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: clamp(14px, 3.5vw, 16px);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+            flex: 1;
+            min-width: 100px;
+        }
+
+        .search-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        /* 快速选择网格 */
+        .quick-select {
+            margin-top: 15px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 8px;
+            max-width: 95vw;
+            animation: fadeInUp 1s ease 0.4s both;
+            margin-bottom: 15px;
+        }
+
+        .quick-item {
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: clamp(10px, 2.5vw, 12px);
+            color: #333;
+            user-select: none;
+            line-height: 1.2;
+        }
+
+        .quick-item:hover {
+            background: white;
+            transform: scale(1.05) translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        /* 选中提示 - 修复超出问题 */
+        .selected-display {
+            padding: 12px 15px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            font-size: clamp(12px, 3.5vw, 16px);
+            color: #333;
+            display: none;
+            animation: bounce-in 0.5s ease;
+            position: relative;
+            overflow: hidden;
+            max-width: 95vw;
+            text-align: center;
+            margin-top: auto;
+            margin-bottom: 20px;
+        }
+
+        .selected-display.show {
+            display: block;
+        }
+
+        .selected-display::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+            animation: shine 2s ease-in-out infinite;
+        }
+
+        @keyframes shine {
+            0% { left: -100%; }
+            50%, 100% { left: 100%; }
+        }
+
+        @keyframes bounce-in {
+            0% { transform: scale(0.3); opacity: 0; }
+            50% { transform: scale(1.05); }
+            70% { transform: scale(0.9); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* 庆祝动画 */
+        .celebration {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: clamp(60px, 15vw, 100px);
+            z-index: 3000;
+            pointer-events: none;
+            animation: celebrate 1s ease-out forwards;
+        }
+
+        @keyframes celebrate {
+            0% {
+                transform: translate(-50%, -50%) scale(0) rotate(0deg);
+                opacity: 1;
+            }
+            50% {
+                transform: translate(-50%, -50%) scale(1.5) rotate(180deg);
+            }
+            100% {
+                transform: translate(-50%, -50%) scale(0) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
+        /* 烟花效果 */
+        .firework {
+            position: fixed;
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            z-index: 2999;
+            pointer-events: none;
+        }
+
+        /* 加载提示 */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 30px;
+            color: #666;
+        }
+
+        .loading-spinner {
+            width: 25px;
+            height: 25px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* 竖屏模式优化 */
+        @media (max-width: 768px) and (orientation: portrait) {
+            .control-panel-btn {
+                top: 15px;
+                right: 15px;
+                width: 45px;
+                height: 45px;
+            }
+
+            .modal-content {
+                height: 85vh;
+                max-height: 85vh;
+            }
+
+            .modal-header {
+                padding: 12px 15px;
+            }
+
+            .modal-body {
+                padding: 10px;
+            }
+
+            .profession-grid {
+                grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+                gap: 8px;
+            }
+
+            .slot-machine {
+                padding: 15px;
+                width: 95%;
+                margin-bottom: 15px;
+            }
+
+            .slot-display {
+                height: 50px;
+                margin-bottom: 15px;
+            }
+
+            .button-group {
+                gap: 8px;
+            }
+
+            .random-btn, .search-btn {
+                padding: 10px 15px;
+            }
+
+            .quick-select {
+                grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+                gap: 6px;
+                margin-bottom: 10px;
+            }
+
+            .selected-display {
+                margin-bottom: 15px;
+                padding: 10px 12px;
+            }
+
+            .main-container {
+                padding-top: 50px;
+                padding-bottom: 10px;
+            }
+
+            .title {
+                margin-bottom: 15px;
+            }
+        }
+
+        /* 小屏竖屏优化 */
+        @media (max-height: 700px) and (orientation: portrait) {
+            .main-container {
+                padding-top: 40px;
+            }
+
+            .title {
+                font-size: clamp(18px, 4.5vw, 28px);
+                margin-bottom: 12px;
+            }
+
+            .slot-machine {
+                padding: 12px;
+                margin-bottom: 12px;
+            }
+
+            .slot-display {
+                height: 40px;
+                margin-bottom: 12px;
+            }
+
+            .slot-text {
+                font-size: clamp(12px, 3.5vw, 16px);
+            }
+
+            .button-group {
+                gap: 6px;
+            }
+
+            .random-btn, .search-btn {
+                padding: 8px 12px;
+                font-size: clamp(12px, 3vw, 14px);
+            }
+
+            .quick-select {
+                margin-top: 10px;
+                margin-bottom: 8px;
+                grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+                gap: 5px;
+            }
+
+            .quick-item {
+                padding: 6px;
+                font-size: clamp(9px, 2.2vw, 11px);
+            }
+
+            .selected-display {
+                margin-top: 8px;
+                margin-bottom: 10px;
+                padding: 8px 10px;
+                font-size: clamp(11px, 3vw, 14px);
+            }
+
+            .modal-content {
+                height: 80vh;
+                max-height: 80vh;
+            }
+
+            .modal-header {
+                padding: 10px 12px;
+            }
+
+            .modal-body {
+                padding: 8px;
+            }
+
+            .profession-grid {
+                grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+                gap: 6px;
+            }
+
+            .profession-card {
+                padding: 8px;
+            }
+
+            .profession-title {
+                font-size: 10px;
+            }
+
+            .profession-category {
+                font-size: 9px;
+            }
+
+            .profession-salary {
+                font-size: 9px;
+            }
+        }
+
+        /* 超小屏竖屏 */
+        @media (max-height: 600px) and (orientation: portrait) {
+            .main-container {
+                padding-top: 30px;
+            }
+
+            .title {
+                font-size: clamp(16px, 4vw, 24px);
+                margin-bottom: 8px;
+            }
+
+            .slot-machine {
+                padding: 10px;
+                margin-bottom: 8px;
+            }
+
+            .slot-display {
+                height: 35px;
+                margin-bottom: 8px;
+            }
+
+            .quick-select {
+                display: none; /* 超小屏隐藏快速选择 */
+            }
+
+            .selected-display {
+                margin-bottom: 8px;
+                padding: 6px 8px;
+                font-size: clamp(10px, 2.8vw, 12px);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .profession-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .profession-card {
+                padding: 8px;
+            }
+
+            .profession-title {
+                font-size: 11px;
+            }
+
+            .profession-category {
+                font-size: 9px;
+            }
+
+            .profession-salary {
+                font-size: 10px;
+            }
+        }
+
+        /* 超小屏幕优化 */
+        @media (max-width: 360px) {
+            .profession-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 5px;
+            }
+
+            .profession-card {
+                padding: 6px;
+            }
+
+            .quick-select {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        /* 触摸优化 */
+        @media (hover: none) {
+            .profession-card:active {
+                transform: scale(0.95);
+            }
+
+            .quick-item:active {
+                transform: scale(0.95);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 粒子背景 -->
+    <div class="particles" id="particles"></div>
+
+    <!-- 控制面板按钮 -->
+    <div class="control-panel-btn" onclick="toggleModal()">
+        <svg viewBox="0 0 24 24">
+            <path d="M12 15.5A3.5 3.5 0 0 1 8.5 12A3.5 3.5 0 0 1 12 8.5a3.5 3.5 0 0 1 3.5 3.5a3.5 3.5 0 0 1-3.5 3.5m7.43-2.53c.04-.32.07-.64.07-.97c0-.33-.03-.65-.07-.97l2.11-1.63c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.39-1.06-.73-1.69-.98l-.37-2.65A.506.506 0 0 0 14 2h-4c-.25 0-.46.18-.5.42l-.37 2.65c-.63.25-1.17.59-1.69.98l-2.49-1c-.22-.08-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64L4.57 11c-.04.32-.07.64-.07.97c0 .33.03.65.07.97l-2.11 1.63c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.39 1.06.73 1.69.98l.37 2.65c.04.24.25.42.5.42h4c.25 0 .46-.18.5-.42l.37-2.65c.63-.25 1.17-.59 1.69-.98l2.49 1c.22.08.49 0 .61-.22l2-3.46c.13-.22.07-.49-.12-.64l-2.11-1.63Z"/>
+        </svg>
+    </div>
+
+    <!-- 模态框 -->
+    <div class="modal" id="professionModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🎯 职业信息库（360个职业）</h2>
+                <button class="close-btn" onclick="toggleModal()"></button>
+            </div>
+            <div class="modal-body">
+                <div class="category-tabs" id="categoryTabs">
+                    <!-- 分类标签将通过JavaScript动态生成 -->
+                </div>
+                <div class="profession-grid" id="professionGrid">
+                    <div class="loading">
+                        <div class="loading-spinner"></div>
+                        正在加载职业数据...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主容器 -->
+    <div class="main-container">
+        <h1 class="title">🎰 幸运职业选择器</h1>
+        
+        <div class="slot-machine" id="slotMachine">
+            <div class="slot-display">
+                <div class="slot-text" id="slotText">点击下方按钮开始</div>
+            </div>
+            <div class="button-group">
+                <button class="random-btn" id="randomBtn" onclick="randomSelectProfession()">
+                    随机选择
+                </button>
+                <button class="search-btn" onclick="toggleModal()">
+                    查看全部
+                </button>
+            </div>
+        </div>
+
+        <div class="quick-select" id="quickSelect">
+            <!-- 快速选择选项将通过JavaScript生成 -->
+        </div>
+
+        <div class="selected-display" id="selectedDisplay"></div>
+    </div>
+
+    <!-- ========================================================== -->
+    <!-- 静态路由下的"按需加载 + 缓存"方案 -->
+    <!-- 2025-11-23 -->
+    <!-- ========================================================== -->
+    <script>
+        // 通用缓存工具
+        window.ScriptCache = {
+            has: function (url) {
+                return window._allScripts && window._allScripts[url];
+            },
+            get: function (url) {
+                return this.has(url) ? window._allScripts[url] : null;
+            },
+            set: function (url, data) {
+                window._allScripts = window._allScripts || {};
+                window._allScripts[url] = data || true;
+            },
+            remove: function (url) {
+                if(window._allScripts) delete window._allScripts[url];
+            },
+            clear: function () {
+                window._allScripts = {};
+            },
+            stats: function () {
+                return Object.keys(window._allScripts || {}).length;
+            }
+        };
+
+        // 按需加载职业数据
+        (function(){
+            const scriptUrl = '12_professions.js';
+            
+            // 如果已缓存，直接返回
+            if (window.ScriptCache.has(scriptUrl)) {
+                console.log('职业数据已从缓存加载');
+                initProfessionSystem();
+                return;
+            }
+            
+            // 创建script标签
+            const s = document.createElement('script');
+            s.src = scriptUrl;
+            s.onload = () => {
+                window.ScriptCache.set(scriptUrl, true);
+                console.log('职业数据加载完成');
+                initProfessionSystem();
+            };
+            s.onerror = () => {
+                console.error('职业数据加载失败');
+                document.getElementById('professionGrid').innerHTML = 
+                    '<div style="padding: 40px; text-align: center; color: #ff6b6b;">职业数据加载失败，请刷新页面重试</div>';
+            };
+            document.head.appendChild(s);
+        })();
+
+        // 初始化职业系统
+        function initProfessionSystem() {
+            // 等待数据加载完成
+            if (!window.ProfessionsDataLoaded) {
+                setTimeout(initProfessionSystem, 100);
+                return;
+            }
+
+            console.log('初始化职业系统，共', window.ProfessionsData.all.length, '个职业');
+            
+            // 生成粒子背景
+            createParticles();
+            
+            // 生成分类标签
+            generateCategoryTabs();
+            
+            // 生成快速选择
+            generateQuickSelect();
+            
+            // 默认显示热门职业
+            showProfessions('hot');
+        }
+
+        // 创建粒子背景
+        function createParticles() {
+            const particlesContainer = document.getElementById('particles');
+            const particleCount = window.innerWidth < 768 ? 15 : 25;
+            
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.width = Math.random() * 8 + 4 + 'px';
+                particle.style.height = particle.style.width;
+                particle.style.animationDelay = Math.random() * 8 + 's';
+                particle.style.animationDuration = (Math.random() * 10 + 10) + 's';
+                particlesContainer.appendChild(particle);
+            }
+        }
+
+        // 生成分类标签
+        function generateCategoryTabs() {
+            const tabsContainer = document.getElementById('categoryTabs');
+            const categories = window.ProfessionsData.categories;
+            
+            // 添加"热门"标签
+            const hotTab = document.createElement('div');
+            hotTab.className = 'category-tab active';
+            hotTab.innerHTML = '🔥 热门职业';
+            hotTab.onclick = () => showProfessions('hot');
+            tabsContainer.appendChild(hotTab);
+            
+            // 添加分类标签
+            Object.keys(categories).forEach(key => {
+                const cat = categories[key];
+                const tab = document.createElement('div');
+                tab.className = 'category-tab';
+                tab.innerHTML = `${cat.icon} ${cat.name}`;
+                tab.onclick = () => showProfessions(key);
+                tabsContainer.appendChild(tab);
+            });
+            
+            // 添加"全部"标签
+            const allTab = document.createElement('div');
+            allTab.className = 'category-tab';
+            allTab.innerHTML = '📋 全部职业';
+            allTab.onclick = () => showProfessions('all');
+            tabsContainer.appendChild(allTab);
+        }
+
+        // 显示职业列表
+        function showProfessions(type) {
+            const grid = document.getElementById('professionGrid');
+            const tabs = document.querySelectorAll('.category-tab');
+            
+            // 更新标签状态
+            tabs.forEach(tab => tab.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            // 获取职业数据
+            let professions = [];
+            if (type === 'hot') {
+                professions = window.ProfessionsData.getHotProfessions();
+            } else if (type === 'all') {
+                professions = window.ProfessionsData.all;
+            } else {
+                professions = window.ProfessionsData.getProfessionsByCategory(type);
+            }
+            
+            // 生成职业卡片
+            grid.innerHTML = '';
+            professions.forEach((prof, index) => {
+                const category = window.ProfessionsData.categories[prof.category];
+                const card = document.createElement('div');
+                card.className = 'profession-card' + (prof.hot ? ' hot' : '');
+                card.innerHTML = `
+                    <div class="profession-info">
+                        <div class="profession-title">
+                            ${category.icon} ${prof.name}
+                            ${prof.hot ? '<span class="hot-badge">HOT</span>' : ''}
+                        </div>
+                        <div class="profession-category">${category.name}</div>
+                        <div class="profession-salary">💰 ${prof.salary}</div>
+                    </div>
+                `;
+                card.onclick = () => selectProfessionFromCard(prof.name);
+                // 添加延迟动画
+                card.style.animationDelay = (index * 0.02) + 's';
+                grid.appendChild(card);
+            });
+        }
+
+        // 生成快速选择
+        function generateQuickSelect() {
+            const quickSelect = document.getElementById('quickSelect');
+            const hotProfessions = window.ProfessionsData.getHotProfessions().slice(0, 12);
+            
+            hotProfessions.forEach(prof => {
+                const item = document.createElement('div');
+                item.className = 'quick-item';
+                item.textContent = prof.name;
+                item.onclick = () => {
+                    selectProfession(prof.name);
+                };
+                quickSelect.appendChild(item);
+            });
+        }
+
+        // 随机选择职业
+        function randomSelectProfession() {
+            const randomBtn = document.getElementById('randomBtn');
+            const slotText = document.getElementById('slotText');
+            const slotMachine = document.getElementById('slotMachine');
+            
+            // 禁用按钮
+            randomBtn.disabled = true;
+            
+            // 添加旋转动画
+            slotMachine.classList.add('spinning');
+            slotText.classList.add('spinning');
+            
+            // 快速切换显示的职业
+            const professions = window.ProfessionsData.all;
+            let spinCount = 0;
+            const maxSpins = 20;
+            
+            const spinInterval = setInterval(() => {
+                const randomProf = professions[Math.floor(Math.random() * professions.length)];
+                slotText.textContent = randomProf.name;
+                spinCount++;
+                
+                if (spinCount >= maxSpins) {
+                    clearInterval(spinInterval);
+                    
+                    // 最终选择
+                    const finalProf = professions[Math.floor(Math.random() * professions.length)];
+                    slotText.textContent = finalProf.name;
+                    
+                    // 移除动画
+                    slotMachine.classList.remove('spinning');
+                    slotText.classList.remove('spinning');
+                    
+                    // 显示选中结果
+                    selectProfession(finalProf.name);
+                    
+                    // 创建庆祝效果
+                    createCelebration();
+                    
+                    // 重新启用按钮
+                    setTimeout(() => {
+                        randomBtn.disabled = false;
+                    }, 1000);
+                }
+            }, 100);
+        }
+
+        // 从卡片选择职业
+        function selectProfessionFromCard(professionName) {
+            toggleModal();
+            selectProfession(professionName);
+        }
+
+        // 选择职业
+        function selectProfession(professionName) {
+            const selectedDisplay = document.getElementById('selectedDisplay');
+            const slotText = document.getElementById('slotText');
+            
+            // 更新老虎机显示
+            slotText.textContent = professionName;
+            
+            // 显示选中结果
+            selectedDisplay.innerHTML = `
+                🎉 恭喜！您的幸运职业是：<strong>${professionName}</strong><br>
+                <small>愿您在新的职业道路上前程似锦！✨</small>
+            `;
+            selectedDisplay.classList.add('show');
+            
+            // 创建烟花效果
+            createFireworks();
+            
+            // 添加震动效果（如果支持）
+            if (navigator.vibrate) {
+                navigator.vibrate(200);
+            }
+        }
+
+        // 创建庆祝效果
+        function createCelebration() {
+            const emojis = ['🎉', '🎊', '✨', '🌟', '💫', '🎯', '🏆', '👏'];
+            const emoji = emojis[Math.floor(Math.random() * emojis.length)];
+            
+            const celebration = document.createElement('div');
+            celebration.className = 'celebration';
+            celebration.textContent = emoji;
+            document.body.appendChild(celebration);
+            
+            setTimeout(() => {
+                celebration.remove();
+            }, 1000);
+        }
+
+        // 创建烟花效果
+        function createFireworks() {
+            const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#ffeaa7', '#fd79a8'];
+            const particleCount = 20;
+            
+            for (let i = 0; i < particleCount; i++) {
+                const firework = document.createElement('div');
+                firework.className = 'firework';
+                firework.style.background = colors[Math.floor(Math.random() * colors.length)];
+                
+                // 从中心位置开始
+                const startX = window.innerWidth / 2;
+                const startY = window.innerHeight / 2;
+                
+                firework.style.left = startX + 'px';
+                firework.style.top = startY + 'px';
+                
+                document.body.appendChild(firework);
+                
+                // 随机方向和距离
+                const angle = (Math.PI * 2 * i) / particleCount;
+                const velocity = 3 + Math.random() * 3;
+                const lifetime = 800 + Math.random() * 800;
+                
+                let opacity = 1;
+                let currentX = startX;
+                let currentY = startY;
+                
+                const animate = () => {
+                    currentX += Math.cos(angle) * velocity;
+                    currentY += Math.sin(angle) * velocity;
+                    opacity -= 0.025;
+                    
+                    firework.style.left = currentX + 'px';
+                    firework.style.top = currentY + 'px';
+                    firework.style.opacity = opacity;
+                    
+                    if (opacity > 0) {
+                        requestAnimationFrame(animate);
+                    } else {
+                        firework.remove();
+                    }
+                };
+                
+                requestAnimationFrame(animate);
+            }
+        }
+
+        // 切换模态框
+        function toggleModal() {
+            const modal = document.getElementById('professionModal');
+            modal.classList.toggle('active');
+        }
+
+        // 点击模态框外部关闭
+        document.getElementById('professionModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                toggleModal();
+            }
+        });
+
+        // 防止移动端双击缩放
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', function (event) {
+            const now = (new Date()).getTime();
+            if (now - lastTouchEnd <= 300) {
+                event.preventDefault();
+            }
+            lastTouchEnd = now;
+        }, false);
+    </script>
+</body>
+</html>

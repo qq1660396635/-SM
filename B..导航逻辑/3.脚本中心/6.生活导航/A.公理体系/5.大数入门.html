@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>大数入门 - 知识图谱</title>
+    <style>
+        :root {
+            /* 核心配色：青色/蓝绿体系，区别于原版的紫色 */
+            --primary-color: #0ea5e9;       /* 天空蓝 */
+            --secondary-color: #0d9488;      /* 蓝绿色 */
+            --accent-color: #2dd4bf;        /* 亮青色 */
+            --text-color: #0f172a;          /* 深蓝灰 */
+            --text-secondary: #475569;      /* 次级灰 */
+            --bg-color: #ecfeff;            /* 极淡的青底 */
+            --border-color: #cbd5e1;
+            --hover-bg: #ccfbf1;            /* 悬停时的薄荷绿 */
+            --code-bg: #ffffff;
+            --tree-line: #99f6e4;           /* 树连线颜色 */
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Menlo', monospace;
+            font-size: 14px; /* 基础字体略调小以适应手机 */
+            line-height: 1.4;
+            color: #334155;
+            /* 背景渐变：冰蓝到薄荷绿 */
+            background: linear-gradient(135deg, #e0f2fe 0%, #ccfbf1 50%, #f0fdfa 100%);
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: rgba(255, 255, 255, 0.85);
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(14, 165, 233, 0.15);
+            margin: 8px; /* 手机端边距减小 */
+            border-radius: 16px;
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.6);
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: #fff;
+            padding: 10px 14px;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+            flex-shrink: 0;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            z-index: 10;
+        }
+
+        /* 顶部流光动画 */
+        header::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            animation: shimmer 3s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+        .header-content {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            flex: 1;
+        }
+
+        header h1 {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 2px;
+            letter-spacing: -0.5px;
+        }
+
+        header p {
+            opacity: 0.9;
+            font-size: 11px;
+            font-weight: 400;
+        }
+
+        .header-search {
+            position: relative;
+            z-index: 20;
+        }
+
+        #searchInput {
+            padding: 5px 8px;
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 6px;
+            background-color: rgba(255, 255, 255, 0.2);
+            color: #fff;
+            font-size: 12px;
+            font-family: inherit;
+            width: 130px;
+            transition: all 0.3s;
+            backdrop-filter: blur(4px);
+        }
+
+        #searchInput::placeholder {
+            color: rgba(255,255,255,0.7);
+        }
+
+        #searchInput:focus {
+            outline: none;
+            background-color: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255,255,255,0.6);
+            width: 150px;
+        }
+
+        .controls {
+            padding: 8px 14px;
+            background-color: var(--code-bg);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 6px;
+        }
+
+        .controls button {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 12px;
+            font-family: inherit;
+            box-shadow: 0 2px 4px rgba(13, 148, 136, 0.2);
+        }
+
+        .controls button:active {
+            transform: scale(0.96);
+        }
+
+        .tree-container {
+            flex: 1;
+            padding: 10px 14px;
+            overflow: auto;
+            background-color: rgba(240, 253, 250, 0.4);
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* 滚动条美化 */
+        .tree-container::-webkit-scrollbar {
+            width: 4px;
+        }
+        .tree-container::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .tree-container::-webkit-scrollbar-thumb {
+            background: var(--secondary-color);
+            border-radius: 4px;
+        }
+
+        /* 树形结构样式 */
+        .tree ul {
+            list-style-type: none;
+            padding-left: 14px; /* 缩进减小以适应手机 */
+            margin: 0;
+        }
+
+        .tree li {
+            position: relative;
+            padding: 0.5px 0;
+            white-space: nowrap;
+        }
+
+        /* 连接线 */
+        .tree li::before {
+            content: "";
+            position: absolute;
+            left: -8px; /* 连接横线 */
+            top: 10px;
+            width: 8px;
+            height: 1px;
+            background-color: var(--tree-line);
+        }
+
+        .tree li::after {
+            content: "";
+            position: absolute;
+            left: -8px;
+            top: 0;
+            bottom: 0;
+            width: 1px;
+            background-color: var(--tree-line);
+        }
+
+        .tree li:last-child::after {
+            height: 10px; /* 最后一项竖线不延伸 */
+        }
+
+        .tree > ul > li::before, .tree > ul > li::after {
+            display: none; /* 根节点不显示连线 */
+        }
+
+        .tree-node {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            padding: 3px 4px;
+            border-radius: 4px;
+            transition: background 0.2s;
+            margin-bottom: 1px;
+        }
+
+        .tree-node:hover {
+            background-color: var(--hover-bg);
+        }
+
+        .tree-content {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            min-width: 0;
+        }
+
+        .tree-name {
+            font-weight: 500;
+            font-size: 13px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: #1e293b;
+        }
+
+        /* 文件夹图标 */
+        .folder-content .tree-name::before {
+            content: '▼';
+            display: inline-block;
+            width: 14px;
+            margin-right: 5px;
+            font-size: 10px;
+            color: var(--primary-color);
+            text-align: center;
+        }
+
+        .collapsed .folder-content .tree-name::before {
+            content: '▶';
+        }
+
+        /* 文件图标 */
+        .file-content .tree-name::before {
+            content: '🔢';
+            display: inline-block;
+            width: 14px;
+            margin-right: 5px;
+            font-size: 11px;
+            text-align: center;
+        }
+
+        .collapsed > ul {
+            display: none;
+        }
+
+        /* 搜索高亮 */
+        .highlight {
+            background: linear-gradient(135deg, var(--accent-color), var(--secondary-color));
+            padding: 0 3px;
+            border-radius: 3px;
+            color: #fff;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+
+        footer {
+            background: linear-gradient(135deg, var(--secondary-color), var(--primary-color));
+            color: white;
+            padding: 6px 14px;
+            text-align: center;
+            font-size: 10px;
+            border-top: 1px solid rgba(255,255,255,0.2);
+            flex-shrink: 0;
+            opacity: 0.9;
+        }
+
+        /* 手机端特定微调 */
+        @media (max-width: 480px) {
+            body { font-size: 13px; }
+            header h1 { font-size: 16px; }
+            .tree ul { padding-left: 12px; }
+            .tree li::before { left: -7px; width: 7px; }
+            .tree li::after { left: -7px; }
+            .tree-name { font-size: 12px; }
+            #searchInput { width: 100px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <h1>大数入门</h1>
+                <p>Large Numbers Guide (2025)</p>
+            </div>
+            <div class="header-search">
+                <input type="text" id="searchInput" placeholder="搜索数值...">
+            </div>
+        </header>
+        
+        <div class="controls">
+            <div class="action-buttons">
+                <button id="expandAll">全部展开</button>
+                <button id="collapseAll">全部折叠</button>
+            </div>
+        </div>
+        
+        <div class="tree-container">
+            <div class="tree" id="treeContainer"></div>
+        </div>
+        
+        <footer>
+            <p>大数入门 | 数量级与无限的世界</p>
+        </footer>
+    </div>
+
+    <script>
+        // 大数入门知识树形数据
+        const treeData = [
+            {
+                name: "1️⃣基础计数体系",
+                children: [
+                    { name: "1️⃣.1️⃣ 中文计数", children: ["个/十/百/千", "万(10^4)", "亿(10^8)", "兆(10^12)", "京(10^16)"] },
+                    { name: "1️⃣.2️⃣ 西方计数", children: ["Million (百万)", "Billion (十亿)", "Trillion (万亿)", "Quadrillion"] },
+                    { name: "1️⃣.3️⃣ 进位制差异", children: ["短数级制(千进)", "长数级制(万进)"] }
+                ]
+            },
+            {
+                name: "2️⃣数学表示法",
+                children: [
+                    { name: "2️⃣.1️⃣ 科学记数法", children: ["a×10^n", "数量级", "有效数字"] },
+                    { name: "2️⃣.2️⃣ 运算符号", children: ["阶乘 (!)", "超运算 (Hyperoperation)"] },
+                    { name: "2️⃣.3️⃣ 高德纳箭头", children: ["↑ (乘方)", "↑↑ (迭代幂次)", "↑↑↑ (Pentation)"] },
+                    { name: "2️⃣.4️⃣ 斯坦豪斯-莫泽记法", children: ["多边形表示", "多面体表示"] }
+                ]
+            },
+            {
+                name: "3️⃣经典大数",
+                children: [
+                    { name: "3️⃣.1️⃣ 阿伏伽德罗常数", children: ["6.02×10^23", "微观粒子量级"] },
+                    { name: "3️⃣.2️⃣ 古戈尔", children: ["10^100", "数字1后面100个0", "Google名称由来"] },
+                    { name: "3️⃣.3️⃣ 古戈尔普勒克斯", children: ["10^(10^100)", "宇宙原子总数对比", "无法书写"] },
+                    { name: "3️⃣.4️⃣ 斯丘斯数", children: ["素数分布", "Skewes' Number", "e^e^e^79"] }
+                ]
+            },
+            {
+                name: "4️⃣理论巨大数",
+                children: [
+                    { name: "4️⃣.1️⃣ 葛立恒数", children: ["拉姆齐理论", "高德纳箭头塔", "64层箭头", "数字本身无法观测"] },
+                    { name: "4️⃣.2️⃣ TREE(3)", children: ["图论", "Kruskal树定理", "葛立恒数相比之下极小"] },
+                    { name: "4️⃣.3️⃣ 忙碌的海狸", children: ["不可计算函数", "BB(n)", "停机问题"] },
+                    { name: "4️⃣.4️⃣ 雷(Rayo)数", children: ["大数博弈", "一阶集合论", "当前最大定义数"] }
+                ]
+            },
+            {
+                name: "5️⃣无限与超越",
+                children: [
+                    { name: "5️⃣.1️⃣ 无穷大(∞)", children: ["潜无限", "实无限", "发散级数"] },
+                    { name: "5️⃣.2️⃣ 阿列夫数", children: ["ℵ0 (自然数集)", "ℵ1 (不可数集)", "康托尔连续统假设"] },
+                    { name: "5️⃣.3️⃣ 绝对无限", children: ["康托尔", "所有集合的集合", "神学联系"] },
+                    { name: "5️⃣.4️⃣ 大数疆界", children: ["可观测宇宙粒子数", "庞加莱回归时间", "黑洞熵"] }
+                ]
+            },
+            {
+                name: "6️⃣实际应用",
+                children: [
+                    { name: "6️⃣.1️⃣ 密码学", children: ["RSA大数分解", "质数加密安全"] },
+                    { name: "6️⃣.2️⃣ 物理宇宙", children: ["普朗克单位", "时空泡沫", "多重宇宙"] },
+                    { name: "6️⃣.3️⃣ 组合爆炸", children: ["围棋变化数", "魔方状态", "香农数"] }
+                ]
+            }
+        ];
+
+        // 数据转换函数：确保字符串统一为对象结构
+        function transformData(data) {
+            return data.map(item => {
+                if (typeof item === 'string') {
+                    return { name: item, type: 'file' };
+                } else if (item.children) {
+                    return {
+                        name: item.name,
+                        type: 'folder',
+                        children: transformData(item.children)
+                    };
+                } else {
+                    return { name: item.name, type: 'file' };
+                }
+            });
+        }
+
+        // 创建树节点 DOM
+        function createTreeNode(data) {
+            const li = document.createElement('li');
+            const nodeDiv = document.createElement('div');
+            nodeDiv.className = 'tree-node';
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'tree-content';
+            
+            if (data.type === 'folder') {
+                contentDiv.classList.add('folder-content');
+            } else {
+                contentDiv.classList.add('file-content');
+            }
+            
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'tree-name';
+            nameSpan.textContent = data.name;
+            contentDiv.appendChild(nameSpan);
+            
+            nodeDiv.appendChild(contentDiv);
+            li.appendChild(nodeDiv);
+            
+            if (data.children && data.children.length > 0) {
+                const ul = document.createElement('ul');
+                data.children.forEach(child => {
+                    ul.appendChild(createTreeNode(child));
+                });
+                li.appendChild(ul);
+            }
+            
+            return li;
+        }
+
+        // 初始化树形结构
+        function initTree() {
+            const treeContainer = document.getElementById('treeContainer');
+            treeContainer.innerHTML = '';
+            const ul = document.createElement('ul');
+            const transformedData = transformData(treeData);
+            transformedData.forEach(item => {
+                ul.appendChild(createTreeNode(item));
+            });
+            treeContainer.appendChild(ul);
+            
+            // 默认折叠所有文件夹，保持界面整洁
+            document.querySelectorAll('.tree li:has(> ul)').forEach(li => {
+                li.classList.add('collapsed');
+            });
+        }
+
+        // 搜索功能逻辑
+        document.getElementById('searchInput').addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase().trim();
+            
+            // 清除旧高亮
+            document.querySelectorAll('.highlight').forEach(el => {
+                el.classList.remove('highlight');
+            });
+            
+            if (searchTerm === '') return;
+            
+            // 查找匹配项并高亮
+            document.querySelectorAll('.tree-node').forEach(node => {
+                const text = node.textContent.toLowerCase();
+                if (text.includes(searchTerm)) {
+                    const nameSpan = node.querySelector('.tree-name');
+                    nameSpan.classList.add('highlight');
+                    
+                    // 自动展开父级路径
+                    let parent = node.closest('li');
+                    while (parent && !parent.classList.contains('tree')) {
+                        parent.classList.remove('collapsed');
+                        parent = parent.parentElement.closest('li');
+                    }
+                }
+            });
+        });
+
+        // 节点点击交互（折叠/展开）
+        document.getElementById('treeContainer').addEventListener('click', function(e) {
+            const treeNode = e.target.closest('.tree-node');
+            if (!treeNode) return;
+            
+            // 仅对文件夹生效
+            const folderContent = treeNode.querySelector('.folder-content');
+            if (!folderContent) return;
+            
+            const li = treeNode.parentElement;
+            li.classList.toggle('collapsed');
+        });
+
+        // 展开全部
+        document.getElementById('expandAll').addEventListener('click', function() {
+            document.querySelectorAll('.tree li.collapsed').forEach(li => {
+                li.classList.remove('collapsed');
+            });
+        });
+
+        // 折叠全部
+        document.getElementById('collapseAll').addEventListener('click', function() {
+            document.querySelectorAll('.tree li:has(.folder-content)').forEach(li => {
+                if (!li.parentElement.classList.contains('tree')) {
+                    li.classList.add('collapsed');
+                }
+            });
+        });
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            initTree();
+        });
+    </script>
+</body>
+</html>

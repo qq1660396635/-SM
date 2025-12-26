@@ -1,0 +1,699 @@
+<!DOCTYPE html> 
+<html lang="zh-CN"> 
+<head>
+    <meta charset="UTF-8"> 
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Python 标准库内置模块</title>
+    
+    <script src="A.插件_字体缩放.js"></script>
+        
+<style>
+:root {
+    --primary-color: #10b981;
+    --secondary-color: #06b6d4;
+    --accent-color: #8b5cf6;
+    --text-color: #1e293b;
+    --text-secondary: #64748b;
+    --bg-color: #f0fdf4;
+    --border-color: #d1fae5;
+    --hover-bg: #dcfce7;
+    --code-bg: #ffffff;
+    --tree-line: #86efac;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--text-color);
+    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 50%, #d1fae5 100%);
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+    display: flex;
+    flex-direction: column;
+    /* 关键：字体平滑，防止模糊 */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+}
+
+.container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background-color: rgba(255, 255, 255, 0.95);
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    margin: 8px;
+    border-radius: 8px;
+    border: 1px solid rgba(209, 250, 229, 0.3);
+}
+
+header {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: #fff;
+    padding: 12px 16px;
+    text-align: left;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    flex-shrink: 0;
+    position: relative;
+    overflow: hidden;
+}
+
+header::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+    animation: shimmer 3s infinite;
+}
+
+@keyframes shimmer {
+    0% { left: -100%; }
+    100% { left: 100%; }
+}
+
+header h1 {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    position: relative;
+}
+
+header p {
+    opacity: 0.9;
+    font-size: 12px;
+    position: relative;
+}
+
+.controls {
+    padding: 10px 16px;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.controls button {
+    background: linear-gradient(135deg, var(--accent-color), var(--secondary-color));
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-size: 12px;
+    font-family: inherit;
+    font-weight: 500;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.controls button:hover {
+    background: linear-gradient(135deg, var(--secondary-color), var(--primary-color));
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+#searchInput {
+    padding: 6px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background-color: rgba(240, 253, 244, 0.8);
+    color: var(--text-color);
+    font-size: 12px;
+    font-family: inherit;
+    width: 180px;
+    transition: all 0.3s;
+}
+
+#searchInput:focus {
+    outline: none;
+    border-color: var(--accent-color);
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2);
+}
+
+.tree-container {
+    flex: 1;
+    padding: 12px;
+    overflow: auto;
+    background: linear-gradient(180deg, rgba(240, 253, 244, 0.4) 0%, rgba(240, 253, 244, 0.2) 100%);
+}
+
+.tree-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+.tree-container::-webkit-scrollbar-thumb {
+    background: var(--accent-color);
+    border-radius: 3px;
+}
+
+.tree ul {
+    list-style-type: none;
+    padding-left: 16px;
+    margin: 0;
+}
+
+.tree li {
+    position: relative;
+    padding: 1px 0;
+    white-space: nowrap;
+}
+
+.tree li::before {
+    content: "";
+    position: absolute;
+    left: -10px;
+    top: 8px;
+    width: 10px;
+    height: 1px;
+    background-color: var(--tree-line);
+}
+
+.tree li::after {
+    content: "";
+    position: absolute;
+    left: -10px;
+    top: -2px;
+    width: 1px;
+    height: 100%;
+    background-color: var(--tree-line);
+}
+
+.tree li:last-child::after {
+    height: 10px;
+}
+
+.tree > ul > li::before,
+.tree > ul > li::after {
+    display: none;
+}
+
+.tree-node {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.tree-node:hover {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(6, 182, 212, 0.05) 100%);
+    transform: translateX(2px);
+}
+
+.tree-node i {
+    margin-right: 6px;
+    color: var(--text-color);
+    width: 12px;
+    text-align: center;
+    font-size: 10px;
+}
+
+.tree-node .folder {
+    color: var(--primary-color);
+}
+
+.tree-node .file {
+    color: var(--text-secondary);
+}
+
+.tree-node .toggle {
+    color: #94a3b8;
+    margin-right: 3px;
+    font-size: 9px;
+    transition: transform 0.2s;
+}
+
+.collapsed .toggle.fa-chevron-down::before {
+    content: "\f054";
+}
+
+.tree-content {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    min-width: 0;
+}
+
+.tree-name {
+    font-weight: 500;
+    font-size: 13px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--text-color);
+}
+
+/* 注释文字优化 */
+.tree-desc {
+    font-style: normal !important;
+    white-space: normal !important;
+    max-width: none !important;
+    overflow: visible !important;
+    text-overflow: unset !important;
+    display: inline-block !important;
+    line-height: 1.4 !important;
+    margin-left: 6px !important;
+    font-size: 11px !important;
+    color: var(--text-secondary) !important;
+    background: rgba(16, 185, 129, 0.06) !important;
+    padding: 1px 4px !important;
+    border-radius: 3px !important;
+    border: 1px solid rgba(16, 185, 129, 0.1) !important;
+    transition: all 0.2s !important;
+}
+
+.tree-node:hover .tree-desc {
+    background: rgba(16, 185, 129, 0.1) !important;
+    border-color: rgba(16, 185, 129, 0.2) !important;
+}
+
+.collapsed > ul {
+    display: none;
+}
+
+.highlight {
+    background: linear-gradient(135deg, var(--accent-color), var(--secondary-color));
+    padding: 0 3px;
+    border-radius: 3px;
+    color: #fff;
+    font-weight: 500;
+}
+
+footer {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: white;
+    padding: 8px 16px;
+    text-align: center;
+    font-size: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+    flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+    body { font-size: 12px; }
+    .container { margin: 4px; }
+    header h1 { font-size: 16px; }
+    header p { font-size: 11px; }
+    .tree ul { padding-left: 14px; }
+    .tree-name { font-size: 12px; }
+    .tree-desc { font-size: 10px; }
+    #searchInput { width: 140px; font-size: 11px; }
+    .controls button { font-size: 11px; padding: 5px 10px; }
+}
+
+@media (max-width: 480px) {
+    body { font-size: 11px; }
+    .container { margin: 2px; }
+    header h1 { font-size: 14px; }
+    header p { font-size: 10px; }
+    .tree ul { padding-left: 12px; }
+    .tree-node { padding: 1px 3px; }
+    .tree-name { font-size: 11px; }
+    .tree-desc { font-size: 9px; }
+    #searchInput { width: 120px; font-size: 10px; }
+    .controls button { font-size: 10px; padding: 4px 8px; }
+}
+</style>
+
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Python 标准库内置模块</h1>
+            <p>Python Standard Library - Built-in Modules</p>
+        </header>
+        <div class="controls">
+            <div>
+                <button id="expandAll">展开</button>
+                <button id="collapseAll">折叠</button>
+            </div>
+            <div>
+                <input type="text" id="searchInput" placeholder="搜索...">
+            </div>
+        </div>
+        <div class="tree-container">
+            <div class="tree">
+                <ul id="treeRoot"></ul>
+            </div>
+        </div>
+        <footer>
+            <p>© 2025 Python 标准库内置模块 | Generated by 凉安</p>
+        </footer>
+    </div>
+
+    <!-- 第一部分：数据定义 -->
+    <script>
+        // 定义树形数据结构
+        const treeData = [
+            {
+                name: 'A-C',
+                type: 'folder',
+                children: [
+                    { name: 'abc', desc: '抽象基类（Abstract Base Classes）', type: 'file' },
+                    { name: 'aifc', desc: '读写AIFF和AIFC音频文件', type: 'file' },
+                    { name: 'argparse', desc: '命令行选项、参数和子命令解析器', type: 'file' },
+                    { name: 'array', desc: '高效的数值数组', type: 'file' },
+                    { name: 'ast', desc: '抽象语法树（Abstract Syntax Trees）', type: 'file' },
+                    { name: 'asyncio', desc: '异步I/O、事件循环、协程和任务', type: 'file' },
+                    { name: 'atexit', desc: '退出处理器', type: 'file' },
+                    { name: 'base64', desc: 'Base16,Base32, Base64数据编码', type: 'file' },
+                    { name: 'builtins', desc: '内置对象', type: 'file' },
+                    { name: 'collections', desc: '容器数据类型', type: 'file' },
+                    { name: 'csv', desc: 'CSV文件读写', type: 'file' },
+                    { name: 'datetime', desc: '基本日期和时间类型', type: 'file' },
+                    { name: 'decimal', desc: '十进制定点和浮点运算', type: 'file' },
+                    { name: 'email', desc: '电子邮件和MIME消息处理包', type: 'file' },
+                    { name: 'enum', desc: '支持枚举类型', type: 'file' },
+                    { name: 'functools', desc: '可调用对象上的高阶函数和操作', type: 'file' },
+                    { name: 'gzip', desc: '对gzip文件的支持', type: 'file' },
+                    { name: 'hashlib', desc: '安全哈希和消息摘要', type: 'file' },
+                    { name: 'heapq', desc: '堆队列算法', type: 'file' },
+                    { name: 'html', desc: '超文本标记语言支持', type: 'file' },
+                    { name: 'http', desc: 'HTTP模块', type: 'file' },
+                    { name: 'importlib', desc: 'import的实现', type: 'file' },
+                    { name: 'io', desc: '处理流的核心工具', type: 'file' },
+                    { name: 'itertools', desc: '为高效循环创建迭代器的函数', type: 'file' },
+                    { name: 'json', desc: 'JSON编码器和解码器', type: 'file' },
+                    { name: 'logging', desc: 'Python的日志工具', type: 'file' },
+                    { name: 'math', desc: '数学函数', type: 'file' },
+                    { name: 'multiprocessing', desc: '基于进程的并行', type: 'file' },
+                    { name: 'os', desc: '多种操作系统接口', type: 'file' },
+                    { name: 'pathlib', desc: '面向对象的文件系统路径', type: 'file' },
+                    { name: 'pickle', desc: 'Python对象序列化', type: 'file' },
+                    { name: 'random', desc: '生成伪随机数', type: 'file' },
+                    { name: 're', desc: '正则表达式操作', type: 'file' },
+                    { name: 'socket', desc: '底层网络接口', type: 'file' },
+                    { name: 'sqlite3', desc: 'SQLite数据库DB-API 2.0接口', type: 'file' },
+                    { name: 'statistics', desc: '数学统计函数', type: 'file' },
+                    { name: 'subprocess', desc: '子进程管理', type: 'file' },
+                    { name: 'sys', desc: '系统特定的参数和函数', type: 'file' },
+                    { name: 'threading', desc: '基于线程的并行', type: 'file' },
+                    { name: 'time', desc: '时间访问和转换', type: 'file' },
+                    { name: 'tkinter', desc: 'Tcl/Tk接口', type: 'file' },
+                    { name: 'types', desc: '内置类型的动态创建和名称', type: 'file' },
+                    { name: 'typing', desc: '支持类型提示', type: 'file' },
+                    { name: 'unittest', desc: '单元测试框架', type: 'file' },
+                    { name: 'urllib', desc: 'URL处理模块', type: 'file' },
+                    { name: 'uuid', desc: 'RFC 4122的UUID对象', type: 'file' },
+                    { name: 'warnings', desc: '警告控制', type: 'file' },
+                    { name: 'xml', desc: 'XML处理模块', type: 'file' },
+                    { name: 'zipfile', desc: '处理ZIP归档文件', type: 'file' }
+                ]
+            },
+            {
+                name: 'D-H',
+                type: 'folder',
+                children: [
+                    { name: 'dbm', desc: 'Unix"数据库"接口的通用接口', type: 'file' },
+                    { name: 'difflib', desc: '计算序列差异的助手', type: 'file' },
+                    { name: 'dis', desc: 'Python字节码的反汇编器', type: 'file' },
+                    { name: 'doctest', desc: '测试交互式Python示例', type: 'file' },
+                    { name: 'encodings', desc: 'Python支持的字符编码的编码器/解码器', type: 'file' },
+                    { name: 'errno', desc: '标准errno系统符号', type: 'file' },
+                    { name: 'faulthandler', desc: '转储Python反向追踪信息', type: 'file' },
+                    { name: 'filecmp', desc: '文件和目录比较', type: 'file' },
+                    { name: 'fileinput', desc: '从多个输入流中迭代行', type: 'file' },
+                    { name: 'fnmatch', desc: 'Unix文件名模式匹配', type: 'file' },
+                    { name: 'formatter', desc: '通用输出格式化', type: 'file' },
+                    { name: 'fractions', desc: '有理数', type: 'file' },
+                    { name: 'ftplib', desc: 'FTP协议客户端', type: 'file' },
+                    { name: 'gc', desc: '垃圾回收器接口', type: 'file' },
+                    { name: 'getopt', desc: 'C风格的命令行选项解析器', type: 'file' },
+                    { name: 'getpass', desc: '安全输入密码', type: 'file' },
+                    { name: 'gettext', desc: '多语言国际化服务', type: 'file' },
+                    { name: 'glob', desc: 'Unix风格路径名模式扩展', type: 'file' },
+                    { name: 'grp', desc: '组数据库', type: 'file' },
+                    { name: 'hmac', desc: '用于消息认证的密钥哈希', type: 'file' }
+                ]
+            },
+            {
+                name: 'I-M',
+                type: 'folder',
+                children: [
+                    { name: 'imaplib', desc: 'IMAP4协议客户端', type: 'file' },
+                    { name: 'imghdr', desc: '确定图像类型', type: 'file' },
+                    { name: 'inspect', desc: '检查活动对象', type: 'file' },
+                    { name: 'ipaddress', desc: 'IPv4/IPv6操作库', type: 'file' },
+                    { name: 'keyword', desc: 'Python关键字列表', type: 'file' },
+                    { name: 'lib2to3', desc: '2to3库', type: 'file' },
+                    { name: 'linecache', desc: '随机访问文本行', type: 'file' },
+                    { name: 'locale', desc: '国际化服务', type: 'file' },
+                    { name: 'lzma', desc: '使用LZMA算法进行压缩', type: 'file' },
+                    { name: 'mailbox', desc: '操作多种格式的邮箱', type: 'file' },
+                    { name: 'mailcap', desc: 'Mailcap文件处理', type: 'file' },
+                    { name: 'marshal', desc: '内部Python对象序列化', type: 'file' },
+                    { name: 'mimetypes', desc: '将文件名映射到MIME类型', type: 'file' },
+                    { name: 'mmap', desc: '内存映射文件支持', type: 'file' },
+                    { name: 'modulefinder', desc: '查找脚本使用的模块', type: 'file' },
+                    { name: 'msilib', desc: '读写Microsoft Installer文件', type: 'file' },
+                    { name: 'msvcrt', desc: 'MS VC++Runtime的有用例程', type: 'file' }
+                ]
+            },
+            {
+                name: 'N-S',
+                type: 'folder',
+                children: [
+                    { name: 'netrc', desc: 'netrc文件处理', type: 'file' },
+                    { name: 'nntplib', desc: 'NNTP协议客户端', type: 'file' },
+                    { name: 'numbers', desc: '数字的抽象基类', type: 'file' },
+                    { name: 'operator', desc: '函数的标准操作', type: 'file' },
+                    { name: 'optparse', desc: '命令行选项解析器', type: 'file' },
+                    { name: 'os.path', desc: '常见路径名操作', type: 'file' },
+                    { name: 'pdb', desc: 'Python调试器', type: 'file' },
+                    { name: 'pickletools', desc: 'pickle开发工具', type: 'file' },
+                    { name: 'pipes', desc: 'Unix shell管道接口', type: 'file' },
+                    { name: 'pkgutil', desc: '包扩展工具', type: 'file' },
+                    { name: 'platform', desc: '访问底层平台的标识数据', type: 'file' },
+                    { name: 'plistlib', desc: '生成和解析Mac OS X .plist文件', type: 'file' },
+                    { name: 'poplib', desc: 'POP3协议客户端', type: 'file' },
+                    { name: 'posix', desc: '最常用的POSIX系统调用', type: 'file' },
+                    { name: 'pprint', desc: '数据美观打印机', type: 'file' },
+                    { name: 'pty', desc: '伪终端工具', type: 'file' },
+                    { name: 'pwd', desc: '密码数据库', type: 'file' },
+                    { name: 'py_compile', desc: '编译Python源文件', type: 'file' },
+                    { name: 'pyclbr', desc: 'Python类浏览器支持', type: 'file' },
+                    { name: 'queue', desc: '同步队列类', type: 'file' },
+                    { name: 'quopri', desc: '对MIME引用的可打印数据进行编码和解码', type: 'file' },
+                    { name: 'readline', desc: 'GNUreadline接口', type: 'file' },
+                    { name: 'reprlib', desc: '交替repr()实现', type: 'file' },
+                    { name: 'resource', desc: '资源使用信息', type: 'file' },
+                    { name: 'rlcompleter', desc: 'GNUreadline的完成函数', type: 'file' },
+                    { name: 'runpy', desc: '定位并运行Python模块', type: 'file' },
+                    { name: 'sched', desc: '事件调度器', type: 'file' },
+                    { name: 'select', desc: '等待I/O完成', type: 'file' },
+                    { name: 'selectors', desc: '高级I/O多路复用', type: 'file' },
+                    { name: 'shelve', desc: 'Python对象持久化', type: 'file' },
+                    { name: 'shlex', desc: '简单词典分析', type: 'file' },
+                    { name: 'shutil', desc: '高级文件操作', type: 'file' },
+                    { name: 'signal', desc: '设置异步事件的处理程序', type: 'file' },
+                    { name: 'site', desc: '站点特定的配置钩子', type: 'file' },
+                    { name: 'smtpd', desc: 'SMTP服务器', type: 'file' },
+                    { name: 'smtplib', desc: 'SMTP协议客户端', type: 'file' },
+                    { name: 'sndhdr', desc: '确定声音文件类型', type: 'file' },
+                    { name: 'socketserver', desc: '网络服务器框架', type: 'file' },
+                    { name: 'spwd', desc: '影子密码数据库', type: 'file' },
+                    { name: 'ssl', desc: 'TLS/SSL包装器用于socket对象', type: 'file' },
+                    { name: 'stat', desc: '解释stat()结果', type: 'file' },
+                    { name: 'string', desc: '常见字符串操作', type: 'file' },
+                    { name: 'stringprep', desc: '互联网字符串准备', type: 'file' },
+                    { name: 'struct', desc: '将字节解释为打包的二进制数据', type: 'file' },
+                    { name: 'sunau', desc: '读写Sun AU文件', type: 'file' },
+                    { name: 'symbol', desc: 'Python解析树中的常量', type: 'file' },
+                    { name: 'symtable', desc: '访问编译器的符号表', type: 'file' },
+                    { name: 'sysconfig', desc: 'Python配置信息', type: 'file' }
+                ]
+            },
+            {
+                name: 'T-Z',
+                type: 'folder',
+                children: [
+                    { name: 'tabnanny', desc: '模糊缩进检测', type: 'file' },
+                    { name: 'tarfile', desc: '读写tar归档文件', type: 'file' },
+                    { name: 'telnetlib', desc: 'Telnet客户端', type: 'file' },
+                    { name: 'tempfile', desc: '生成临时文件和目录', type: 'file' },
+                    { name: 'termios', desc: 'POSIX风格的tty控制', type: 'file' },
+                    { name: 'test', desc: 'Python回归测试包', type: 'file' },
+                    { name: 'textwrap', desc: '文本填充和包裹', type: 'file' },
+                    { name: 'timeit', desc: '测量小代码片段的执行时间', type: 'file' },
+                    { name: 'token', desc: 'Python解析树中的常量', type: 'file' },
+                    { name: 'tokenize', desc: 'Python源代码分词器', type: 'file' },
+                    { name: 'trace', desc: '跟踪Python语句执行', type: 'file' },
+                    { name: 'traceback', desc: '打印或检索堆栈反向追踪', type: 'file' },
+                    { name: 'tty', desc: '终端控制功能', type: 'file' },
+                    { name: 'turtle', desc: 'Turtle图形库', type: 'file' },
+                    { name: 'unicodedata', desc: 'Unicode数据库', type: 'file' },
+                    { name: 'uu', desc: '对uuencode文件进行编码和解码', type: 'file' },
+                    { name: 'venv', desc: '创建虚拟环境', type: 'file' },
+                    { name: 'wave', desc: '读写WAV音频文件', type: 'file' },
+                    { name: 'weakref', desc: '弱引用', type: 'file' },
+                    { name: 'webbrowser', desc: '方便的Web浏览器控制器', type: 'file' },
+                    { name: 'winreg', desc: 'Windows注册表访问', type: 'file' },
+                    { name: 'winsound', desc: 'Windows声音播放接口', type: 'file' },
+                    { name: 'wsgi', desc: 'Web服务器网关接口', type: 'file' },
+                    { name: 'wsgiref', desc: 'WSGI工具和参考实现', type: 'file' },
+                    { name: 'xdrlib', desc: '对XDR数据进行编码和解码', type: 'file' },
+                    { name: 'xmlrpc', desc: 'XML-RPC服务器和客户端', type: 'file' },
+                    { name: 'zipapp', desc: '管理可执行的Python zip归档', type: 'file' },
+                    { name: 'zipimport', desc: '从ZIP归档中导入模块', type: 'file' },
+                    { name: 'zlib', desc: '与gzip兼容的压缩', type: 'file' }
+                ]
+            }
+        ];
+    </script>
+
+    <!-- 第二部分：渲染逻辑 -->
+    <script>
+        // 创建节点元素的函数
+        function createTreeNode(data) {
+            const li = document.createElement('li');
+            
+            // 创建节点容器
+            const nodeDiv = document.createElement('div');
+            nodeDiv.className = 'tree-node';
+            
+            // 添加折叠图标（仅文件夹）
+            if (data.type === 'folder') {
+                const toggleIcon = document.createElement('span');
+                toggleIcon.className = 'toggle';
+                toggleIcon.textContent = '▼';
+                nodeDiv.appendChild(toggleIcon);
+            }
+            
+            // 添加文件夹/文件图标（使用emoji）
+            const icon = document.createElement('span');
+            icon.className = 'icon';
+            if (data.type === 'folder') {
+                icon.className += ' folder-icon';
+                icon.textContent = '📁';
+            } else {
+                icon.className += ' file-icon';
+                icon.textContent = '🦕';
+            }
+            nodeDiv.appendChild(icon);
+            
+            // 添加内容区域
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'tree-content';
+            
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'tree-name';
+            nameSpan.textContent = data.name;
+            contentDiv.appendChild(nameSpan);
+            
+            if (data.desc) {
+                const descSpan = document.createElement('span');
+                descSpan.className = 'tree-desc';
+                descSpan.textContent = data.desc;
+                contentDiv.appendChild(descSpan);
+            }
+            
+            nodeDiv.appendChild(contentDiv);
+            li.appendChild(nodeDiv);
+            
+            // 递归创建子节点
+            if (data.children && data.children.length > 0) {
+                const ul = document.createElement('ul');
+                data.children.forEach(child => {
+                    ul.appendChild(createTreeNode(child));
+                });
+                li.appendChild(ul);
+            }
+            
+            return li;
+        }
+        
+        // 初始化树形结构
+        function initTree() {
+            const treeRoot = document.getElementById('treeRoot');
+            treeData.forEach(item => {
+                treeRoot.appendChild(createTreeNode(item));
+            });
+            
+            // 默认折叠所有文件夹
+            document.querySelectorAll('.tree li:has(> ul)').forEach(li => {
+                li.classList.add('collapsed');
+            });
+        }
+    </script>
+
+    <!-- 第三部分：交互功能 -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 初始化树形结构
+            initTree();
+            
+            // 使用事件委托处理折叠/展开
+            document.getElementById('treeRoot').addEventListener('click', function(e) {
+                const treeNode = e.target.closest('.tree-node');
+                if (!treeNode) return;
+                
+                const folderIcon = treeNode.querySelector('.folder-icon');
+                if (!folderIcon) return;
+                
+                const li = treeNode.parentElement;
+                li.classList.toggle('collapsed');
+            });
+            
+            // 展开全部按钮
+            document.getElementById('expandAll').addEventListener('click', function() {
+                document.querySelectorAll('.tree li.collapsed').forEach(li => {
+                    li.classList.remove('collapsed');
+                });
+            });
+            
+            // 折叠全部按钮
+            document.getElementById('collapseAll').addEventListener('click', function() {
+                document.querySelectorAll('.tree li:has(.folder-icon)').forEach(li => {
+                    if (!li.parentElement.classList.contains('tree')) {
+                        li.classList.add('collapsed');
+                    }
+                });
+            });
+            
+            // 搜索功能
+            document.getElementById('searchInput').addEventListener('input', function(e) {
+                const searchTerm = e.target.value.toLowerCase();
+                
+                // 清除之前的高亮
+                document.querySelectorAll('.highlight').forEach(el => {
+                    el.classList.remove('highlight');
+                });
+                
+                if (searchTerm === '') return;
+                
+                // 搜索并高亮匹配项
+                document.querySelectorAll('.tree-node').forEach(node => {
+                    const text = node.textContent.toLowerCase();
+                    if (text.includes(searchTerm)) {
+                        node.querySelector('.tree-name').classList.add('highlight');
+                        
+                        // 展开父节点
+                        let parent = node.closest('li');
+                        while (parent && !parent.classList.contains('tree')) {
+                            parent.classList.remove('collapsed');
+                            parent = parent.parentElement.closest('li');
+                        }
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

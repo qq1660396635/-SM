@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTML截图工具</title>
+    <style>
+        :root { --primary: #6366f1; --primary-dark: #4f46e5; --secondary: #22c55e; --secondary-dark: #16a34a; --error: #ef4444; --warning: #f59e0b; --success: #22c55e; --bg: #f0f4f8; --card: #ffffff; --text: #1e293b; --text-light: #64748b; --border: #e2e8f0; --shadow: rgba(0,0,0,0.08); }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; }
+        body { background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); min-height: 100vh; color: var(--text); line-height: 1.6; }
+        .container { max-width: 600px; margin: 0 auto; padding: 15px; }
+        header { text-align: center; margin-bottom: 25px; padding: 30px 20px; background: rgba(255,255,255,0.9); border-radius: 20px; box-shadow: 0 8px 24px rgba(0,0,0,0.06); }
+        h1 { font-size: 1.8rem; margin-bottom: 8px; color: var(--primary); font-weight: 700; }
+        .card { background: rgba(255,255,255,0.9); border-radius: 16px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); transition: all 0.3s ease; }
+        .card:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,0.08); }
+        .form-group { margin-bottom: 18px; }
+        label { display: block; margin-bottom: 8px; font-weight: 600; color: var(--text); font-size: 0.9rem; }
+        input, select { width: 100%; padding: 14px 16px; border: 2px solid var(--border); border-radius: 12px; font-size: 16px; transition: all 0.3s ease; background: #ffffff; }
+        input:focus, select:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1); }
+        .input-row { display: flex; gap: 10px; }
+        .input-row .form-group { flex: 1; margin-bottom: 0; }
+        button { background: var(--primary); color: white; border: none; padding: 14px 28px; border-radius: 12px; cursor: pointer; font-size: 16px; font-weight: 600; transition: all 0.3s ease; display: inline-block; margin-right: 10px; box-shadow: 0 2px 8px rgba(99, 102, 241, 0.2); }
+        button:hover { background: var(--primary-dark); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3); }
+        button:disabled { background: #cbd5e1; cursor: not-allowed; transform: none; box-shadow: none; }
+        .btn-secondary { background: var(--secondary); box-shadow: 0 2px 8px rgba(34, 197, 94, 0.2); }
+        .btn-secondary:hover { background: var(--secondary-dark); box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3); }
+        .connection-status { display: flex; align-items: center; margin-bottom: 18px; padding: 16px; border-radius: 12px; background: #f8fafc; }
+        .status-indicator { width: 12px; height: 12px; border-radius: 50%; margin-right: 12px; background: #cbd5e1; }
+        .status-indicator.connected { background: var(--success); }
+        .status-indicator.error { background: var(--error); }
+        .result { margin-top: 20px; padding: 20px; border-radius: 12px; display: none; }
+        .result.success { background: linear-gradient(135deg, rgba(34, 197, 94, 0.08), rgba(34, 197, 94, 0.04)); border-left: 4px solid var(--success); }
+        .result.error { background: linear-gradient(135deg, rgba(239, 68, 68, 0.08), rgba(239, 68, 68, 0.04)); border-left: 4px solid var(--error); }
+        .file-info { margin-top: 12px; padding: 12px; background: #f8fafc; border-radius: 8px; }
+        .file-info p { margin: 5px 0; font-size: 0.9rem; }
+        .file-info strong { color: var(--primary); }
+        .loading { display: none; text-align: center; margin: 25px 0; }
+        .spinner { border: 3px solid #f3f4f6; width: 40px; height: 40px; border-radius: 50%; border-left-color: var(--primary); animation: spin 1s linear infinite; margin: 0 auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .feature-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-top: 20px; }
+        .feature-card { background: #f8fafc; padding: 15px; border-radius: 12px; text-align: center; transition: all 0.3s ease; }
+        .feature-card:hover { transform: translateY(-2px); background: #ffffff; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .feature-icon { font-size: 1.8rem; margin-bottom: 8px; }
+        .feature-title { font-weight: 600; color: var(--primary); margin-bottom: 5px; font-size: 0.9rem; }
+        .feature-desc { font-size: 0.8rem; color: var(--text-light); }
+        footer { text-align: center; margin-top: 25px; padding: 15px; color: var(--text-light); font-size: 0.85rem; }
+        @media (max-width: 768px) { .container { padding: 10px; } header { padding: 25px 15px; margin-bottom: 20px; } h1 { font-size: 1.5rem; } .card { padding: 18px; margin-bottom: 15px; } .input-row { flex-direction: column; gap: 15px; } .input-row .form-group { margin-bottom: 15px; } button { width: 100%; margin-right: 0; margin-bottom: 10px; padding: 16px; } .feature-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; } .feature-icon { font-size: 1.5rem; } .feature-title { font-size: 0.85rem; } .feature-desc { font-size: 0.75rem; } .card:last-child { display: none; } }
+        @media (min-width: 769px) { .feature-grid { grid-template-columns: repeat(4, 1fr); gap: 12px; } .feature-card { padding: 12px; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📸 HTML截图工具</h1>
+            <p style="color: var(--text-light); font-size: 0.9rem; margin-top: 5px;">智能截图HTML文件，支持单文件和批量处理</p>
+        </header>
+        
+        <main>
+            <div class="card">
+                <div class="connection-status" id="connectionStatus">
+                    <div class="status-indicator" id="statusIndicator"></div>
+                    <span id="statusText">未连接</span>
+                </div>
+                
+                <button id="connectBtn" class="btn-secondary">🔗 连接服务器</button>
+                
+                <div class="form-group">
+                    <label for="serverUrl">服务器地址</label>
+                    <input type="text" id="serverUrl" value="http://localhost:8080" placeholder="输入服务器地址">
+                </div>
+            </div>
+            
+            <div class="card">
+                <h2 style="margin-bottom: 18px; color: var(--primary); font-size: 1.3rem;">📸 截图设置</h2>
+                
+                <div class="form-group">
+                    <label for="htmlPath">HTML文件路径</label>
+                    <input type="text" id="htmlPath" placeholder="/storage/emulated/0/Download/report.html 或 /storage/emulated/0/Download/reports/">
+                </div>
+                
+                <div class="form-group">
+                    <label for="outputPath">输出文件路径（可选）</label>
+                    <input type="text" id="outputPath" placeholder="留空则自动生成">
+                </div>
+                
+                <div class="input-row">
+                    <div class="form-group">
+                        <label for="width">宽度（像素）</label>
+                        <input type="number" id="width" value="2000" min="800" max="4000">
+                    </div>
+                    <div class="form-group">
+                        <label for="height">高度（像素）</label>
+                        <input type="number" id="height" value="3000" min="600" max="6000">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="format">输出格式</label>
+                    <select id="format">
+                        <option value="png">🖼️ PNG（推荐）</option>
+                        <option value="jpg">📷 JPG</option>
+                        <option value="jpeg">📷 JPEG</option>
+                        <option value="pdf">📄 PDF（批量合并）</option>
+                    </select>
+                </div>
+                
+                <button id="screenshotBtn" disabled>📸 开始截图</button>
+                
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <p style="margin-top: 15px; color: var(--text-light); font-weight: 500;">正在生成截图，请稍候...</p>
+                </div>
+                
+                <div class="result" id="result"></div>
+            </div>
+            
+            <div class="card">
+                <h3 style="margin-bottom: 15px; color: var(--primary);">✨ 功能特色</h3>
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">📄</div>
+                        <div class="feature-title">单文件截图</div>
+                        <div class="feature-desc">对单个HTML文件进行高清截图</div>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">📚</div>
+                        <div class="feature-title">批量处理</div>
+                        <div class="feature-desc">自动处理目录下所有HTML文件</div>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">📐</div>
+                        <div class="feature-title">自定义尺寸</div>
+                        <div class="feature-desc">支持自定义截图宽度和高度</div>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🎨</div>
+                        <div class="feature-title">多格式输出</div>
+                        <div class="feature-desc">支持PNG、JPG、PDF等多种格式</div>
+                    </div>
+                </div>
+            </div>
+        </main>
+        
+        <footer>
+            <p>📸 HTML截图工具 &copy; 2024 | 服务器运行在Termux环境</p>
+        </footer>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const serverUrlInput = document.getElementById('serverUrl');
+            const connectBtn = document.getElementById('connectBtn');
+            const statusIndicator = document.getElementById('statusIndicator');
+            const statusText = document.getElementById('statusText');
+            const screenshotBtn = document.getElementById('screenshotBtn');
+            const htmlPath = document.getElementById('htmlPath');
+            const outputPath = document.getElementById('outputPath');
+            const width = document.getElementById('width');
+            const height = document.getElementById('height');
+            const format = document.getElementById('format');
+            const loading = document.getElementById('loading');
+            const result = document.getElementById('result');
+            
+            let isConnected = false;
+            
+            connectBtn.addEventListener('click', async () => {
+                const serverUrl = serverUrlInput.value.trim();
+                if (!serverUrl) {
+                    showStatus('请输入服务器地址', 'error');
+                    return;
+                }
+                
+                connectBtn.disabled = true;
+                connectBtn.textContent = '连接中...';
+                
+                try {
+                    const response = await fetch(`${serverUrl}/test`);
+                    const data = await response.json();
+                    
+                    if (data.status === 'success') {
+                        isConnected = true;
+                        showStatus('✅ 已连接到服务器', 'connected');
+                        screenshotBtn.disabled = false;
+                        connectBtn.textContent = '🔄 重新连接';
+                    } else {
+                        showStatus('❌ 连接失败', 'error');
+                    }
+                } catch (error) {
+                    showStatus('❌ 连接失败: ' + error.message, 'error');
+                } finally {
+                    connectBtn.disabled = false;
+                }
+            });
+            
+            screenshotBtn.addEventListener('click', async () => {
+                if (!isConnected) {
+                    showStatus('请先连接服务器', 'error');
+                    return;
+                }
+                
+                const serverUrl = serverUrlInput.value.trim();
+                const htmlPathValue = htmlPath.value.trim();
+                const outputPathValue = outputPath.value.trim();
+                const widthValue = parseInt(width.value) || 2000;
+                const heightValue = parseInt(height.value) || 3000;
+                const formatValue = format.value;
+                
+                if (!htmlPathValue) {
+                    showStatus('请输入HTML文件路径', 'error');
+                    return;
+                }
+                
+                loading.style.display = 'block';
+                result.style.display = 'none';
+                screenshotBtn.disabled = true;
+                
+                try {
+                    const response = await fetch(`${serverUrl}/screenshot`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            html_path: htmlPathValue,
+                            output_path: outputPathValue,
+                            width: widthValue,
+                            height: heightValue,
+                            format: formatValue
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.status === 'success') {
+                        showResult(data, 'success');
+                    } else {
+                        showResult(data, 'error');
+                    }
+                } catch (error) {
+                    showResult({message: '请求失败: ' + error.message}, 'error');
+                } finally {
+                    loading.style.display = 'none';
+                    screenshotBtn.disabled = false;
+                }
+            });
+            
+            function showStatus(message, type) {
+                statusText.textContent = message;
+                statusIndicator.className = 'status-indicator ' + type;
+            }
+            
+            function showResult(data, type) {
+                result.className = 'result ' + type;
+                result.style.display = 'block';
+                
+                if (type === 'success') {
+                    const formatDisplay = (data.format || 'png').toUpperCase();
+                    
+                    let fileInfoHtml = '';
+                    
+                    if (data.html_count > 1) {
+                        fileInfoHtml = `
+                            <div class="file-info">
+                                <p><strong>📊 处理文件数:</strong> ${data.html_count}</p>
+                                <p><strong>📐 截图尺寸:</strong> ${data.width} × ${data.height}</p>
+                                <p><strong>📄 输出格式:</strong> ${formatDisplay}</p>
+                                <p><strong>💾 文件大小:</strong> ${data.file_size} 字节</p>
+                            </div>
+                        `;
+                    } else {
+                        fileInfoHtml = `
+                            <div class="file-info">
+                                <p><strong>📐 截图尺寸:</strong> ${data.width} × ${data.height}</p>
+                                <p><strong>📄 输出格式:</strong> ${formatDisplay}</p>
+                                <p><strong>💾 文件大小:</strong> ${data.file_size} 字节</p>
+                            </div>
+                        `;
+                    }
+                    
+                    result.innerHTML = `
+                        <h3 style="margin-bottom: 15px; color: var(--success);">✅ 截图成功</h3>
+                        <p><strong>📄 输出文件:</strong> ${data.output_file}</p>
+                        ${fileInfoHtml}
+                        <div style="margin-top: 15px; padding: 10px; background: rgba(99, 102, 241, 0.1); border-radius: 8px;">
+                            <p style="font-weight: 600; margin-bottom: 5px;">💡 使用提示:</p>
+                            <p style="font-size: 0.9rem;">• 🖼️ PNG格式适合高质量截图</p>
+                            <p style="font-size: 0.9rem;">• 📄 PDF格式适合批量合并多个HTML文件</p>
+                            <p style="font-size: 0.9rem;">• 📷 JPG格式文件更小，适合分享</p>
+                        </div>
+                    `;
+                } else {
+                    result.innerHTML = `
+                        <h3 style="margin-bottom: 15px; color: var(--error);">❌ 截图失败</h3>
+                        <p>${data.message}</p>
+                    `;
+                }
+            }
+        });
+    </script>
+</body>
+</html>

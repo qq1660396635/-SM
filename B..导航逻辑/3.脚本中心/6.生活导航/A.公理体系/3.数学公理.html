@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数学公理手册</title>
+    <script src="../A.插件_字体缩放.js"></script>
+    <style>
+        :root {
+            --primary-color: #f59e0b;
+            --secondary-color: #d97706;
+            --accent-color: #fbbf24;
+            --text-color: #1e293b;
+            --text-secondary: #64748b;
+            --bg-color: #fef3c7;
+            --border-color: #e2e8f0;
+            --hover-bg: #fed7aa;
+            --code-bg: #ffffff;
+            --tree-line: #f59e0b;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            color: #334155;
+            background: linear-gradient(135deg, #fff7ed 0%, #fed7aa 25%, #fbbf24 50%, #fed7aa 75%, #fff7ed 100%);
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: rgba(255, 255, 255, 0.92);
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(245, 158, 11, 0.12);
+            margin: 10px;
+            border-radius: 12px;
+            backdrop-filter: blur(8px);
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: #fff;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-color);
+            flex-shrink: 0;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        header::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+            animation: shimmer 3s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+        .header-content {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            flex: 1;
+        }
+
+        header h1 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 4px;
+            position: relative;
+        }
+
+        header p {
+            opacity: 0.9;
+            font-size: 12px;
+            position: relative;
+        }
+
+        .header-search {
+            position: relative;
+            z-index: 10;
+        }
+
+        #searchInput {
+            padding: 6px 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background-color: rgba(248, 250, 252, 0.8);
+            color: #334155;
+            font-size: 12px;
+            font-family: inherit;
+            width: 180px;
+            transition: all 0.3s;
+        }
+
+        #searchInput:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.3);
+        }
+
+        .controls {
+            padding: 10px 16px;
+            background-color: var(--code-bg);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 4px;
+        }
+
+        .controls button {
+            background: linear-gradient(135deg, var(--accent-color), var(--secondary-color));
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 12px;
+            font-family: inherit;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .controls button:hover {
+            background: linear-gradient(135deg, var(--secondary-color), var(--primary-color));
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+        }
+
+        .tree-container {
+            flex: 1;
+            padding: 12px;
+            overflow: auto;
+            background-color: rgba(248, 250, 252, 0.3);
+        }
+
+        .tree-container::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .tree-container::-webkit-scrollbar-thumb {
+            background: var(--primary-color);
+            border-radius: 4px;
+        }
+
+        .tree ul {
+            list-style-type: none;
+            padding-left: 16px;
+            margin: 0;
+        }
+
+        .tree li {
+            position: relative;
+            padding: 1px 0;
+            white-space: nowrap;
+        }
+
+        .tree li::before {
+            content: "";
+            position: absolute;
+            left: -10px;
+            top: 8px;
+            width: 10px;
+            height: 1px;
+            background-color: var(--tree-line);
+        }
+
+        .tree li::after {
+            content: "";
+            position: absolute;
+            left: -10px;
+            top: -2px;
+            width: 1px;
+            height: 100%;
+            background-color: var(--tree-line);
+        }
+
+        .tree li:last-child::after {
+            height: 10px;
+        }
+
+        .tree > ul > li::before, .tree > ul > li::after {
+            display: none;
+        }
+
+        .tree-node {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            padding: 2px 4px;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+
+        .tree-node:hover {
+            background-color: var(--hover-bg);
+        }
+
+        .tree-content {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            min-width: 0;
+        }
+
+        .tree-name {
+            font-weight: 500;
+            font-size: 13px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: #1e293b;
+        }
+
+        .folder-content .tree-name::before {
+            content: '▼';
+            display: inline-block;
+            width: 12px;
+            margin-right: 6px;
+            font-size: 10px;
+            color: var(--primary-color);
+        }
+
+        .collapsed .folder-content .tree-name::before {
+            content: '▶';
+        }
+
+        .file-content .tree-name::before {
+            content: '📜';
+            display: inline-block;
+            width: 12px;
+            margin-right: 6px;
+            font-size: 10px;
+        }
+
+        .collapsed > ul {
+            display: none;
+        }
+
+        .highlight {
+            background: linear-gradient(135deg, var(--accent-color), var(--secondary-color));
+            padding: 0 3px;
+            border-radius: 3px;
+            color: #fff;
+        }
+
+        footer {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 8px 16px;
+            text-align: center;
+            font-size: 10px;
+            border-top: 1px solid var(--border-color);
+            flex-shrink: 0;
+        }
+
+        @media (max-width: 768px) {
+            body { font-size: 12px; }
+            header h1 { font-size: 16px; }
+            header p { font-size: 11px; }
+            .tree ul { padding-left: 14px; }
+            .tree li { padding: 0.5px 0; }
+            .tree-name { font-size: 12px; }
+            #searchInput { width: 140px; font-size: 11px; }
+            .controls button { font-size: 11px; padding: 5px 10px; }
+        }
+
+        @media (max-width: 480px) {
+            body { font-size: 13px; }
+            header h1 { font-size: 14px; }
+            header p { font-size: 10px; }
+            .tree ul { padding-left: 12px; }
+            .tree li { padding: 0; }
+            .tree-node { padding: 1px 3px; }
+            .tree-name { font-size: 11px; }
+            .tree-container { padding: 8px; }
+            .controls { padding: 8px 12px; }
+            #searchInput { width: 120px; font-size: 10px; padding: 4px 8px; }
+            .controls button { font-size: 10px; padding: 4px 8px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <h1>数学公理手册</h1>
+                <p>Mathematics Axioms Manual (2025-12-20)</p>
+            </div>
+            <div class="header-search">
+                <input type="text" id="searchInput" placeholder="搜索公理...">
+            </div>
+        </header>
+        
+        <div class="controls">
+            <div class="action-buttons">
+                <button id="expandAll">展开全部</button>
+                <button id="collapseAll">折叠全部</button>
+            </div>
+        </div>
+        
+        <div class="tree-container">
+            <div class="tree" id="treeContainer"></div>
+        </div>
+        
+        <footer>
+            <p>© 2025 数学公理手册 | Generated by 凉安</p>
+        </footer>
+    </div>
+
+    <script>
+        // 数学公理树形数据
+        const treeData = [
+            {
+                name: "1️⃣ 代数学 (Algebra)",
+                children: [
+                    {
+                        name: "1️⃣.1️⃣ 群论公理 (Group Theory Axioms) - 4 条",
+                        children: [
+                            "① 封闭性 (Closure): a∘b ∈ G",
+                            "② 结合律 (Associativity): (a∘b)∘c = a∘(b∘c)",
+                            "③ 单位元 (Identity): ∃e, a∘e = a",
+                            "④ 逆元 (Inverse): ∀a ∃a⁻¹, a∘a⁻¹ = e"
+                        ]
+                    },
+                    {
+                        name: "1️⃣.2️⃣ 布尔代数公理 (Boolean Algebra Axioms) - 4 条",
+                        children: [
+                            "① 交换律 (Commutativity): a+b=b+a, a·b=b·a",
+                            "② 分配律 (Distributivity): a·(b+c)=(a·b)+(a·c)",
+                            "③ 同一律 (Identity): a+0=a, a·1=a",
+                            "④ 互补律 (Complementation): a+a′=1, a·a′=0"
+                        ]
+                    },
+                    {
+                        name: "1️⃣.3️⃣ 环 & 域公理 (Ring & Field Axioms) - 核心4条",
+                        children: [
+                            "继承加法群结构，增加乘法封闭、结合、分配律，域还要求非零元有乘法逆元。"
+                        ]
+                    }
+                ]
+            },
+            {
+                name: "2️⃣ 几何学 (Geometry)",
+                children: [
+                    {
+                        name: "2️⃣.1️⃣ 欧几里得几何公理 (Euclidean Geometry Axioms) - 5+1 条",
+                        children: [
+                            "希尔伯特五组公理：关联、顺序、合同、平行、连续性",
+                            "平行公理：过直线外一点，有且仅有一条平行线。"
+                        ]
+                    },
+                    {
+                        name: "2️⃣.2️⃣ 非欧几何公理 (Non-Euclidean Geometry Axioms) - 改1条",
+                        children: [
+                            "罗巴切夫斯基几何：过直线外一点至少存在两条平行线。",
+                            "黎曼几何：不存在平行线（直线必相交）。"
+                        ]
+                    },
+                    {
+                        name: "2️⃣.3️⃣ 代数几何公理 (Algebraic Geometry Axioms) - Zariski拓扑3条",
+                        children: [
+                            "① 空集与全集是开集。",
+                            "② 任意多个开集的并是开集。",
+                            "③ 有限多个开集的交是开集。"
+                        ]
+                    }
+                ]
+            },
+            {
+                name: "3️⃣ 分析学 (Mathematical Analysis)",
+                children: [
+                    {
+                        name: "3️⃣.1️⃣ 实数完备性公理 (Real Number Completeness Axioms) - 3组9条",
+                        children: [
+                            "域公理 (5条)：定义加法和乘法的交换、结合、分配律等。",
+                            "序公理 (3条)：定义全序关系（传递、三歧、保序）。",
+                            "完备性公理 (1条)：有上界的非空子集必有最小上界。"
+                        ]
+                    },
+                    {
+                        name: "3️⃣.2️⃣ 自然数公理 (Peano Axioms for Natural Numbers) - 5 条",
+                        children: [
+                            "① 0是自然数。",
+                            "② 每个自然数都有后继。",
+                            "③ 0不是任何自然数的后继。",
+                            "④ 不同自然数有不同后继。",
+                            "⑤ 数学归纳法原理。"
+                        ]
+                    }
+                ]
+            },
+            {
+                name: "4️⃣ 数论 (Number Theory)",
+                children: [
+                    {
+                        name: "4️⃣.1️⃣ 整数环公理 (Axioms of Integer Ring)",
+                        children: [
+                            "继承实数的域公理（5条）和序公理（3条），但无乘法逆元。"
+                        ]
+                    },
+                    {
+                        name: "4️⃣.2️⃣ 素数定义公理 (Axiomatic Definition of Prime) - 1 条",
+                        children: [
+                            "p > 1，且正因子只有1和p本身。"
+                        ]
+                    },
+                    {
+                        name: "4️⃣.3️⃣ 同余公理 (Congruence Axioms) - 3 条",
+                        children: [
+                            "自反性 (a ≡ a mod m)、对称性 (a≡b ⇒ b≡a)、传递性 (a≡b, b≡c ⇒ a≡c)。"
+                        ]
+                    }
+                ]
+            },
+            {
+                name: "5️⃣ 离散数学 (Discrete Mathematics)",
+                children: [
+                    {
+                        name: "5️⃣.1️⃣ 图论公理 (Graph Theory Axioms) - 2 条（简单图）",
+                        children: [
+                            "① 图G由顶点集V和边集E组成，边是顶点的无序对（图）或有序对（有向图）。",
+                            "② （简单图）无自环且任意两顶点间至多一条边。"
+                        ]
+                    },
+                    {
+                        name: "5️⃣.2️⃣ 集合论公理 (ZFC Set Theory Axioms) - 10 条",
+                        children: [
+                            "存在性公理：空集、无穷。",
+                            "构造性公理：配对、并集、幂集、分离、替换。",
+                            "基础性公理：基础（防循环）。",
+                            "选择性公理：选择公理(AC)。"
+                        ]
+                    }
+                ]
+            },
+            {
+                name: "6️⃣ 概率与统计 (Probability & Statistics)",
+                children: [
+                    {
+                        name: "6️⃣.1️⃣ 概率公理 (Kolmogorov Probability Axioms) - 3 条",
+                        children: [
+                            "① 非负性：P(A) ≥ 0。",
+                            "② 规范性：P(Ω) = 1。",
+                            "③ 可列可加性：互斥事件并的概率等于概率之和。"
+                        ]
+                    }
+                ]
+            },
+            {
+                name: "7️⃣ 应用数学 (Applied Mathematics)",
+                children: [
+                    {
+                        name: "7️⃣.1️⃣ 线性规划公理 (Linear Programming Axioms) - 4 条（标准形）",
+                        children: [
+                            "① 目标函数是线性的。",
+                            "② 约束条件是线性等式或不等式。",
+                            "③ 决策变量非负。",
+                            "④ （可行域非空有界，为问题假设而非严格公理）。"
+                        ]
+                    },
+                    {
+                        name: "7️⃣.2️⃣ 数值逼近公理 (Numerical Approximation Axiom) - Weierstrass逼近定理",
+                        children: [
+                            "闭区间上的连续函数可用多项式一致逼近。"
+                        ]
+                    }
+                ]
+            },
+            {
+                name: "8️⃣ 交叉学科 (Interdisciplinary Applications)",
+                children: [
+                    {
+                        name: "8️⃣.1️⃣ 信息论公理 (Information Theory Axioms) - 香农2条",
+                        children: [
+                            "① 信息量非负。",
+                            "② 独立信源的联合熵等于各自熵之和：H(X,Y) = H(X) + H(Y)。"
+                        ]
+                    },
+                    {
+                        name: "8️⃣.2️⃣ 量子力学公理 (Quantum Mechanics Postulates) - 4 条简记",
+                        children: [
+                            "① 系统状态由希尔伯特空间中的单位矢量描述。",
+                            "② 可观测量为厄米算符。",
+                            "③ 测量结果对应算符的本征值，概率由波函数幅平方给出。",
+                            "④ 系统状态随时间的演化由薛定谔方程描述。"
+                        ]
+                    }
+                ]
+            }
+        ];
+
+        // 数据转换函数
+        function transformData(data) {
+            return data.map(item => {
+                if (typeof item === 'string') {
+                    return { name: item, type: 'file' };
+                } else if (item.children) {
+                    return {
+                        name: item.name,
+                        type: 'folder',
+                        children: transformData(item.children)
+                    };
+                } else {
+                    return { name: item.name, type: 'file' };
+                }
+            });
+        }
+
+        // 创建树节点
+        function createTreeNode(data) {
+            const li = document.createElement('li');
+            const nodeDiv = document.createElement('div');
+            nodeDiv.className = 'tree-node';
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'tree-content';
+            
+            if (data.type === 'folder') {
+                contentDiv.classList.add('folder-content');
+            } else {
+                contentDiv.classList.add('file-content');
+            }
+            
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'tree-name';
+            nameSpan.textContent = data.name;
+            contentDiv.appendChild(nameSpan);
+            
+            nodeDiv.appendChild(contentDiv);
+            li.appendChild(nodeDiv);
+            
+            if (data.children && data.children.length > 0) {
+                const ul = document.createElement('ul');
+                data.children.forEach(child => {
+                    ul.appendChild(createTreeNode(child));
+                });
+                li.appendChild(ul);
+            }
+            
+            return li;
+        }
+
+        // 初始化树形结构
+        function initTree() {
+            const treeContainer = document.getElementById('treeContainer');
+            treeContainer.innerHTML = '';
+            const ul = document.createElement('ul');
+            const transformedData = transformData(treeData);
+            transformedData.forEach(item => {
+                ul.appendChild(createTreeNode(item));
+            });
+            treeContainer.appendChild(ul);
+            
+            // 默认折叠所有文件夹
+            document.querySelectorAll('.tree li:has(> ul)').forEach(li => {
+                li.classList.add('collapsed');
+            });
+        }
+
+        // 搜索功能
+        document.getElementById('searchInput').addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase();
+            
+            document.querySelectorAll('.highlight').forEach(el => {
+                el.classList.remove('highlight');
+            });
+            
+            if (searchTerm === '') return;
+            
+            document.querySelectorAll('.tree-node').forEach(node => {
+                const text = node.textContent.toLowerCase();
+                if (text.includes(searchTerm)) {
+                    node.querySelector('.tree-name').classList.add('highlight');
+                    
+                    let parent = node.closest('li');
+                    while (parent && !parent.classList.contains('tree')) {
+                        parent.classList.remove('collapsed');
+                        parent = parent.parentElement.closest('li');
+                    }
+                }
+            });
+        });
+
+        // 展开/折叠功能
+        document.getElementById('treeContainer').addEventListener('click', function(e) {
+            const treeNode = e.target.closest('.tree-node');
+            if (!treeNode) return;
+            
+            const folderContent = treeNode.querySelector('.folder-content');
+            if (!folderContent) return;
+            
+            const li = treeNode.parentElement;
+            li.classList.toggle('collapsed');
+        });
+
+        // 展开全部
+        document.getElementById('expandAll').addEventListener('click', function() {
+            document.querySelectorAll('.tree li.collapsed').forEach(li => {
+                li.classList.remove('collapsed');
+            });
+        });
+
+        // 折叠全部
+        document.getElementById('collapseAll').addEventListener('click', function() {
+            document.querySelectorAll('.tree li:has(.folder-content)').forEach(li => {
+                if (!li.parentElement.classList.contains('tree')) {
+                    li.classList.add('collapsed');
+                }
+            });
+        });
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            initTree();
+        });
+    </script>
+</body>
+</html>

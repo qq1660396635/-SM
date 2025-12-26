@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>加密工具箱</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+* {
+    margin: 0; padding: 0; box-sizing: border-box;
+}
+
+:root {
+    --primary: #4a90e2; --secondary: #5ca0f2; --success: #52c41a; --danger: #ff4757; 
+    --warning: #ffa502; --dark: #2c3e50; --light: #f8f9fa; --border: #e1e8ed; 
+    --shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 10px;
+}
+
+.main-container {
+    width: 100%; max-width: 500px;
+    background: white; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.2); 
+    overflow: hidden; animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+    from { opacity: 0; transform: translateY(20px); } 
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.header {
+    background: var(--primary); color: white; padding: 20px; text-align: center; position: relative;
+}
+
+.header h1 {
+    font-size: 24px; margin-bottom: 5px;
+}
+
+.header p {
+    font-size: 14px; opacity: 0.9;
+}
+
+.config-btn {
+    position: absolute; right: 20px; top: 50%; transform: translateY(-50%); 
+    background: rgba(255,255,255,0.2); border: none; color: white; width: 36px; height: 36px; 
+    border-radius: 50%; cursor: pointer; transition: all 0.3s;
+}
+
+.config-btn:hover {
+    background: rgba(255,255,255,0.3); transform: translateY(-50%) rotate(90deg);
+}
+
+.mode-tabs {
+    display: flex; background: var(--light); border-bottom: 1px solid var(--border);
+}
+
+.mode-tab {
+    flex: 1; padding: 15px; text-align: center; background: none; border: none; 
+    cursor: pointer; transition: all 0.3s; font-weight: 500;
+}
+
+.mode-tab.active {
+    background: white; color: var(--primary); border-bottom: 3px solid var(--primary);
+}
+
+.content {
+    padding: 20px; max-height: 60vh; overflow-y: auto;
+}
+
+.input-group {
+    margin-bottom: 15px;
+}
+
+.input-group label {
+    display: block; margin-bottom: 8px; font-weight: 500; color: var(--dark); font-size: 14px;
+}
+
+.select-wrapper {
+    position: relative;
+}
+
+.select-wrapper::after {
+    content: '\f078'; font-family: 'Font Awesome 6 Free'; font-weight: 900; 
+    position: absolute; right: 15px; top: 50%; transform: translateY(-50%); 
+    pointer-events: none; color: var(--primary);
+}
+
+select, textarea, input {
+    width: 100%; padding: 12px; border: 2px solid var(--border); border-radius: 10px; 
+    font-size: 14px; transition: all 0.3s; appearance: none;
+}
+
+select:focus, textarea:focus, input:focus {
+    outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(74,144,226,0.1);
+}
+
+textarea {
+    min-height: 100px; resize: vertical; font-family: 'Courier New', monospace;
+}
+
+.action-buttons {
+    display: flex; gap: 10px; margin-top: 20px;
+}
+
+.btn {
+    flex: 1; padding: 12px; border: none; border-radius: 10px; font-weight: 500; 
+    cursor: pointer; transition: all 0.3s; display: flex; align-items: center; 
+    justify-content: center; gap: 8px;
+}
+
+.btn-primary {
+    background: var(--primary); color: white;
+}
+
+.btn-primary:hover {
+    background: var(--secondary); transform: translateY(-2px); box-shadow: 0 5px 15px rgba(74,144,226,0.3);
+}
+
+.btn-secondary {
+    background: var(--light); color: var(--dark); border: 2px solid var(--border);
+}
+
+.btn-secondary:hover {
+    background: var(--border);
+}
+
+.config-panel {
+    position: fixed; top: 0; right: -100%; width: 100%; max-width: 400px; 
+    height: 100vh; background: white; box-shadow: -5px 0 20px rgba(0,0,0,0.2); 
+    transition: right 0.3s ease; z-index: 1000; overflow-y: auto;
+}
+
+.config-panel.active {
+    right: 0;
+}
+
+.config-header {
+    background: var(--dark); color: white; padding: 20px; 
+    display: flex; justify-content: space-between; align-items: center;
+}
+
+.config-close {
+    background: none; border: none; color: white; font-size: 24px; cursor: pointer;
+}
+
+.config-content {
+    padding: 20px;
+}
+
+.config-section {
+    margin-bottom: 25px;
+}
+
+.config-section h3 {
+    margin-bottom: 15px; color: var(--dark); display: flex; align-items: center; gap: 10px;
+}
+
+.help-text {
+    background: #f0f8ff; padding: 15px; border-radius: 10px; margin-top: 10px; 
+    font-size: 13px; line-height: 1.6; color: #555;
+}
+
+.help-text h4 {
+    color: var(--primary); margin-bottom: 10px;
+}
+
+.help-text ul {
+    margin-left: 20px; margin-top: 5px;
+}
+
+.help-text li {
+    margin-bottom: 5px;
+}
+
+.overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+    background: rgba(0,0,0,0.5); display: none; z-index: 999;
+}
+
+.overlay.active {
+    display: block;
+}
+
+@media (max-width: 480px) {
+    .main-container {
+        border-radius: 0; height: 100vh; max-width: 100%;
+    }
+    .content {
+        max-height: calc(100vh - 200px);
+    }
+}
+
+.toast {
+    position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(100px); 
+    background: var(--dark); color: white; padding: 12px 24px; border-radius: 25px; 
+    box-shadow: 0 5px 20px rgba(0,0,0,0.3); opacity: 0; transition: all 0.3s; z-index: 2000;
+}
+
+.toast.show {
+    transform: translateX(-50%) translateY(0); opacity: 1;
+}
+
+.quick-actions {
+    display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;
+}
+
+.quick-btn {
+    padding: 8px 12px; background: var(--light); border: 1px solid var(--border); 
+    border-radius: 20px; font-size: 12px; cursor: pointer; transition: all 0.3s;
+}
+
+.quick-btn:hover {
+    background: var(--primary); color: white; border-color: var(--primary);
+}
+</style>
+</head>
+<body>
+<div class="main-container">
+    <div class="header">
+        <h1><i class="fas fa-shield-alt"></i> 加密工具箱</h1>
+        <p>专业文本加密解密工具</p>
+        <button class="config-btn" onclick="openConfig()">
+            <i class="fas fa-cog"></i>
+        </button>
+    </div>
+    <div class="mode-tabs">
+        <button class="mode-tab active" onclick="switchMode('encrypt')">
+            <i class="fas fa-lock"></i> 加密
+        </button>
+        <button class="mode-tab" onclick="switchMode('decrypt')">
+            <i class="fas fa-unlock"></i> 解密
+        </button>
+    </div>
+    <div class="content">
+        <div class="quick-actions">
+            <button class="quick-btn" onclick="setPreset('simple')">
+                <i class="fas fa-bolt"></i> 简单加密
+            </button>
+            <button class="quick-btn" onclick="setPreset('strong')">
+                <i class="fas fa-fort-awesome"></i> 强加密
+            </button>
+            <button class="quick-btn" onclick="setPreset('encode')">
+                <i class="fas fa-code"></i> 编码模式
+            </button>
+        </div>
+        <div class="input-group">
+            <label>输入文本</label>
+            <textarea id="inputText" placeholder="请输入要处理的文本..."></textarea>
+        </div>
+        <div class="input-group">
+            <label>加密算法</label>
+            <div class="select-wrapper">
+                <select id="algorithm">
+                    <option value="">请选择算法</option>
+                    <option value="base64">Base64编码</option>
+                    <option value="caesar">凯撒密码</option>
+                    <option value="xor">XOR加密</option>
+                    <option value="reverse">字符串反转</option>
+                    <option value="rot13">ROT13</option>
+                    <option value="atbash">Atbash密码</option>
+                    <option value="vigenere">维吉尼亚密码</option>
+                    <option value="morse">莫尔斯电码</option>
+                    <option value="binary">二进制编码</option>
+                    <option value="hex">十六进制编码</option>
+                    <option value="url">URL编码</option>
+                    <option value="html">HTML实体编码</option>
+                </select>
+            </div>
+        </div>
+        <div class="input-group">
+            <label>排列方式 <i class="fas fa-question-circle" style="color: var(--primary); cursor: pointer;" onclick="showHelp('arrange')"></i></label>
+            <div class="select-wrapper">
+                <select id="arrangement">
+                    <option value="">请选择排列方式</option>
+                    <option value="none">无排列</option>
+                    <option value="reverse">反向排列</option>
+                    <option value="block4">4字符分组</option>
+                    <option value="block8">8字符分组</option>
+                    <option value="oddEven">奇偶交换</option>
+                    <option value="shift1">左移1位</option>
+                    <option value="shift2">左移2位</option>
+                    <option value="random">随机排列</option>
+                    <option value="zigzag">之字形排列</option>
+                    <option value="spiral">螺旋排列</option>
+                    <option value="diagonal">对角线排列</option>
+                    <option value="custom1">自定义排列1</option>
+                </select>
+            </div>
+        </div>
+        <div class="input-group">
+            <label>自定义变换 <i class="fas fa-question-circle" style="color: var(--primary); cursor: pointer;" onclick="showHelp('transform')"></i></label>
+            <div class="select-wrapper">
+                <select id="custom">
+                    <option value="">请选择变换</option>
+                    <option value="none">无变换</option>
+                    <option value="duplicate">重复字符</option>
+                    <option value="removeSpace">移除空格</option>
+                    <option value="addNoise">添加噪声</option>
+                    <option value="caseToggle">大小写切换</option>
+                    <option value="reverseWords">单词反转</option>
+                    <option value="shuffle">随机重排</option>
+                    <option value="insertNull">插入空字符</option>
+                    <option value="substitute">字符替换</option>
+                    <option value="pattern1">模式变换1</option>
+                    <option value="pattern2">模式变换2</option>
+                    <option value="pattern3">模式变换3</option>
+                </select>
+            </div>
+        </div>
+        <div class="action-buttons">
+            <button class="btn btn-primary" onclick="process()">
+                <i class="fas fa-play"></i>
+                <span id="processBtn">开始加密</span>
+            </button>
+            <button class="btn btn-secondary" onclick="copyResult()">
+                <i class="fas fa-copy"></i> 复制
+            </button>
+        </div>
+        <div class="input-group" style="margin-top: 20px;">
+            <label>处理结果</label>
+            <textarea id="outputText" readonly placeholder="处理结果将显示在这里..."></textarea>
+        </div>
+    </div>
+</div>
+
+<div class="overlay" onclick="closeConfig()"></div>
+<div class="config-panel" id="configPanel">
+    <div class="config-header">
+        <h2><i class="fas fa-cog"></i> 配置选项</h2>
+        <button class="config-close" onclick="closeConfig()">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+    <div class="config-content">
+        <div class="config-section">
+            <h3><i class="fas fa-key"></i> 密钥设置</h3>
+            <div class="input-group">
+                <label>自定义密钥</label>
+                <input type="text" id="customKey" placeholder="输入自定义密钥">
+            </div>
+        </div>
+        <div class="config-section">
+            <h3><i class="fas fa-sliders-h"></i> 高级选项</h3>
+            <div class="input-group">
+                <label>凯撒密码偏移量</label>
+                <input type="number" id="caesarShift" value="3" min="1" max="25">
+            </div>
+            <div class="input-group">
+                <label>XOR密钥值</label>
+                <input type="number" id="xorKey" value="42" min="0" max="255">
+            </div>
+        </div>
+        <div class="config-section">
+            <h3><i class="fas fa-info-circle"></i> 帮助说明</h3>
+            <div id="helpContent"></div>
+        </div>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let currentMode = 'encrypt';
+
+function switchMode(mode) {
+    currentMode = mode;
+    const tabs = document.querySelectorAll('.mode-tab');
+    tabs.forEach(tab => tab.classList.remove('active'));
+    event.target.classList.add('active');
+    document.getElementById('processBtn').textContent = mode === 'encrypt' ? '开始加密' : '开始解密';
+}
+
+function openConfig() {
+    document.getElementById('configPanel').classList.add('active');
+    document.querySelector('.overlay').classList.add('active');
+}
+
+function closeConfig() {
+    document.getElementById('configPanel').classList.remove('active');
+    document.querySelector('.overlay').classList.remove('active');
+}
+
+function showToast(message, duration = 2000) {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.classList.add('show');
+    setTimeout(() => {
+        toast.classList.remove('show');
+    }, duration);
+}
+
+function showHelp(type) {
+    const helpContent = document.getElementById('helpContent');
+    if (type === 'arrange') {
+        helpContent.innerHTML = `
+            <div class="help-text">
+                <h4>排列方式详细说明</h4>
+                <ul>
+                    <li><strong>反向排列:</strong> 将整个字符串倒序，如"ABC"→"CBA"</li>
+                    <li><strong>4字符分组:</strong> 每4个字符一组，用空格分隔，如"ABCDEFGH"→"ABCD EFGH"</li>
+                    <li><strong>8字符分组:</strong> 每8个字符一组，用空格分隔</li>
+                    <li><strong>奇偶交换:</strong> 奇数位和偶数位字符交换，如"123456"→"214365"</li>
+                    <li><strong>左移1位:</strong> 所有字符向左循环移动1位，首字符移到末尾</li>
+                    <li><strong>左移2位:</strong> 所有字符向左循环移动2位</li>
+                    <li><strong>随机排列:</strong> 随机打乱字符顺序</li>
+                    <li><strong>之字形排列:</strong> 按Z字形路径重排字符</li>
+                    <li><strong>螺旋排列:</strong> 从外向内螺旋式排列</li>
+                    <li><strong>对角线排列:</strong> 按对角线顺序重排</li>
+                    <li><strong>自定义排列1:</strong> 先偶后奇，再反转</li>
+                </ul>
+            </div>`;
+    } else if (type === 'transform') {
+        helpContent.innerHTML = `
+            <div class="help-text">
+                <h4>自定义变换详细说明</h4>
+                <ul>
+                    <li><strong>重复字符:</strong> 每个字符重复一次，如"ABC"→"AABBCC"</li>
+                    <li><strong>移除空格:</strong> 删除所有空格字符</li>
+                    <li><strong>添加噪声:</strong> 在随机位置插入随机字符</li>
+                    <li><strong>大小写切换:</strong> 大写变小写，小写变大写</li>
+                    <li><strong>单词反转:</strong> 每个单词单独反转，如"Hello World"→"olleH dlroW"</li>
+                    <li><strong>随机重排:</strong> 随机重排所有字符</li>
+                    <li><strong>插入空字符:</strong> 每两个字符间插入空字符</li>
+                    <li><strong>字符替换:</strong> A→Z,B→Y,C→X...对称替换</li>
+                    <li><strong>模式变换1:</strong> 奇数位+1，偶数位-1</li>
+                    <li><strong>模式变换2:</strong> ASCII码取反</li>
+                    <li><strong>模式变换3:</strong> 与前后字符XOR运算</li>
+                </ul>
+            </div>`;
+    }
+    openConfig();
+}
+
+function setPreset(preset) {
+    const algorithm = document.getElementById('algorithm');
+    const arrangement = document.getElementById('arrangement');
+    const custom = document.getElementById('custom');
+    
+    switch(preset) {
+        case 'simple':
+            algorithm.value = 'base64';
+            arrangement.value = 'none';
+            custom.value = 'none';
+            showToast('已应用简单加密方案');
+            break;
+        case 'strong':
+            algorithm.value = 'xor';
+            arrangement.value = 'block4';
+            custom.value = 'addNoise';
+            showToast('已应用强加密方案');
+            break;
+        case 'encode':
+            algorithm.value = 'url';
+            arrangement.value = 'none';
+            custom.value = 'removeSpace';
+            showToast('已应用编码模式');
+            break;
+    }
+}
+
+function process() {
+    const input = document.getElementById('inputText').value;
+    if (!input) {
+        showToast('请输入要处理的文本');
+        return;
+    }
+    
+    const algorithm = document.getElementById('algorithm').value;
+    const arrangement = document.getElementById('arrangement').value;
+    const custom = document.getElementById('custom').value;
+    
+    if (!algorithm && !arrangement && !custom) {
+        showToast('请至少选择一种加密方式');
+        return;
+    }
+    
+    let result = input;
+    
+    if (currentMode === 'encrypt') {
+        if (algorithm) {
+            result = applyAlgorithm(result, algorithm);
+        }
+        if (arrangement && arrangement !== 'none') {
+            result = applyArrangement(result, arrangement);
+        }
+        if (custom && custom !== 'none') {
+            result = applyCustom(result, custom);
+        }
+    } else {
+        if (custom && custom !== 'none') {
+            result = reverseCustom(result, custom);
+        }
+        if (arrangement && arrangement !== 'none') {
+            result = reverseArrangement(result, arrangement);
+        }
+        if (algorithm) {
+            result = applyAlgorithm(result, algorithm);
+        }
+    }
+    
+    document.getElementById('outputText').value = result;
+    showToast(`${currentMode === 'encrypt' ? '加密' : '解密'}完成`);
+}
+
+function applyAlgorithm(text, algorithm) {
+    switch(algorithm) {
+        case 'base64':
+            if (currentMode === 'encrypt') {
+                return btoa(unescape(encodeURIComponent(text)));
+            } else {
+                try {
+                    return decodeURIComponent(escape(atob(text)));
+                } catch (e) {
+                    showToast('Base64解码错误，请检查输入');
+                    return text;
+                }
+            }
+            
+        case 'caesar':
+            const shift = parseInt(document.getElementById('caesarShift').value) || 3;
+            return text.split('').map(char => {
+                if (char.match(/[a-z]/i)) {
+                    const code = char.charCodeAt(0);
+                    const base = code >= 65 && code <= 90 ? 65 : 97;
+                    const offset = currentMode === 'encrypt' ? shift : -shift;
+                    return String.fromCharCode((code - base + offset + 26) % 26 + base);
+                }
+                return char;
+            }).join('');
+            
+        case 'xor':
+            const key = parseInt(document.getElementById('xorKey').value) || 42;
+            return text.split('').map(char => 
+                String.fromCharCode(char.charCodeAt(0) ^ key)
+            ).join('');
+            
+        case 'reverse':
+            return text.split('').reverse().join('');
+            
+        case 'rot13':
+            return text.replace(/[a-zA-Z]/g, function(char) {
+                const code = char.charCodeAt(0);
+                const base = code >= 65 && code <= 90 ? 65 : 97;
+                return String.fromCharCode((code - base + 13) % 26 + base);
+            });
+            
+        case 'atbash':
+            return text.replace(/[a-zA-Z]/g, function(char) {
+                const code = char.charCodeAt(0);
+                const base = code >= 65 && code <= 90 ? 65 : 97;
+                return String.fromCharCode(25 - (code - base) + base);
+            });
+            
+        case 'vigenere':
+            const keyStr = document.getElementById('customKey').value || 'KEY';
+            let keyIndex = 0;
+            return text.split('').map(char => {
+                if (char.match(/[a-z]/i)) {
+                    const code = char.charCodeAt(0);
+                    const base = code >= 65 && code <= 90 ? 65 : 97;
+                    const keyChar = keyStr[keyIndex % keyStr.length].toUpperCase();
+                    const shift = currentMode === 'encrypt' ? 
+                        keyChar.charCodeAt(0) - 65 : -(keyChar.charCodeAt(0) - 65);
+                    keyIndex++;
+                    return String.fromCharCode((code - base + shift + 26) % 26 + base);
+                }
+                return char;
+            }).join('');
+            
+        case 'morse':
+            const morseCode = {
+                'A': '.-', 'B': '-...', 'C': '-.-.', 'D': '-..', 'E': '.', 'F': '..-.',
+                'G': '--.', 'H': '....', 'I': '..', 'J': '.---', 'K': '-.-', 'L': '.-..',
+                'M': '--', 'N': '-.', 'O': '---', 'P': '.--.', 'Q': '--.-', 'R': '.-.',
+                'S': '...', 'T': '-', 'U': '..-', 'V': '...-', 'W': '.--', 'X': '-..-',
+                'Y': '-.--', 'Z': '--..', '0': '-----', '1': '.----', '2': '..---',
+                '3': '...--', '4': '....-', '5': '.....', '6': '-....', '7': '--...',
+                '8': '---..', '9': '----.', '.': '.-.-.-', ',': '--..--', '?': '..--..',
+                "'": '.----.', '!': '-.-.--', '/': '-..-.', '(': '-.--.', ')': '-.--.-',
+                '&': '.-...', ':': '---...', ';': '-.-.-.', '=': '-...-', '+': '.-.-.',
+                '-': '-....-', '_': '..--.-', '"': '.-..-.', '$': '...-..-', '@': '.--.-.',
+                ' ': '/'
+            };
+            
+            if (currentMode === 'encrypt') {
+                return text.toUpperCase().split('').map(char => 
+                    morseCode[char] || char
+                ).join(' ');
+            } else {
+                const reverseMorse = {};
+                for (let char in morseCode) {
+                    reverseMorse[morseCode[char]] = char;
+                }
+                
+                return text.split(' ').map(code => 
+                    reverseMorse[code] || code
+                ).join('');
+            }
+            
+        case 'binary':
+            if (currentMode === 'encrypt') {
+                return text.split('').map(char => 
+                    char.charCodeAt(0).toString(2).padStart(8, '0')
+                ).join(' ');
+            } else {
+                return text.split(' ').map(bin => {
+                    if (bin.match(/^[01]{8}$/)) {
+                        return String.fromCharCode(parseInt(bin, 2));
+                    }
+                    return bin;
+                }).join('');
+            }
+            
+        case 'hex':
+            if (currentMode === 'encrypt') {
+                return text.split('').map(char => 
+                    char.charCodeAt(0).toString(16).padStart(2, '0')
+                ).join(' ');
+            } else {
+                return text.split(' ').map(hex => {
+                    if (hex.match(/^[0-9a-fA-F]{2}$/)) {
+                        return String.fromCharCode(parseInt(hex, 16));
+                    }
+                    return hex;
+                }).join('');
+            }
+            
+        case 'url':
+            if (currentMode === 'encrypt') {
+                return encodeURIComponent(text);
+            } else {
+                try {
+                    return decodeURIComponent(text);
+                } catch (e) {
+                    showToast('URL解码错误，请检查输入');
+                    return text;
+                }
+            }
+            
+        case 'html':
+            if (currentMode === 'encrypt') {
+                return text.replace(/[&<>"']/g, function(m) {
+                    return {
+                        '&': '&amp;',
+                        '<': '&lt;',
+                        '>': '&gt;',
+                        '"': '&quot;',
+                        "'": '&#39;'
+                    }[m];
+                });
+            } else {
+                return text.replace(/&amp;|&lt;|&gt;|&quot;|&#39;/g, function(m) {
+                    return {
+                        '&amp;': '&',
+                        '&lt;': '<',
+                        '&gt;': '>',
+                        '&quot;': '"',
+                        '&#39;': "'"
+                    }[m];
+                });
+            }
+            
+        default:
+            return text;
+    }
+}
+
+function applyArrangement(text, arrangement) {
+    switch(arrangement) {
+        case 'reverse':
+            return text.split('').reverse().join('');
+            
+        case 'block4':
+            return text.match(/.{1,4}/g).join(' ');
+            
+        case 'block8':
+            return text.match(/.{1,8}/g).join(' ');
+            
+        case 'oddEven':
+            const chars = text.split('');
+            const result = [];
+            for (let i = 1; i < chars.length; i += 2) {
+                result.push(chars[i]);
+            }
+            for (let i = 0; i < chars.length; i += 2) {
+                result.push(chars[i]);
+            }
+            return result.join('');
+            
+        case 'shift1':
+            return text.slice(1) + text[0];
+            
+        case 'shift2':
+            return text.slice(2) + text.slice(0, 2);
+            
+        case 'random':
+            const array = text.split('');
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array.join('');
+            
+        case 'zigzag':
+            if (text.length <= 1) return text;
+            let resultStr = '';
+            for (let i = 0; i < text.length; i += 2) {
+                resultStr += text[i];
+            }
+            for (let i = 1; i < text.length; i += 2) {
+                resultStr += text[i];
+            }
+            return resultStr;
+            
+        default:
+            return text;
+    }
+}
+
+function reverseArrangement(text, arrangement) {
+    switch(arrangement) {
+        case 'reverse':
+            return text.split('').reverse().join('');
+            
+        case 'block4':
+        case 'block8':
+            return text.replace(/\s/g, '');
+            
+        case 'oddEven':
+            const chars = text.split('');
+            const mid = Math.ceil(chars.length / 2);
+            const oddChars = chars.slice(0, mid);
+            const evenChars = chars.slice(mid);
+            const result = [];
+            
+            for (let i = 0; i < Math.max(oddChars.length, evenChars.length); i++) {
+                if (i < evenChars.length) result.push(evenChars[i]);
+                if (i < oddChars.length) result.push(oddChars[i]);
+            }
+            return result.join('');
+            
+        case 'shift1':
+            return text[text.length - 1] + text.slice(0, -1);
+            
+        case 'shift2':
+            return text.slice(-2) + text.slice(0, -2);
+            
+        case 'zigzag':
+            if (text.length <= 1) return text;
+            const midPoint = Math.ceil(text.length / 2);
+            const firstHalf = text.slice(0, midPoint);
+            const secondHalf = text.slice(midPoint);
+            let resultStr = '';
+            
+            for (let i = 0; i < Math.max(firstHalf.length, secondHalf.length); i++) {
+                if (i < firstHalf.length) resultStr += firstHalf[i];
+                if (i < secondHalf.length) resultStr += secondHalf[i];
+            }
+            return resultStr;
+            
+        default:
+            return text;
+    }
+}
+
+function applyCustom(text, custom) {
+    switch(custom) {
+        case 'duplicate':
+            return text.split('').map(char => char + char).join('');
+            
+        case 'removeSpace':
+            return text.replace(/\s/g, '');
+            
+        case 'addNoise':
+            const noiseChars = '!@#$%^&*()_+-=[]{}|;:,.<>?';
+            let result = '';
+            for (let i = 0; i < text.length; i++) {
+                result += text[i];
+                if (Math.random() > 0.7) {
+                    result += noiseChars[Math.floor(Math.random() * noiseChars.length)];
+                }
+            }
+            return result;
+            
+        case 'caseToggle':
+            return text.split('').map(char => {
+                if (char >= 'a' && char <= 'z') return char.toUpperCase();
+                if (char >= 'A' && char <= 'Z') return char.toLowerCase();
+                return char;
+            }).join('');
+            
+        case 'reverseWords':
+            return text.split(' ').map(word => word.split('').reverse().join('')).join(' ');
+            
+        case 'shuffle':
+            const array = text.split('');
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array.join('');
+            
+        case 'insertNull':
+            return text.split('').join('\0');
+            
+        case 'substitute':
+            return text.split('').map(char => {
+                if (char >= 'a' && char <= 'z') {
+                    return String.fromCharCode(219 - char.charCodeAt(0));
+                }
+                if (char >= 'A' && char <= 'Z') {
+                    return String.fromCharCode(155 - char.charCodeAt(0));
+                }
+                return char;
+            }).join('');
+            
+        default:
+            return text;
+    }
+}
+
+function reverseCustom(text, custom) {
+    switch(custom) {
+        case 'duplicate':
+            let result = '';
+            for (let i = 0; i < text.length; i += 2) {
+                result += text[i];
+            }
+            return result;
+            
+        case 'removeSpace':
+            return text;
+            
+        case 'addNoise':
+            const noiseChars = '!@#$%^&*()_+-=[]{}|;:,.<>?';
+            return text.split('').filter(char => !noiseChars.includes(char)).join('');
+            
+        case 'caseToggle':
+            return text.split('').map(char => {
+                if (char >= 'a' && char <= 'z') return char.toUpperCase();
+                if (char >= 'A' && char <= 'Z') return char.toLowerCase();
+                return char;
+            }).join('');
+            
+        case 'reverseWords':
+            return text.split(' ').map(word => word.split('').reverse().join('')).join(' ');
+            
+        case 'insertNull':
+            return text.replace(/\0/g, '');
+            
+        case 'substitute':
+            return text.split('').map(char => {
+                if (char >= 'a' && char <= 'z') {
+                    return String.fromCharCode(219 - char.charCodeAt(0));
+                }
+                if (char >= 'A' && char <= 'Z') {
+                    return String.fromCharCode(155 - char.charCodeAt(0));
+                }
+                return char;
+            }).join('');
+            
+        default:
+            return text;
+    }
+}
+
+function copyResult() {
+    const outputText = document.getElementById('outputText');
+    outputText.select();
+    document.execCommand('copy');
+    showToast('结果已复制到剪贴板');
+}
+</script>
+</body>
+</html>

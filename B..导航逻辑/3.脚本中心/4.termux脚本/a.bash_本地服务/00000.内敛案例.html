@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <!-- 1. 基础元信息 -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>代码分析工具集</title>
+
+<!--   prism.js 语法高亮   -->
+    <script src="/A2_全局中心/B_插件缓存-CDN/1.prism代码高亮/prism-core.min.js"></script>    <!-- 核心文件 -->
+    <script src="/A2_全局中心/B_插件缓存-CDN/1.prism代码高亮/prism-bash.min.js"></script>   <!-- Bash语言支持 -->
+    <script src="/A2_全局中心/B_插件缓存-CDN/1.prism代码高亮/prism-css.js"></script>   
+
+    <!-- 3. 字体缩放插件 -->
+    <script src="/A2_全局中心/B_插件工具/3.插件_字体缩放.js"></script>
+
+    <style>
+        /* 4. 基础样式重置 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* 5. 页面主体样式 - 现代渐变背景 */
+        body {
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            background: linear-gradient(135deg, rgba(52, 152, 219, 0.1) 0%, rgba(155, 89, 182, 0.1) 100%),
+                repeating-linear-gradient(45deg, transparent, transparent 35px, rgba(255, 255, 255, .05) 35px, rgba(255, 255, 255, .05) 70px),
+                linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #2c3e50;
+            line-height: 1.5;
+            padding: 20px;
+            min-height: 100vh;
+            position: relative;
+        }
+
+        /* 6. 背景纹理效果 */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: radial-gradient(circle at 20% 80%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* 7. 主容器 */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            animation: fadeIn 0.5s ease-in;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* 8. 页面标题 */
+        h1 {
+            color: #ffffff;
+            margin-bottom: 25px;
+            font-size: 32px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+            animation: slideDown 0.6s ease-out;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 18px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+
+        /* 9. 标签页容器 */
+        .tabs-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        /* 10. 标签页头部 */
+        .tabs-header {
+            display: flex;
+            background: linear-gradient(135deg, rgba(52, 152, 219, 0.1) 0%, rgba(155, 89, 182, 0.1) 100%);
+            border-bottom: 2px solid rgba(52, 152, 219, 0.2);
+        }
+
+        /* 11. 标签按钮 */
+        .tab-btn {
+            flex: 1;
+            padding: 15px 20px;
+            background: transparent;
+            border: none;
+            color: #666;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        /* 12. 标签按钮悬停效果 */
+        .tab-btn:hover {
+            background: rgba(52, 152, 219, 0.1);
+            color: #3498db;
+        }
+
+        /* 13. 激活的标签按钮 */
+        .tab-btn.active {
+            color: #3498db;
+            background: rgba(255, 255, 255, 0.8);
+        }
+
+        /* 14. 激活标签下划线 */
+        .tab-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #3498db, #9b59b6);
+            animation: slideIn 0.3s ease;
+        }
+
+        /* 15. 标签内容 */
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        /* 16. 激活的标签内容 */
+        .tab-content.active {
+            display: block;
+        }
+
+        /* 17. 代码块容器 */
+        .code-container {
+            background: #ffffff;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e1e8ed;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        /* 18. 代码块悬停效果 */
+        .code-container:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+        }
+
+        /* 19. 代码头部 */
+        .code-header {
+            background: linear-gradient(90deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 15px 20px;
+            border-bottom: 1px solid #dee2e6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* 20. 代码标题 */
+        .code-title {
+            color: #6c757d;
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        /* 21. 复制按钮 */
+        .copy-btn {
+            background: linear-gradient(135deg, #3498db 0%, #9b59b6 100%);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 2px 4px rgba(52, 152, 219, 0.3);
+        }
+
+        /* 22. 复制按钮悬停效果 */
+        .copy-btn:hover {
+            background: linear-gradient(135deg, #9b59b6 0%, #3498db 100%);
+            transform: scale(1.05);
+            box-shadow: 0 4px 8px rgba(52, 152, 219, 0.4);
+        }
+
+        /* 23. 复制按钮已复制状态 */
+        .copy-btn.copied {
+            background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+        }
+
+        /* 24. 代码内容区 */
+        pre {
+            background: #f8f9fa;
+            padding: 20px;
+            overflow-x: auto;
+            font-size: 13px;
+            line-height: 1.5;
+            border-radius: 0 0 12px 12px;
+            margin: 0;
+        }
+
+        /* 25. 代码标签 */
+        code {
+            color: #495057;
+            font-family: inherit;
+            white-space: pre;
+        }
+
+        /* 26. 底部信息区 */
+        .info-section {
+            margin-top: 15px;
+            padding: 12px 15px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        /* 27. 信息区标题 */
+        .info-section h2 {
+            color: #3498db;
+            margin-bottom: 10px;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* 28. 信息网格布局 */
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        /* 29. 信息项 */
+        .info-item {
+            background: rgba(248, 249, 250, 0.9);
+            padding: 8px 10px;
+            border-radius: 8px;
+            border-left: 3px solid #3498db;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* 30. 信息项悬停效果 */
+        .info-item:hover {
+            transform: translateX(3px) translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-left-color: #9b59b6;
+        }
+
+        /* 31. 信息项背景装饰 */
+        .info-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, rgba(52, 152, 219, 0.1) 0%, rgba(155, 89, 182, 0.1) 100%);
+            border-radius: 0 0 0 40px;
+        }
+
+        /* 32. 信息标签 */
+        .info-label {
+            color: #6c757d;
+            font-size: 11px;
+            margin-bottom: 3px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+
+        /* 33. 信息内容 */
+        .info-content {
+            color: #2c3e50;
+            font-size: 12px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* 34. Toast 提示 */
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #3498db 0%, #9b59b6 100%);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            z-index: 1000;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        /* 35. Toast 显示状态 */
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* 36. 响应式设计 */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            pre {
+                padding: 15px;
+                font-size: 12px;
+            }
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+            .tab-btn {
+                font-size: 14px;
+            }
+        }
+
+        /* 37. 动画定义 */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        /* 38. 滑入动画 */
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* 39. 滑入动画 */
+        @keyframes slideIn {
+            from {
+                width: 0;
+            }
+            to {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- 40. 主容器 -->
+    <div class="container">
+
+        <!-- 41. 页面标题 -->
+       <h2 style="text-align: center;">🔧 目录分析</h2>
+
+        <!-- 42. 标签页容器 -->
+        <div class="tabs-container">
+
+            <!-- 43. 标签页头部 -->
+            <div class="tabs-header">
+                <button class="tab-btn active" onclick="switchTab('cflow')">
+                    <span>🔍</span><span>Cflow + Ctags 分析</span>
+                </button>
+                <button class="tab-btn" onclick="switchTab('scanner')">
+                    <span>📁</span><span>目录扫描器</span>
+                </button>
+            </div>
+
+            <!-- 44. Cflow + Ctags 标签页 -->
+            <div id="cflow-tab" class="tab-content active">
+                <div class="code-container">
+                    <div class="code-header">
+                        <span class="code-title">cflow + ctags 交互式分析.bash</span>
+                        <button class="copy-btn" onclick="copyCode('cflow-code', this)">
+                            <span>📋</span><span>复制</span>
+                        </button>
+                    </div>
+                    <pre><code id="cflow-code" class="language-bash">#!/bin/bash
+# 1. 一键中文分析报告：调用树+ 符号列表，结果与源文件同目录
+set -euo pipefail
+
+# 2. 读取用户输入的文件路径，并进行有效性检查
+read -r -p "请输入要分析的C 源文件路径（支持空格）: " SRC
+[[ -z "$SRC" ]] && { echo " 未输入路径，退出"; exit 1; }
+SRC="${SRC%\"}"
+SRC="${SRC#\"}"
+[[ -f "$SRC" ]] || { echo " 文件不存在：$SRC"; exit 1; }
+
+# 3. 获取文件信息并构建输出报告路径
+DIR=$(dirname "$SRC")
+BASE=$(basename "$SRC" | sed 's/\.[^.]*$//')
+REPORT="$DIR/${BASE}_分析报告.md"
+
+# 4. 写入Markdown 报告的头部信息
+cat > "$REPORT" <<EOF
+# ${BASE} 中文分析报告
+> 文件：\`$SRC\`
+> 生成时间：$(date "+%Y-%m-%d %H:%M:%S")
+---
+## 一、函数调用关系
+EOF
+
+# 5. 生成函数调用树部分，并添加序号
+echo "🔄生成调用树..."
+if ! cflow "$SRC" 2>/dev/null | awk '
+BEGIN{idx=1}
+/^[^ \t]/{gsub(/<.*>/,"");gsub(/\(.*\)/,"");gsub(/^[ \t]+|[ \t]+$/,"");printf "%2d. %s\n",idx++,$0}
+/^[ \t]+/{gsub(/<.*>/,"");gsub(/\(.*\)/,"");gsub(/^[ \t]+|[ \t]+$/,"");printf "├─%s\n",$0}
+' >> "$REPORT"; then
+echo "⚠️ cflow 未安装或解析失败，已跳过调用树"
+fi
+
+# 6. 生成符号列表部分（中文归类，一行三列）
+echo "🔄生成符号列表..."
+ctags --output-format=json \
+--kinds-c=+c+d+e+f+g+l+m+n+p+s+t+u+v+x \
+--kinds-c++=+c+d+e+f+g+l+m+n+p+s+t+u+v+x \
+--fields=+iafkmnsSt \
+--extras=+F+q+r \
+"$SRC" 2>/dev/null \
+| jq -r 'select(.name|startswith("__anon")|not)|(.kind+"\t"+.name)' \
+| awk -v OFS="" '
+BEGIN{
+map["f"]="函数"; map["p"]="原型"; map["d"]="宏定义"
+map["s"]="结构体"; map["u"]="联合体"; map["e"]="枚举"
+map["g"]="枚举值"; map["t"]="类型"; map["v"]="变量"
+map["l"]="局部"; map["h"]="头文件"; map["x"]="外部变量"
+}
+{
+k=(($1 in map)?map[$1]:$1);
+list[k]=list[k] (list[k]?" ":"") $2
+}
+END{
+print "\n---\n## 二、符号列表"
+idx=0
+for(k in list){
+n=split(list[k],arr," ")
+printf "\n**%s**：\n",k
+for(i=1;i<=n;i++){
+idx++
+printf " %2d. %-22s",idx,arr[i]
+if(i%3==0) printf "\n"
+}
+if(n%3) printf "\n"
+}
+}' >> "$REPORT"
+
+# 7. 输出完成信息
+echo "✅ 中文分析报告已生成：$REPORT"</code></pre>
+                </div>
+            </div>
+
+            <!-- 45. 目录扫描器标签页 -->
+            <div id="scanner-tab" class="tab-content">
+                <div class="code-container">
+                    <div class="code-header">
+                        <span class="code-title">scan.sh —— Termux 交互式目录层级扫描器</span>
+                        <button class="copy-btn" onclick="copyCode('scanner-code', this)">
+                            <span>📋</span><span>复制</span>
+                        </button>
+                    </div>
+                    <pre><code id="scanner-code" class="language-bash">#!/data/data/com.termux/files/usr/bin/bash
+# 1. 脚本名称：scan.sh —— Termux 交互式目录层级扫描器
+# 2. 依赖：tree（如未安装请先pkg install tree）
+# 3. 设置Bash 严格模式：遇到错误立即退出、使用未定义变量时报错、管道出错也整 体失败
+set -euo pipefail
+
+# 4. 定义颜色函数，让输出更醒目
+red() { printf '\033[31m%b\033[0m\n' "$1"; }
+green() { printf '\033[32m%b\033[0m\n' "$1"; }
+yellow() { printf '\033[33m%b\033[0m\n' "$1"; }
+
+# 5. 检查tree 是否已安装
+if ! command -v tree >/dev/null 2>&1; then
+red "错误：未检测到tree 命令，请先执行pkg install tree"
+exit 1
+fi
+
+# 6. 主逻辑封装成函数，方便后续复用
+main() {
+# 7. 友好提示：让用户输入待扫描目录
+echo
+yellow "=== Termux 目录扫描器==="
+read -rp "请输入想要扫描的目录（绝对或相对路径）: " target_dir
+
+# 8. 把用户输入的路径转换成绝对路径，并检查是否存在
+target_dir=$(realpath -m "$target_dir" 2>/dev/null || readlink -f "$target_dir" 2>/dev/null || echo "$target_dir")
+if [[ ! -d $target_dir ]]; then
+red "错误：目录不存在→$target_dir"
+exit 1
+fi
+
+# 9. 让用户选择扫描层级（空回车默认全部层级）
+read -rp "请选择扫描层级（数字，直接回车=全部层级）: " depth
+if [[ -z $depth ]]; then
+depth_flag=""
+elif [[ $depth =~ ^[0-9]+$ ]]; then
+depth_flag="-L $depth"
+else
+red "错误：层级必须是数字"
+exit 1
+fi
+
+# 10. 执行tree 并高亮输出
+green "扫描结果："
+echo "----------------------------------------"
+tree -C $depth_flag "$target_dir"
+echo "----------------------------------------"
+}
+
+# 11. 调用主函数
+main</code></pre>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- 46. 底部信息区 -->
+        <div class="info-section">
+            <h2>📋工具说明</h2>
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label">🎯功能</div>
+                    <div class="info-content">C/C++代码分析：函数调用树+符号列表，目录结构扫描</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">📁输出</div>
+                    <div class="info-content">分析报告：${filename}_分析报告.md，目录树：终端彩色输出</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">⚡特性</div>
+                    <div class="info-content">中文界面、序号标记、分类展示、层级控制、交互式操作</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">🛠️依赖</div>
+                    <div class="info-content">cflow, ctags, jq, tree（按需安装）</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">💡使用场景</div>
+                    <div class="info-content">代码分析、项目结构查看、符号索引、文档生成</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">⚡运行方式</div>
+                    <div class="info-content">保存为bash脚本，赋予执行权限后直接运行</div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- 47. Toast 提示 -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // 48. 切换标签页
+        function switchTab(tabName) {
+            // 1. 去掉旧激活
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(p => p.classList.remove('active'));
+
+            // 2. 立即把新面板变成可见
+            let newPanel;
+            if (tabName === 'cflow') {
+                document.querySelector('.tab-btn:first-child').classList.add('active');
+                newPanel = document.getElementById('cflow-tab');
+            } else {
+                document.querySelector('.tab-btn:last-child').classList.add('active');
+                newPanel = document.getElementById('scanner-tab');
+            }
+            newPanel.classList.add('active');          // 先让浏览器渲染出来
+            // 3. 对新面板中的所有代码块应用语法高亮
+            newPanel.querySelectorAll('pre code').forEach(Prism.highlightElement);
+        }
+
+        // 49. 复制代码功能
+        function copyCode(codeId, button) {
+            const codeElement = document.getElementById(codeId);
+            const textContent = codeElement.textContent || codeElement.innerText;
+            const toast = document.getElementById('toast');
+            const buttonText = button.querySelector('span:last-child');
+
+            // 使用现代API 复制
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(textContent).then(function() {
+                    // 显示成功提示
+                    button.classList.add('copied');
+                    buttonText.textContent = '已复制';
+
+                    // 显示toast
+                    toast.textContent = '📋 脚本已复制到剪贴板';
+                    toast.classList.add('show');
+
+                    // 2 秒后恢复按钮状态
+                    setTimeout(function() {
+                        button.classList.remove('copied');
+                        buttonText.textContent = '复制';
+                    }, 2000);
+
+                    // 3 秒后隐藏toast
+                    setTimeout(function() {
+                        toast.classList.remove('show');
+                    }, 3000);
+                }).catch(function(err) {
+                    showCopyError(toast);
+                });
+            } else {
+                // 备用方法
+                fallbackCopy(textContent, button, buttonText, toast);
+            }
+        }
+
+        // 50. 备用复制方法
+        function fallbackCopy(text, button, buttonText, toast) {
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            textArea.style.position = 'fixed';
+            textArea.style.opacity = '0';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    button.classList.add('copied');
+                    buttonText.textContent = '已复制';
+                    toast.textContent = '📋 脚本已复制到剪贴板';
+                    toast.classList.add('show');
+                    setTimeout(function() {
+                        button.classList.remove('copied');
+                        buttonText.textContent = '复制';
+                    }, 2000);
+                    setTimeout(function() {
+                        toast.classList.remove('show');
+                    }, 3000);
+                } else {
+                    showCopyError(toast);
+                }
+            } catch (err) {
+                showCopyError(toast);
+            }
+            document.body.removeChild(textArea);
+        }
+
+        // 51. 显示复制错误
+        function showCopyError(toast) {
+            toast.textContent = '❌ 复制失败，请手动选择复制';
+            toast.style.background = '#e74c3c';
+            toast.classList.add('show');
+            setTimeout(function() {
+                toast.classList.remove('show');
+                toast.style.background = '';
+            }, 3000);
+        }
+
+        // 52. 页面加载完成后，对初始可见的代码块应用语法高亮
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.tab-content.active pre code').forEach(Prism.highlightElement);
+        });
+    </script>
+
+</body>
+</html>

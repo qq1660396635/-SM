@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>游戏导航</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            min-height: 100vh; 
+            padding: 15px; 
+            overflow-x: hidden; 
+            position: relative; 
+        }
+        .bg-waves { 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            z-index: -1; 
+            background: linear-gradient(180deg, #87CEEB 0%, #98D8E8 50%, #B0E0E6 100%); 
+            overflow: hidden; 
+        }
+        .wave { 
+            position: absolute; 
+            bottom: 0; 
+            left: 0; 
+            width: 200%; 
+            height: 100px; 
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120" preserveAspectRatio="none"><path d="M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V0H0V27.35A600.21,600.21,0,0,0,321.39,56.44Z" fill="%23ffffff" opacity="0.4"></path></svg>'); 
+            background-size: 50% 100px; 
+            animation: wave 8s linear infinite; 
+        }
+        .wave:nth-child(2) { bottom: 10px; animation: wave 12s linear infinite; opacity: 0.3; }
+        .wave:nth-child(3) { bottom: 20px; animation: wave 16s linear infinite; opacity: 0.2; }
+        @keyframes wave { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+        
+        .container { max-width: 1200px; margin: 0 auto; position: relative; z-index: 1; }
+        header { text-align: center; margin-bottom: 30px; color: white; }
+        h1 { font-size: 2.5rem; margin-bottom: 10px; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); letter-spacing: 2px; }
+        .subtitle { font-size: 1rem; opacity: 0.9; }
+        
+        .tools-grid { 
+            display: grid; 
+            grid-template-columns: repeat(3, 1fr); 
+            gap: 15px; 
+            margin-bottom: 30px; 
+        }
+        .tool-card { 
+            background: rgba(255,255,255,0.95); 
+            border-radius: 12px; 
+            padding: 15px; 
+            text-decoration: none; 
+            color: #333; 
+            transition: transform 0.2s ease; 
+            box-shadow: 0 3px 10px rgba(0,0,0,0.2); 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            text-align: center; 
+            position: relative; 
+        }
+        .tool-card:hover { transform: translateY(-3px); }
+        .tool-icon { font-size: 2rem; margin-bottom: 10px; }
+        .tool-number { 
+            position: absolute; 
+            top: 8px; 
+            left: 8px; 
+            background: linear-gradient(135deg, #667eea, #764ba2); 
+            color: white; 
+            padding: 3px 8px; 
+            border-radius: 12px; 
+            font-size: 10px; 
+            font-weight: bold; 
+        }
+        .tool-name { font-size: 1rem; font-weight: 600; margin-bottom: 5px; }
+        .tool-description { font-size: 0.8rem; color: #666; }
+        
+        .pagination { 
+            display: flex; 
+            justify-content: center; 
+            gap: 10px; 
+            margin: 30px 0; 
+        }
+        .pagination button { 
+            padding: 8px 12px; 
+            border: none; 
+            border-radius: 20px; 
+            background: rgba(255,255,255,0.9); 
+            color: #333; 
+            cursor: pointer; 
+            transition: all 0.2s ease; 
+            font-size: 0.85rem; 
+            font-weight: 500; 
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2); 
+        }
+        .pagination button:hover:not(:disabled) { 
+            background: rgba(255,255,255,1); 
+            transform: translateY(-2px); 
+        }
+        .pagination button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .pagination .active { 
+            background: linear-gradient(135deg, #667eea, #764ba2); 
+            color: white; 
+        }
+        
+        .stats { 
+            position: fixed; 
+            bottom: 20px; 
+            left: 20px; 
+            background: rgba(255,255,255,0.9); 
+            padding: 8px 12px; 
+            border-radius: 8px; 
+            color: #333; 
+            font-size: 0.8rem; 
+            box-shadow: 0 3px 10px rgba(0,0,0,0.2); 
+        }
+        
+        .error-modal { 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            background: rgba(0,0,0,0.7); 
+            display: none; 
+            justify-content: center; 
+            align-items: center; 
+            z-index: 9999; 
+        }
+        .error-modal.show { display: flex; }
+        .error-content { 
+            background: white; 
+            padding: 25px; 
+            border-radius: 12px; 
+            max-width: 350px; 
+            text-align: center; 
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3); 
+        }
+        .error-content h3 { color: #f44336; margin-bottom: 12px; }
+        .error-content p { color: #666; margin-bottom: 15px; line-height: 1.5; }
+        .error-content button { 
+            padding: 8px 16px; 
+            background: linear-gradient(135deg, #667eea, #764ba2); 
+            color: white; 
+            border: none; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            font-size: 13px; 
+        }
+        
+        @media (max-width: 600px) { 
+            body { padding: 8px; } 
+            h1 { font-size: 1.8rem; } 
+            .tools-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; } 
+            .tool-card { padding: 8px; } 
+            .tool-icon { font-size: 1.4rem; margin-bottom: 4px; } 
+            .tool-number { font-size: 8px; padding: 2px 6px; } 
+            .tool-name { font-size: 0.75rem; margin-bottom: 3px; } 
+            .tool-description { font-size: 0.65rem; } 
+            .stats { display: none; } 
+        }
+    </style>
+</head>
+<body>
+    <!-- 动态波浪背景 -->
+    <div class="bg-waves">
+        <div class="wave"></div>
+        <div class="wave"></div>
+        <div class="wave"></div>
+    </div>
+    
+    <div class="container">
+        <header>
+            <h1>🎮棋类导航</h1> 
+            <p class="subtitle">精选游戏合集</p> 
+        </header>
+        <main>
+            <div class="tools-grid" id="toolsGrid"></div> 
+            <div class="pagination" id="pagination"></div> 
+        </main> 
+    </div>
+    
+    <div class="stats" id="stats">
+        共<span id="toolCount">0</span> 个游戏 
+    </div>
+    
+    <div class="error-modal" id="errorModal">
+        <div class="error-content">
+            <h3>⚠️配置文件加载失败</h3> 
+            <p id="errorMessage">无法找到配置文件，请检查文件是否存在。</p> 
+            <button onclick="closeErrorModal()">确定</button> 
+        </div> 
+    </div>
+    
+    <script src="游戏-config.js"></script> 
+    <script> 
+        let currentPage = 1; 
+        const itemsPerPage = 12; 
+        let allTools = []; 
+        let totalPages = 1;
+        
+        function showErrorModal(message) {
+            document.getElementById('errorMessage').textContent = message; 
+            document.getElementById('errorModal').classList.add('show');
+        }
+        
+        function closeErrorModal() {
+            document.getElementById('errorModal').classList.remove('show');
+        }
+        
+        function initTools() {
+            if (typeof window.toolsConfig === 'undefined') {
+                showErrorModal('无法找到配置文件，请检查文件是否存在。'); 
+                return;
+            }
+            if (typeof window.toolsConfig.getAllTools !== 'function') {
+                showErrorModal('配置文件格式错误，缺少必要方法。'); 
+                return;
+            }
+            try {
+                allTools = window.toolsConfig.getAllTools(); 
+                totalPages = Math.ceil(allTools.length / itemsPerPage); 
+                document.getElementById('toolCount').textContent = allTools.length; 
+                renderTools(); 
+                renderPagination(); 
+            } catch (error) {
+                showErrorModal('配置文件解析失败：' + error.message);
+            }
+        }
+        
+        function renderTools() {
+            const toolsGrid = document.getElementById('toolsGrid'); 
+            const startIndex = (currentPage - 1) * itemsPerPage; 
+            const endIndex = startIndex + itemsPerPage; 
+            const pageTools = allTools.slice(startIndex, endIndex);
+            
+            toolsGrid.innerHTML = pageTools.map((tool, index) => {
+                const globalIndex = startIndex + index; 
+                return `
+                    <a href="${tool.file}" class="tool-card" target="_blank">
+                        <span class="tool-number">#${globalIndex + 1}</span>
+                        <span class="tool-icon">${tool.icon}</span> 
+                        <div class="tool-name">${tool.name}</div> 
+                        <div class="tool-description">${tool.description}</div> 
+                    </a> 
+                `;
+            }).join('');
+        }
+        
+        function renderPagination() {
+            const pagination = document.getElementById('pagination'); 
+            if (totalPages <= 1) {
+                pagination.innerHTML = ''; 
+                return;
+            }
+            
+            let html = ''; 
+            html += `<button ${currentPage === 1 ? 'disabled' : ''} onclick="goToPage(${currentPage - 1})">上一页</button>`;
+            
+            const maxVisiblePages = 5; 
+            let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2)); 
+            let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+            
+            if (endPage - startPage < maxVisiblePages - 1) {
+                startPage = Math.max(1, endPage - maxVisiblePages + 1);
+            }
+            
+            for (let i = startPage; i <= endPage; i++) {
+                html += `<button class="${i === currentPage ? 'active' : ''}" onclick="goToPage(${i})">${i}</button>`;
+            }
+            
+            html += `<button ${currentPage === totalPages ? 'disabled' : ''} onclick="goToPage(${currentPage + 1})">下一页</button>`;
+            
+            pagination.innerHTML = html;
+        }
+        
+        function goToPage(page) {
+            if (page >= 1 && page <= totalPages) {
+                currentPage = page; 
+                renderTools(); 
+                renderPagination(); 
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+        
+        window.addEventListener('load', initTools); 
+    </script> 
+</body> 
+</html>

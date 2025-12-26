@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Python函数分析工具</title>
+    <style>
+        :root { --primary: #3776ab; --primary-dark: #2d5f8f; --secondary: #ffd43b; --secondary-dark: #ffc107; --error: #dc3545; --warning: #ffc107; --success: #28a745; --bg: #f8f9fa; --card: #ffffff; --text: #212529; --text-light: #6c757d; --border: #dee2e6; --shadow: rgba(0,0,0,0.1); }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: linear-gradient(135deg, #3776ab 0%, #ffd43b 100%); min-height: 100vh; color: var(--text); line-height: 1.6; position: relative; overflow-x: hidden; }
+        body::before { content: ''; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y="50" font-size="50" fill="rgba(255,255,255,0.05)">🐍</text></svg>') repeat; background-size: 100px 100px; z-index: -1; }
+        .container { max-width: 700px; margin: 0 auto; padding: 20px; position: relative; z-index: 1; }
+        header { text-align: center; margin-bottom: 30px; padding: 40px 25px; background: rgba(255,255,255,0.95); backdrop-filter: blur(20px); border-radius: 25px; box-shadow: 0 25px 50px rgba(0,0,0,0.15); border: 2px solid rgba(255,255,255,0.3); position: relative; overflow: hidden; }
+        header::before { content: '🐍'; position: absolute; top: -20px; right: -20px; font-size: 100px; opacity: 0.1; transform: rotate(-15deg); }
+        h1 { font-size: 2.2rem; margin-bottom: 10px; background: linear-gradient(45deg, var(--primary), var(--secondary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 700; position: relative; z-index: 1; }
+        .python-logo { width: 60px; height: 60px; margin: 0 auto 15px; background: linear-gradient(135deg, #3776ab, #ffd43b); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 30px; box-shadow: 0 8px 20px rgba(55, 118, 171, 0.3); }
+        .card { background: rgba(255,255,255,0.95); backdrop-filter: blur(20px); border-radius: 20px; padding: 25px; margin-bottom: 25px; box-shadow: 0 15px 35px rgba(0,0,0,0.1); transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); border: 1px solid rgba(255,255,255,0.3); position: relative; overflow: hidden; }
+        .card::before { content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: linear-gradient(135deg, var(--primary), var(--secondary)); }
+        .card:hover { transform: translateY(-5px); box-shadow: 0 20px 45px rgba(0,0,0,0.15); }
+        .form-group { margin-bottom: 20px; position: relative; }
+        label { display: block; margin-bottom: 10px; font-weight: 600; color: var(--text); font-size: 0.95rem; }
+        .input-wrapper { position: relative; }
+        .input-icon { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); font-size: 18px; z-index: 1; }
+        input, select { width: 100%; padding: 15px 15px 15px 45px; border: 2px solid var(--border); border-radius: 15px; font-size: 16px; transition: all 0.3s; background: rgba(255,255,255,0.9); }
+        input:focus, select:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 4px rgba(55, 118, 171, 0.1); transform: translateY(-2px); }
+        button { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white; border: none; padding: 15px 30px; border-radius: 15px; cursor: pointer; font-size: 16px; font-weight: 600; transition: all 0.3s; display: inline-block; margin-right: 10px; box-shadow: 0 6px 20px rgba(55, 118, 171, 0.3); position: relative; overflow: hidden; }
+        button::before { content: ''; position: absolute; top: 50%; left: 50%; width: 0; height: 0; border-radius: 50%; background: rgba(255,255,255,0.3); transform: translate(-50%, -50%); transition: width 0.6s, height 0.6s; }
+        button:hover::before { width: 300px; height: 300px; }
+        button:hover { transform: translateY(-3px); box-shadow: 0 10px 30px rgba(55, 118, 171, 0.4); }
+        button:disabled { background: #adb5bd; cursor: not-allowed; transform: none; box-shadow: none; }
+        .btn-secondary { background: linear-gradient(135deg, var(--secondary), var(--secondary-dark)); box-shadow: 0 6px 20px rgba(255, 212, 59, 0.3); }
+        .btn-secondary:hover { box-shadow: 0 10px 30px rgba(255, 212, 59, 0.4); }
+        .connection-status { display: flex; align-items: center; margin-bottom: 20px; padding: 18px; border-radius: 15px; background: rgba(255,255,255,0.8); backdrop-filter: blur(10px); }
+        .status-indicator { width: 14px; height: 14px; border-radius: 50%; margin-right: 12px; background: #adb5bd; box-shadow: 0 0 0 3px rgba(255,255,255,0.8); }
+        .status-indicator.connected { background: var(--success); animation: pulse 2s infinite; box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.2); }
+        .status-indicator.error { background: var(--error); box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.2); }
+        @keyframes pulse { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.7; transform: scale(1.3); } 100% { opacity: 1; transform: scale(1); } }
+        .result { margin-top: 25px; padding: 25px; border-radius: 15px; display: none; animation: slideIn 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+        .result.success { background: linear-gradient(135deg, rgba(40, 167, 69, 0.1), rgba(40, 167, 69, 0.05)); border-left: 5px solid var(--success); }
+        .result.error { background: linear-gradient(135deg, rgba(220, 53, 69, 0.1), rgba(220, 53, 69, 0.05)); border-left: 5px solid var(--error); }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 15px; margin: 20px 0; }
+        .stat-card { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white; padding: 20px; border-radius: 15px; text-align: center; box-shadow: 0 6px 20px rgba(55, 118, 171, 0.3); }
+        .stat-number { font-size: 2em; font-weight: bold; margin-bottom: 5px; }
+        .stat-label { font-size: 0.85rem; opacity: 0.9; }
+        .loading { display: none; text-align: center; margin: 30px 0; }
+        .spinner { border: 4px solid rgba(255,255,255,0.3); width: 50px; height: 50px; border-radius: 50%; border-left-color: var(--primary); animation: spin 1s linear infinite; margin: 0 auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .feature-list { margin: 20px 0; }
+        .feature-item { display: flex; align-items: center; margin: 10px 0; padding: 10px; background: rgba(55, 118, 171, 0.1); border-radius: 10px; }
+        .feature-icon { font-size: 24px; margin-right: 15px; }
+        .feature-text { flex: 1; }
+        .feature-title { font-weight: 600; color: var(--primary); }
+        .feature-desc { font-size: 0.9rem; color: var(--text-light); }
+        footer { text-align: center; margin-top: 30px; padding: 20px; color: white; font-size: 0.9rem; opacity: 0.9; }
+        /* 手机端适配 */
+        @media (max-width: 768px) {
+            .container { padding: 15px; }
+            header { padding: 30px 20px; margin-bottom: 20px; }
+            h1 { font-size: 1.8rem; }
+            .card { padding: 20px; margin-bottom: 20px; }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            button { width: 100%; margin-right: 0; margin-bottom: 10px; padding: 18px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="python-logo">🐍</div>
+            <h1>Python函数分析工具</h1>
+            <p style="color: var(--text-light); font-size: 0.95rem; margin-top: 8px;">智能分析Python代码结构，生成详细函数报告</p>
+        </header>
+        
+        <main>
+            <div class="card">
+                <div class="connection-status" id="connectionStatus">
+                    <div class="status-indicator" id="statusIndicator"></div>
+                    <span id="statusText">未连接</span>
+                </div>
+                
+                <button id="connectBtn" class="btn-secondary">🔗 连接服务器</button>
+                
+                <div class="form-group">
+                    <label for="serverUrl">服务器地址</label>
+                    <div class="input-wrapper">
+                        <span class="input-icon">🌐</span>
+                        <input type="text" id="serverUrl" value="http://localhost:8080" placeholder="输入服务器地址">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h2 style="margin-bottom: 20px; color: var(--primary); font-size: 1.4rem;">🔍 分析设置</h2>
+                
+                <div class="form-group">
+                    <label for="filePath">Python文件路径</label>
+                    <div class="input-wrapper">
+                        <span class="input-icon">📄</span>
+                        <input type="text" id="filePath" placeholder="/storage/emulated/0/Download/script.py">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="outputDir">输出目录（可选）</label>
+                    <div class="input-wrapper">
+                        <span class="input-icon">📁</span>
+                        <input type="text" id="outputDir" placeholder="/storage/emulated/0/Download/分析报告">
+                    </div>
+                </div>
+                
+                <button id="analyzeBtn" disabled>🔍 开始分析</button>
+                
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <p style="margin-top: 20px; color: var(--text-light); font-weight: 500;">正在分析Python代码，请稍候...</p>
+                </div>
+                
+                <div class="result" id="result"></div>
+            </div>
+            
+            <div class="card">
+                <h3 style="margin-bottom: 20px; color: var(--primary);">✨ 功能特色</h3>
+                <div class="feature-list">
+                    <div class="feature-item">
+                        <div class="feature-icon">🔧</div>
+                        <div class="feature-text">
+                            <div class="feature-title">函数分析</div>
+                            <div class="feature-desc">详细分析每个函数的参数、返回值和复杂度</div>
+                        </div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">🏗️</div>
+                        <div class="feature-text">
+                            <div class="feature-title">类结构分析</div>
+                            <div class="feature-desc">解析类的继承关系和方法列表</div>
+                        </div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">📊</div>
+                        <div class="feature-text">
+                            <div class="feature-title">复杂度计算</div>
+                            <div class="feature-desc">计算圈复杂度和认知复杂度</div>
+                        </div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">📄</div>
+                        <div class="feature-text">
+                            <div class="feature-title">HTML报告</div>
+                            <div class="feature-desc">生成美观的HTML分析报告</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+        
+        <footer>
+            <p>🐍 Python函数分析工具 &copy; 2024 | 服务器运行在Termux环境</p>
+        </footer>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const serverUrlInput = document.getElementById('serverUrl');
+            const connectBtn = document.getElementById('connectBtn');
+            const statusIndicator = document.getElementById('statusIndicator');
+            const statusText = document.getElementById('statusText');
+            const analyzeBtn = document.getElementById('analyzeBtn');
+            const filePath = document.getElementById('filePath');
+            const outputDir = document.getElementById('outputDir');
+            const loading = document.getElementById('loading');
+            const result = document.getElementById('result');
+            
+            let isConnected = false;
+            
+            // 连接服务器
+            connectBtn.addEventListener('click', async () => {
+                const serverUrl = serverUrlInput.value.trim();
+                if (!serverUrl) {
+                    showStatus('请输入服务器地址', 'error');
+                    return;
+                }
+                
+                connectBtn.disabled = true;
+                connectBtn.textContent = '连接中...';
+                
+                try {
+                    const response = await fetch(`${serverUrl}/test`);
+                    const data = await response.json();
+                    
+                    if (data.status === 'success') {
+                        isConnected = true;
+                        showStatus('✅ 已连接到服务器', 'connected');
+                        analyzeBtn.disabled = false;
+                        connectBtn.textContent = '🔄 重新连接';
+                    } else {
+                        showStatus('❌ 连接失败', 'error');
+                    }
+                } catch (error) {
+                    showStatus('❌ 连接失败: ' + error.message, 'error');
+                } finally {
+                    connectBtn.disabled = false;
+                }
+            });
+            
+            // 执行分析
+            analyzeBtn.addEventListener('click', async () => {
+                if (!isConnected) {
+                    showStatus('请先连接服务器', 'error');
+                    return;
+                }
+                
+                const serverUrl = serverUrlInput.value.trim();
+                const filePathValue = filePath.value.trim();
+                const outputDirValue = outputDir.value.trim();
+                
+                if (!filePathValue) {
+                    showStatus('请输入Python文件路径', 'error');
+                    return;
+                }
+                
+                if (!filePathValue.endsWith('.py')) {
+                    showStatus('请输入Python文件（.py结尾）', 'error');
+                    return;
+                }
+                
+                loading.style.display = 'block';
+                result.style.display = 'none';
+                analyzeBtn.disabled = true;
+                
+                try {
+                    const response = await fetch(`${serverUrl}/python-analyzer`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            file_path: filePathValue,
+                            output_dir: outputDirValue
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.status === 'success') {
+                        showResult(data, 'success');
+                    } else {
+                        showResult(data, 'error');
+                    }
+                } catch (error) {
+                    showResult({message: '请求失败: ' + error.message}, 'error');
+                } finally {
+                    loading.style.display = 'none';
+                    analyzeBtn.disabled = false;
+                }
+            });
+            
+            function showStatus(message, type) {
+                statusText.textContent = message;
+                statusIndicator.className = 'status-indicator ' + type;
+            }
+            
+            function showResult(data, type) {
+                result.className = 'result ' + type;
+                result.style.display = 'block';
+                
+                if (type === 'success') {
+                    const analysis = data.analysis;
+                    const stats = analysis.file_info.stats;
+                    
+                    result.innerHTML = `
+                        <h3 style="margin-bottom: 20px; color: var(--success);">✅ 分析完成</h3>
+                        <p><strong>📄 分析文件:</strong> ${analysis.file_info.name}</p>
+                        <p><strong>📊 报告文件:</strong> ${data.report_file}</p>
+                        
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <div class="stat-number">${stats.total_lines}</div>
+                                <div class="stat-label">总行数</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-number">${stats.code_lines}</div>
+                                <div class="stat-label">代码行数</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-number">${stats.functions}</div>
+                                <div class="stat-label">函数数量</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-number">${stats.classes}</div>
+                                <div class="stat-label">类数量</div>
+                            </div>
+                        </div>
+                        
+                        <div style="margin-top: 20px; padding: 15px; background: rgba(55, 118, 171, 0.1); border-radius: 10px;">
+                            <p style="font-weight: 600; margin-bottom: 10px;">💡 分析结果:</p>
+                            <p style="font-size: 0.9rem;">• 📊 圈复杂度: ${analysis.complexity.cyclomatic}</p>
+                            <p style="font-size: 0.9rem;">• 📏 嵌套深度: ${analysis.complexity.nesting_depth}</p>
+                            <p style="font-size: 0.9rem;">• 📦 导入模块: ${stats.imports} 个</p>
+                        </div>
+                    `;
+                } else {
+                    result.innerHTML = `
+                        <h3 style="margin-bottom: 20px; color: var(--error);">❌ 分析失败</h3>
+                        <p>${data.message}</p>
+                    `;
+                }
+            }
+        });
+    </script>
+</body>
+</html>

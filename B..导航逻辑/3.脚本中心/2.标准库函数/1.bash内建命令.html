@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Bash 命令与功能手册</title>
+    <script src="A.插件_字体缩放.js"></script>
+    <style>
+        :root {
+            --primary-color: #4f46e5;
+            --secondary-color: #7c3aed;
+            --accent-color: #8b5cf6;
+            --text-color: #1e293b;
+            --text-secondary: #64748b;
+            --bg-color: #f8fafc;
+            --border-color: #e2e8f0;
+            --hover-bg: #f1f5f9;
+            --code-bg: #ffffff;
+            --tree-line: #cbd5e1;
+            --view-button-bg: #f0f9ff;
+            --view-button-hover: #e0f2fe;
+            --view-button-active: #0ea5e9;
+            --view-button-text: #0c4a6e;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            color: #334155;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: rgba(255, 255, 255, 0.95);
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: #fff;
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+            flex-shrink: 0;
+            z-index: 10;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        header::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+            animation: shimmer 3s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+        .header-content {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            flex: 1;
+        }
+
+        header h1 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 4px;
+            position: relative;
+        }
+
+        header p {
+            opacity: 0.9;
+            font-size: 12px;
+            position: relative;
+        }
+
+        .header-search {
+            position: relative;
+            z-index: 10;
+        }
+
+        #searchInput {
+            padding: 6px 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background-color: rgba(248, 250, 252, 0.8);
+            color: #334155;
+            font-size: 12px;
+            font-family: inherit;
+            width: 180px;
+            transition: all 0.3s;
+        }
+
+        #searchInput:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2);
+        }
+
+        .controls {
+            padding: 10px 16px;
+            background-color: var(--code-bg);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 4px;
+        }
+
+        .controls button {
+            background: linear-gradient(135deg, var(--accent-color), var(--secondary-color));
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 12px;
+            font-family: inherit;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .controls button:hover {
+            background: linear-gradient(135deg, var(--secondary-color), var(--primary-color));
+            transform: translateY(-1px);
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .view-toggle {
+            display: flex;
+            gap: 4px;
+            background: var(--view-button-bg);
+            padding: 3px;
+            border-radius: 6px;
+        }
+
+        .view-toggle button {
+            background: transparent;
+            color: var(--view-button-text);
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 12px;
+            font-family: inherit;
+            box-shadow: none;
+        }
+
+        .view-toggle button:hover {
+            background: var(--view-button-hover);
+            transform: none;
+            box-shadow: none;
+        }
+
+        .view-toggle button.active {
+            background: var(--view-button-active);
+            color: white;
+            box-shadow: 0 2px 6px rgba(14, 165, 233, 0.3);
+        }
+
+        .tree-container {
+            flex: 1;
+            padding: 12px;
+            overflow: auto;
+            background-color: rgba(248, 250, 252, 0.5);
+        }
+
+        .tree-container::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .tree-container::-webkit-scrollbar-thumb {
+            background: var(--primary-color);
+            border-radius: 4px;
+        }
+
+        .tree ul {
+            list-style-type: none;
+            padding-left: 16px;
+            margin: 0;
+        }
+
+        .tree li {
+            position: relative;
+            padding: 1px 0;
+            white-space: nowrap;
+        }
+
+        .tree li::before {
+            content: "";
+            position: absolute;
+            left: -10px;
+            top: 8px;
+            width: 10px;
+            height: 1px;
+            background-color: var(--tree-line);
+        }
+
+        .tree li::after {
+            content: "";
+            position: absolute;
+            left: -10px;
+            top: -2px;
+            width: 1px;
+            height: 100%;
+            background-color: var(--tree-line);
+        }
+
+        .tree li:last-child::after {
+            height: 10px;
+        }
+
+        .tree > ul > li::before, 
+        .tree > ul > li::after {
+            display: none;
+        }
+
+        .tree-node {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            padding: 2px 4px;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+
+        .tree-node:hover {
+            background-color: var(--hover-bg);
+        }
+
+        .tree-node i {
+            margin-right: 6px;
+            color: var(--text-color);
+            width: 12px;
+            text-align: center;
+            font-size: 10px;
+        }
+
+        .tree-node .folder {
+            color: #6366f1;
+        }
+
+        .tree-node .file {
+            color: var(--text-secondary);
+        }
+
+        .tree-node .toggle {
+            color: #94a3b8;
+            margin-right: 3px;
+            font-size: 9px;
+            transition: transform 0.2s;
+        }
+
+        .collapsed .toggle.fa-chevron-down::before {
+            content: "▶";
+        }
+
+        .tree-content {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            min-width: 0;
+        }
+
+        .tree-name {
+            font-weight: 500;
+            font-size: 13px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: #1e293b;
+        }
+
+        .tree-desc {
+            font-style: normal !important;
+            white-space: normal !important;
+            max-width: none !important;
+            overflow: visible !important;
+            text-overflow: unset !important;
+            display: inline-block !important;
+            line-height: 1.4 !important;
+            margin-left: 6px !important;
+            font-size: 11px !important;
+            color: var(--text-secondary) !important;
+            background: rgba(79, 70, 229, 0.06) !important;
+            padding: 2px 4px !important;
+            border-radius: 4px !important;
+            border: 1px solid rgba(79, 70, 229, 0.1) !important;
+            transition: all 0.2s !important;
+        }
+
+        .tree-node:hover .tree-desc {
+            background: rgba(79, 70, 229, 0.1) !important;
+            border-color: rgba(79, 70, 229, 0.2) !important;
+        }
+
+        .collapsed > ul {
+            display: none;
+        }
+
+        .highlight {
+            background: linear-gradient(135deg, var(--accent-color), var(--secondary-color));
+            padding: 0 3px;
+            border-radius: 3px;
+            color: #fff;
+        }
+
+        footer {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 8px 16px;
+            text-align: center;
+            font-size: 10px;
+            border-top: 1px solid var(--border-color);
+            flex-shrink: 0;
+            z-index: 10;
+        }
+
+        @media (max-width: 768px) {
+            body { font-size: 12px; }
+            header h1 { font-size: 16px; }
+            header p { font-size: 11px; }
+            .tree ul { padding-left: 14px; }
+            .tree li { padding: 0.5px 0; }
+            .tree-name { font-size: 12px; }
+            .tree-desc { font-size: 9px; margin-left: 6px; max-width: 120px; }
+            #searchInput { width: 140px; font-size: 11px; }
+            .controls button { font-size: 11px; padding: 5px 10px; }
+        }
+
+        @media (max-width: 480px) {
+            body { font-size: 13px; }
+            header h1 { font-size: 14px; }
+            header p { font-size: 10px; }
+            .tree ul { padding-left: 12px; }
+            .tree li { padding: 0; }
+            .tree-node { padding: 1px 3px; }
+            .tree-node i { margin-right: 4px; width: 10px; font-size: 9px; }
+            .tree-name { font-size: 11px; }
+            .tree-desc { font-size: 8px; margin-left: 4px; max-width: 90px; }
+            .tree-container { padding: 8px; }
+            .controls { padding: 8px 12px; }
+            #searchInput { width: 120px; font-size: 10px; padding: 4px 8px; }
+            .controls button { font-size: 10px; padding: 4px 8px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <h1>Bash 命令与功能手册</h1>
+                <p>Bash Commands & Features Manual (2025-12-16)</p>
+            </div>
+            <div class="header-search">
+                <input type="text" id="searchInput" placeholder="搜索命令或功能...">
+            </div>
+        </header>
+        
+        <div class="controls">
+            <div class="action-buttons">
+                <button id="expandAll">展开全部</button>
+                <button id="collapseAll">折叠全部</button>
+            </div>
+            <div class="view-toggle">
+                <button id="viewCommands" class="active">内建命令</button>
+                <button id="viewManual">功能手册</button>
+            </div>
+        </div>
+        
+        <div class="tree-container">
+            <div class="tree" id="treeContainer"></div>
+        </div>
+        
+        <footer>
+            <p>© 2025 Bash 命令与功能手册 | Generated by 凉安</p>
+        </footer>
+    </div>
+
+    <!-- 数据定义 -->
+    <script>
+        // Bash 内建命令树形数据
+        const commandsData = [
+            {
+                name: "1️⃣ Bourne Shell Builtins",
+                type: "folder",
+                children: [
+                    { name: "1.1 :", desc: "Control - 空命令，执行参数扩展和重定向", type: "file" },
+                    { name: "1.2 .", desc: "Execution - 在当前shell上下文中读取并执行文件", type: "file" },
+                    { name: "1.3 break", desc: "Control - 退出循环", type: "file" },
+                    { name: "1.4 cd", desc: "Directory - 改变当前工作目录", type: "file" },
+                    { name: "1.5 continue", desc: "Control - 继续循环的下一次迭代", type: "file" },
+                    { name: "1.6 eval", desc: "Execution - 执行拼接后的命令字符串", type: "file" },
+                    { name: "1.7 exec", desc: "Execution - 替换shell进程", type: "file" },
+                    { name: "1.8 exit", desc: "Control - 退出shell", type: "file" },
+                    { name: "1.9 export", desc: "Variable - 导出变量到环境", type: "file" },
+                    { name: "1.10 false", desc: "Control - 总是返回非零状态", type: "file" },
+                    { name: "1.11 getopts", desc: "Parsing - 解析命令行选项参数", type: "file" },
+                    { name: "1.12 hash", desc: "Utility - 缓存命令路径", type: "file" },
+                    { name: "1.13 pwd", desc: "Directory - 打印当前工作目录", type: "file" },
+                    { name: "1.14 readonly", desc: "Variable - 设置变量为只读", type: "file" },
+                    { name: "1.15 return", desc: "Control - 函数返回值", type: "file" },
+                    { name: "1.16 shift", desc: "Parameter - 移位位置参数", type: "file" },
+                    { name: "1.17 test/[", desc: "Testing - 条件表达式测试", type: "file" },
+                    { name: "1.18 times", desc: "Utility - 显示进程时间统计", type: "file" },
+                    { name: "1.19 trap", desc: "Signal - 捕获信号处理", type: "file" },
+                    { name: "1.20 true", desc: "Control - 总是返回零状态", type: "file" },
+                    { name: "1.21 umask", desc: "Permission - 设置文件创建掩码", type: "file" },
+                    { name: "1.22 unset", desc: "Variable - 删除变量或函数", type: "file" }
+                ]
+            },
+            {
+                name: "2️⃣ Bash Builtin Commands",
+                type: "folder",
+                children: [
+                    { name: "2.1 alias", desc: "Alias - 创建或显示别名", type: "file" },
+                    { name: "2.2 bind", desc: "Readline - 设置键盘绑定", type: "file" },
+                    { name: "2.3 builtin", desc: "Execution - 执行指定内建命令", type: "file" },
+                    { name: "2.4 caller", desc: "Debug - 返回调用栈信息", type: "file" },
+                    { name: "2.5 command", desc: "Execution - 执行命令忽略函数", type: "file" },
+                    { name: "2.6 declare", desc: "Variable - 声明变量属性", type: "file" },
+                    { name: "2.7 echo", desc: "Output - 输出文本信息", type: "file" },
+                    { name: "2.8 enable", desc: "Management - 启用/禁用内建命令", type: "file" },
+                    { name: "2.9 help", desc: "Help - 显示帮助信息", type: "file" },
+                    { name: "2.10 let", desc: "Arithmetic - 执行算术运算", type: "file" },
+                    { name: "2.11 local", desc: "Variable - 创建局部变量", type: "file" },
+                    { name: "2.12 logout", desc: "Control - 退出登录shell", type: "file" },
+                    { name: "2.13 mapfile", desc: "Array - 读取文件到数组", type: "file" },
+                    { name: "2.14 printf", desc: "Output - 格式化输出", type: "file" },
+                    { name: "2.15 read", desc: "Input - 读取输入到变量", type: "file" },
+                    { name: "2.16 readarray", desc: "Array - 读取文件到数组(同mapfile)", type: "file" },
+                    { name: "2.17 source", desc: "Execution - 在当前shell执行文件", type: "file" },
+                    { name: "2.18 type", desc: "Utility - 显示命令类型", type: "file" },
+                    { name: "2.19 typeset", desc: "Variable - 声明变量(同declare)", type: "file" },
+                    { name: "2.20 ulimit", desc: "Resource - 控制系统资源限制", type: "file" },
+                    { name: "2.21 unalias", desc: "Alias - 删除别名", type: "file" }
+                ]
+            },
+            {
+                name: "3️⃣ Modifying Shell Behavior",
+                type: "folder",
+                children: [
+                    { name: "3.1 set", desc: "Options - 设置shell选项和参数", type: "file" },
+                    { name: "3.2 shopt", desc: "Options - 切换shell行为选项", type: "file" }
+                ]
+            }
+        ];
+
+        // Bash 功能手册树形数据
+        const manualData = [
+            {
+                name: "1️⃣ 引言 (Introduction)",
+                type: "folder",
+                children: [
+                    { name: "1.1 什么是Bash？", desc: "What is Bash?", type: "file" },
+                    { name: "1.2 什么是Shell？", desc: "What is a shell?", type: "file" }
+                ]
+            },
+            {
+                name: "2️⃣ 定义 (Definitions)",
+                type: "folder",
+                children: []
+            },
+            {
+                name: "3️⃣ 基本Shell功能 (Basic Shell Features)",
+                type: "folder",
+                children: [
+                    {
+                        name: "3.1 Shell语法 (Shell Syntax)",
+                        type: "folder",
+                        children: [
+                            { name: "3.1.1 Shell操作 (Shell Operation)", type: "file" },
+                            {
+                                name: "3.1.2 引用 (Quoting)",
+                                type: "folder",
+                                children: [
+                                    { name: "3.1.2.1 转义字符 (Escape Character)", type: "file" },
+                                    { name: "3.1.2.2 单引号 (Single Quotes)", type: "file" },
+                                    { name: "3.1.2.3 双引号 (Double Quotes)", type: "file" },
+                                    { name: "3.1.2.4 ANSI-C引用 (ANSI-C Quoting)", type: "file" },
+                                    { name: "3.1.2.5 本地化翻译 (Locale-Specific Translation)", type: "file" }
+                                ]
+                            },
+                            { name: "3.1.3 注释 (Comments)", type: "file" }
+                        ]
+                    },
+                    {
+                        name: "3.2 Shell命令 (Shell Commands)",
+                        type: "folder",
+                        children: [
+                            { name: "3.2.1 保留字 (Reserved Words)", type: "file" },
+                            { name: "3.2.2 简单命令 (Simple Commands)", type: "file" },
+                            { name: "3.2.3 管道 (Pipelines)", type: "file" },
+                            { name: "3.2.4 命令列表 (Lists of Commands)", type: "file" },
+                            {
+                                name: "3.2.5 复合命令 (Compound Commands)",
+                                type: "folder",
+                                children: [
+                                    { name: "3.2.5.1 循环结构 (Looping Constructs)", type: "file" },
+                                    { name: "3.2.5.2 条件结构 (Conditional Constructs)", type: "file" },
+                                    { name: "3.2.5.3 命令分组 (Grouping Commands)", type: "file" }
+                                ]
+                            },
+                            { name: "3.2.6 协程 (Coprocesses)", type: "file" },
+                            { name: "3.2.7 GNU Parallel", type: "file" }
+                        ]
+                    },
+                    { name: "3.3 Shell函数 (Shell Functions)", type: "file" },
+                    {
+                        name: "3.4 Shell参数 (Shell Parameters)",
+                        type: "folder",
+                        children: [
+                            { name: "3.4.1 位置参数 (Positional Parameters)", type: "file" },
+                            { name: "3.4.2 特殊参数 (Special Parameters)", type: "file" }
+                        ]
+                    },
+                    {
+                        name: "3.5 Shell展开 (Shell Expansions)",
+                        type: "folder",
+                        children: [
+                            { name: "3.5.1 花括号展开 (Brace Expansion)", type: "file" },
+                            { name: "3.5.2 波浪号展开 (Tilde Expansion)", type: "file" },
+                            { name: "3.5.3 参数展开 (Shell Parameter Expansion)", type: "file" },
+                            { name: "3.5.4 命令替换 (Command Substitution)", type: "file" },
+                            { name: "3.5.5 算术展开 (Arithmetic Expansion)", type: "file" },
+                            { name: "3.5.6 进程替换 (Process Substitution)", type: "file" },
+                            { name: "3.5.7 单词拆分 (Word Splitting)", type: "file" },
+                            {
+                                name: "3.5.8 文件名展开 (Filename Expansion)",
+                                type: "folder",
+                                children: [
+                                    { name: "3.5.8.1 模式匹配 (Pattern Matching)", type: "file" }
+                                ]
+                            },
+                            { name: "3.5.9 引号移除 (Quote Removal)", type: "file" }
+                        ]
+                    },
+                    {
+                        name: "3.6 重定向 (Redirections)",
+                        type: "folder",
+                        children: [
+                            { name: "3.6.1 输入重定向 (Redirecting Input)", type: "file" },
+                            { name: "3.6.2 输出重定向 (Redirecting Output)", type: "file" },
+                            { name: "3.6.3 追加输出 (Appending Redirected Output)", type: "file" },
+                            { name: "3.6.4 标准输出与标准错误重定向 (Redirecting Stdout & Stderr)", type: "file" },
+                            { name: "3.6.5 追加标准输出与标准错误 (Appending Stdout & Stderr)", type: "file" },
+                            { name: "3.6.6 Here文档 (Here Documents)", type: "file" },
+                            { name: "3.6.7 Here字符串 (Here Strings)", type: "file" },
+                            { name: "3.6.8 复制文件描述符 (Duplicating File Descriptors)", type: "file" },
+                            { name: "3.6.9 移动文件描述符 (Moving File Descriptors)", type: "file" },
+                            { name: "3.6.10 读写打开文件描述符 (Opening FDs for R/W)", type: "file" }
+                        ]
+                    },
+                    {
+                        name: "3.7 命令执行 (Executing Commands)",
+                        type: "folder",
+                        children: [
+                            { name: "3.7.1 简单命令展开 (Simple Command Expansion)", type: "file" },
+                            { name: "3.7.2 命令搜索与执行 (Command Search & Execution)", type: "file" },
+                            { name: "3.7.3 命令执行环境 (Command Execution Environment)", type: "file" },
+                            { name: "3.7.4 环境 (Environment)", type: "file" },
+                            { name: "3.7.5 退出状态 (Exit Status)", type: "file" },
+                            { name: "3.7.6 信号 (Signals)", type: "file" }
+                        ]
+                    },
+                    { name: "3.8 Shell脚本 (Shell Scripts)", type: "file" }
+                ]
+            },
+            {
+                name: "4️⃣ Shell内建命令 (Shell Builtin Commands)",
+                type: "folder",
+                children: [
+                    { name: "4.1 Bourne Shell内建 (Bourne Shell Builtins)", type: "file" },
+                    { name: "4.2 Bash内建命令 (Bash Builtin Commands)", type: "file" },
+                    {
+                        name: "4.3 修改Shell行为 (Modifying Shell Behavior)",
+                        type: "folder",
+                        children: [
+                            { name: "4.3.1 set内建 (The Set Builtin)", type: "file" },
+                            { name: "4.3.2 shopt内建 (The Shopt Builtin)", type: "file" }
+                        ]
+                    },
+                    { name: "4.4 特殊内建 (Special Builtins)", type: "file" }
+                ]
+            },
+            {
+                name: "5️⃣ Shell变量 (Shell Variables)",
+                type: "folder",
+                children: [
+                    { name: "5.1 Bourne Shell变量 (Bourne Shell Variables)", type: "file" },
+                    { name: "5.2 Bash变量 (Bash Variables)", type: "file" }
+                ]
+            },
+            {
+                name: "6️⃣ Bash特色功能 (Bash Features)",
+                type: "folder",
+                children: [
+                    { name: "6.1 调用Bash (Invoking Bash)", type: "file" },
+                    { name: "6.2 Bash启动文件 (Bash Startup Files)", type: "file" },
+                    {
+                        name: "6.3 交互式Shell (Interactive Shells)",
+                        type: "folder",
+                        children: [
+                            { name: "6.3.1 何为交互式Shell？ (What is an Interactive Shell?)", type: "file" },
+                            { name: "6.3.2 当前Shell是否交互？ (Is this Shell Interactive?)", type: "file" },
+                            { name: "6.3.3 交互式Shell行为 (Interactive Shell Behavior)", type: "file" }
+                        ]
+                    },
+                    { name: "6.4 Bash条件表达式 (Bash Conditional Expressions)", type: "file" },
+                    { name: "6.5 Shell算术 (Shell Arithmetic)", type: "file" },
+                    { name: "6.6 别名 (Aliases)", type: "file" },
+                    { name: "6.7 数组 (Arrays)", type: "file" },
+                    {
+                        name: "6.8 目录栈 (The Directory Stack)",
+                        type: "folder",
+                        children: [
+                            { name: "6.8.1 目录栈内建 (Directory Stack Builtins)", type: "file" }
+                        ]
+                    },
+                    { name: "6.9 控制提示符 (Controlling the Prompt)", type: "file" },
+                    { name: "6.10 受限Shell (The Restricted Shell)", type: "file" },
+                    {
+                        name: "6.11 Bash与POSIX (Bash and POSIX)",
+                        type: "folder",
+                        children: [
+                            { name: "6.11.1 何为POSIX？ (What is POSIX?)", type: "file" },
+                            { name: "6.11.2 Bash POSIX模式 (Bash POSIX Mode)", type: "file" }
+                        ]
+                    },
+                    { name: "6.12 Shell兼容模式 (Shell Compatibility Mode)", type: "file" }
+                ]
+            },
+            {
+                name: "7️⃣ 作业控制 (Job Control)",
+                type: "folder",
+                children: [
+                    { name: "7.1 作业控制基础 (Job Control Basics)", type: "file" },
+                    { name: "7.2 作业控制内建 (Job Control Builtins)", type: "file" },
+                    { name: "7.3 作业控制变量 (Job Control Variables)", type: "file" }
+                ]
+            },
+            {
+                name: "8️⃣ 命令行编辑 (Command Line Editing)",
+                type: "folder",
+                children: [
+                    { name: "8.1 行编辑简介 (Introduction to Line Editing)", type: "file" },
+                    {
+                        name: "8.2 Readline交互 (Readline Interaction)",
+                        type: "folder",
+                        children: [
+                            { name: "8.2.1 最简Readline (Readline Bare Essentials)", type: "file" },
+                            { name: "8.2.2 移动命令 (Readline Movement Commands)", type: "file" },
+                            { name: "8.2.3 删除命令 (Readline Killing Commands)", type: "file" },
+                            { name: "8.2.4 参数化 (Readline Arguments)", type: "file" },
+                            { name: "8.2.5 历史搜索 (Searching for Commands in the History)", type: "file" }
+                        ]
+                    },
+                    {
+                        name: "8.3 Readline初始化文件 (Readline Init File)",
+                        type: "folder",
+                        children: [
+                            { name: "8.3.1 初始化文件语法 (Readline Init File Syntax)", type: "file" },
+                            { name: "8.3.2 条件初始化结构 (Conditional Init Constructs)", type: "file" },
+                            { name: "8.3.3 初始化示例文件 (Sample Init File)", type: "file" }
+                        ]
+                    },
+                    {
+                        name: "8.4 可绑定Readline命令 (Bindable Readline Commands)",
+                        type: "folder",
+                        children: [
+                            { name: "8.4.1 移动命令 (Commands For Moving)", type: "file" },
+                            { name: "8.4.2 历史操作 (Commands For Manipulating The History)", type: "file" },
+                            { name: "8.4.3 文本修改 (Commands For Changing Text)", type: "file" },
+                            { name: "8.4.4 删除与粘贴 (Killing And Yanking)", type: "file" },
+                            { name: "8.4.5 数值参数 (Specifying Numeric Arguments)", type: "file" },
+                            { name: "8.4.6 自动补全 (Letting Readline Type For You)", type: "file" },
+                            { name: "8.4.7 键盘宏 (Keyboard Macros)", type: "file" },
+                            { name: "8.4.8 杂项命令 (Some Miscellaneous Commands)", type: "file" }
+                        ]
+                    },
+                    { name: "8.5 Readline vi模式 (Readline vi Mode)", type: "file" },
+                    { name: "8.6 可编程补全 (Programmable Completion)", type: "file" },
+                    { name: "8.7 可编程补全内建 (Programmable Completion Builtins)", type: "file" },
+                    { name: "8.8 可编程补全示例 (A Programmable Completion Example)", type: "file" }
+                ]
+            },
+            {
+                name: "9️⃣ 交互式使用历史 (Using History Interactively)",
+                type: "folder",
+                children: [
+                    { name: "9.1 Bash历史机制 (Bash History Facilities)", type: "file" },
+                    { name: "9.2 Bash历史内建 (Bash History Builtins)", type: "file" },
+                    {
+                        name: "9.3 历史展开 (History Expansion)",
+                        type: "folder",
+                        children: [
+                            { name: "9.3.1 事件指示符 (Event Designators)", type: "file" },
+                            { name: "9.3.2 单词指示符 (Word Designators)", type: "file" },
+                            { name: "9.3.3 修饰符 (Modifiers)", type: "file" }
+                        ]
+                    }
+                ]
+            },
+            {
+                name: "🔟 安装Bash (Installing Bash)",
+                type: "folder",
+                children: [
+                    { name: "10.1 基本安装 (Basic Installation)", type: "file" },
+                    { name: "10.2 编译器与选项 (Compilers and Options)", type: "file" },
+                    { name: "10.3 多架构编译 (Compiling For Multiple Architectures)", type: "file" },
+                    { name: "10.4 安装名称 (Installation Names)", type: "file" },
+                    { name: "10.5 指定系统类型 (Specifying the System Type)", type: "file" },
+                    { name: "10.6 共享默认值 (Sharing Defaults)", type: "file" },
+                    { name: "10.7 操作控制 (Operation Controls)", type: "file" },
+                    { name: "10.8 可选特性 (Optional Features)", type: "file" }
+                ]
+            },
+            {
+                name: "📚 附录 (Appendices)",
+                type: "folder",
+                children: [
+                    { name: "A 报告缺陷 (Reporting Bugs)", type: "file" },
+                    { name: "B 与Bourne Shell的主要差异 (Major Differences From The Bourne Shell)", type: "file" },
+                    { name: "C GNU自由文档许可证 (GNU Free Documentation License)", type: "file" },
+                    { name: "D 索引 (Indexes)", type: "file" }
+                ]
+            }
+        ];
+
+        // 当前显示的数据
+        let currentData = commandsData;
+        let currentView = 'commands';
+    </script>
+
+    <!-- 渲染逻辑 -->
+    <script>
+        // 创建树节点的函数
+        function createTreeNode(data) {
+            const li = document.createElement('li');
+            
+            // 创建节点容器
+            const nodeDiv = document.createElement('div');
+            nodeDiv.className = 'tree-node';
+            
+            // 添加折叠图标（仅文件夹）
+            if (data.type === 'folder') {
+                const toggleIcon = document.createElement('i');
+                toggleIcon.className = 'fas fa-chevron-down toggle';
+                nodeDiv.appendChild(toggleIcon);
+            }
+            
+            // 添加文件夹/文件图标
+            const icon = document.createElement('i');
+            icon.className = data.type === 'folder' ? 'fas fa-folder folder' : 'fas fa-file file';
+            nodeDiv.appendChild(icon);
+            
+            // 添加内容区域
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'tree-content';
+            
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'tree-name';
+            nameSpan.textContent = data.name;
+            contentDiv.appendChild(nameSpan);
+            
+            if (data.desc) {
+                const descSpan = document.createElement('span');
+                descSpan.className = 'tree-desc';
+                descSpan.textContent = data.desc;
+                contentDiv.appendChild(descSpan);
+            }
+            
+            nodeDiv.appendChild(contentDiv);
+            li.appendChild(nodeDiv);
+            
+            // 递归创建子节点
+            if (data.children && data.children.length > 0) {
+                const ul = document.createElement('ul');
+                data.children.forEach(child => {
+                    ul.appendChild(createTreeNode(child));
+                });
+                li.appendChild(ul);
+            }
+            
+            return li;
+        }
+
+        // 初始化树形结构
+        function initTree() {
+            const treeContainer = document.getElementById('treeContainer');
+            treeContainer.innerHTML = '';
+            
+            const ul = document.createElement('ul');
+            currentData.forEach(item => {
+                ul.appendChild(createTreeNode(item));
+            });
+            treeContainer.appendChild(ul);
+            
+            // 默认折叠所有文件夹
+            document.querySelectorAll('.tree li:has(> ul)').forEach(li => {
+                li.classList.add('collapsed');
+            });
+        }
+
+        // 切换视图
+        function switchView(view) {
+            currentView = view;
+            if (view === 'commands') {
+                currentData = commandsData;
+                document.getElementById('viewCommands').classList.add('active');
+                document.getElementById('viewManual').classList.remove('active');
+            } else {
+                currentData = manualData;
+                document.getElementById('viewManual').classList.add('active');
+                document.getElementById('viewCommands').classList.remove('active');
+            }
+            initTree();
+        }
+    </script>
+
+    <!-- 交互功能 -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 初始化树形结构
+            initTree();
+            
+            // 视图切换
+            document.getElementById('viewCommands').addEventListener('click', function() {
+                switchView('commands');
+            });
+            
+            document.getElementById('viewManual').addEventListener('click', function() {
+                switchView('manual');
+            });
+            
+            // 使用事件委托处理折叠/展开
+            document.getElementById('treeContainer').addEventListener('click', function(e) {
+                const treeNode = e.target.closest('.tree-node');
+                if (!treeNode) return;
+                
+                const folder = treeNode.querySelector('.folder');
+                if (!folder) return;
+                
+                const li = treeNode.parentElement;
+                li.classList.toggle('collapsed');
+            });
+            
+            // 展开全部按钮
+            document.getElementById('expandAll').addEventListener('click', function() {
+                document.querySelectorAll('.tree li.collapsed').forEach(li => {
+                    li.classList.remove('collapsed');
+                });
+            });
+            
+            // 折叠全部按钮
+            document.getElementById('collapseAll').addEventListener('click', function() {
+                document.querySelectorAll('.tree li:has(.folder)').forEach(li => {
+                    if (!li.parentElement.classList.contains('tree')) {
+                        li.classList.add('collapsed');
+                    }
+                });
+            });
+            
+            // 搜索功能
+            document.getElementById('searchInput').addEventListener('input', function(e) {
+                const searchTerm = e.target.value.toLowerCase();
+                
+                // 清除之前的高亮
+                document.querySelectorAll('.highlight').forEach(el => {
+                    el.classList.remove('highlight');
+                });
+                
+                if (searchTerm === '') return;
+                
+                // 搜索并高亮匹配项
+                document.querySelectorAll('.tree-node').forEach(node => {
+                    const text = node.textContent.toLowerCase();
+                    if (text.includes(searchTerm)) {
+                        node.querySelector('.tree-name').classList.add('highlight');
+                        
+                        // 展开父节点
+                        let parent = node.closest('li');
+                        while (parent && !parent.classList.contains('tree')) {
+                            parent.classList.remove('collapsed');
+                            parent = parent.parentElement.closest('li');
+                        }
+                    }
+                });
+            });
+        });
+    </script>
+
+    <!-- SVG 图标定义 -->
+    <script>
+        (function() {
+            // 创建SVG图标定义
+            const svgIcons = {
+                'fa-plus-square': '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path fill="currentColor" d="M208 344c-13.3 0-24-10.7-24-24v-48H136c-13.3 0-24-10.7-24-24s10.7-24 24-24h48v-48c0-13.3 10.7-24 24-24s24 10.7 24 24v48h48c13.3 0 24 10.7 24 24s-10.7 24-24 24h-48v48c0 13.3-10.7 24-24 24zm240-128c0 52.5-42.5 95-95H395c-52.5 0-95-42.5-95h58c52.5 0 95 42.5 95v58zm-48 0c0-26.5-21.5-48-48h-58c-26.5 0-48 21.5-48v58c0 26.5 21.5 48 48v58z"/></svg>',
+                'fa-minus-square': '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path fill="currentColor" d="M392 256H56c-13.3 0-24-10.7-24-24s10.7-24 24-24h336c13.3 0 24 10.7 24 24s-10.7 24-24 24zm48-160c0 52.5-42.5 95-95H395c-52.5 0-95-42.5-95h58c52.5 0 95 42.5 95v58zm-48 0c0-26.5-21.5-48-48h-58c-26.5 0-48 21.5-48v58c0 26.5 21.5 48 48v58z"/></svg>',
+                'fa-chevron-down': '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path fill="currentColor" d="M224.8 414c-6.7 0-13.5-2.8-18.4l-172-172c-9.9-9.9-9.9-26 0s26.1-9.9 36.2 0l154.1 154.1 154.1-154.1c9.9-9.9 26.1-9.9 36.2 0l-172 172c-4.9 5-11.7 7.8-18.4z"/></svg>',
+                'fa-folder': '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M464 128H272l-64-64H48C21.5 64 0 85.5 0 112v288c0 26.5 21.5 48 48h416c26.5 0 48-21.5 48-48V176c0-26.5-21.5-48-48zm0 32v288H48V112h169.1l64.4 64.4H464z"/></svg>',
+                'fa-file': '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><path fill="currentColor" d="M369.9 97.9L86.04 3.57C81.5 1.82 76.56 0 71.69 0H64C28.65 0 0 28.65 0 64v384c0 35.35 28.65 64 64h320c35.35 0 64-28.65 64-64V133.9c0-8.8-3.6-17.3-9.9-23.9zM256 51.9V128H64V51.9h192zm128 448.1H164v35.9h209.9v-35.9zm64-48.1H164v240.1h280z"/></svg>'
+            };
+            
+            // 创建样式规则
+            const style = document.createElement('style');
+            let css = `.fas { display: inline-block; width: 1em; height: 1em; fill: currentColor; vertical-align: middle; }`;
+            
+            // 为每个图标生成CSS规则
+            for (const className in svgIcons) {
+                css += `.${className}::before { content: ''; display: inline-block; width: 1em; height: 1em; background-image: url("data:image/svg+xml,${encodeURIComponent(svgIcons[className])}"); background-repeat: no-repeat; background-position: center; background-size: contain; }`;
+            }
+            
+            style.textContent = css;
+            document.head.appendChild(style);
+        })();
+    </script>
+</body>
+</html>

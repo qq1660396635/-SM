@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>中华名小吃 - 地理分布</title>
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+        background: #f5f5f5;
+        min-height: 100vh;
+        padding: 8px;
+        color: #333;
+    }
+    .header {
+        padding: 12px 0;
+        margin-bottom: 10px;
+        text-align: center;
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .header h1 { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+    .header .date { color: #888; font-size: 11px; }
+    
+    .content-list { margin-bottom: 10px; }
+    
+    .item {
+        background: #fff;
+        padding: 10px 12px;
+        margin-bottom: 8px;
+        border-radius: 6px;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+        transition: transform 0.2s;
+    }
+    .item:active { transform: scale(0.99); }
+    
+    .item-head {
+        display: flex;
+        align-items: center;
+        margin-bottom: 6px;
+    }
+    .category {
+        background: #e53935;
+        color: #fff;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 11px;
+        font-weight: bold;
+        margin-right: 8px;
+    }
+    .item-count { font-size: 12px; color: #999; }
+    
+    .snack-tags { display: flex; flex-wrap: wrap; gap: 4px; line-height: 1.6; }
+    .tag {
+        background: #f0f2f5;
+        color: #444;
+        padding: 1px 6px;
+        border-radius: 3px;
+        font-size: 12px;
+        display: inline-block;
+    }
+    
+    /* 分页样式 */
+    .pagination { padding: 10px 0; display: flex; justify-content: center; align-items: center; gap: 4px; flex-wrap: wrap; }
+    .page-btn {
+        min-width: 28px;
+        height: 28px;
+        border: 1px solid #ddd;
+        background: #fff;
+        color: #666;
+        border-radius: 4px;
+        font-size: 12px;
+        cursor: pointer;
+    }
+    .page-btn.active { background: #e53935; color: #fff; border-color: #e53935; }
+    .page-info { font-size: 12px; color: #666; margin: 0 4px; }
+    .page-btn:disabled { opacity: 0.5; }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+    .item { animation: fadeIn 0.3s ease forwards; }
+</style>
+</head>
+<body>
+
+<div class="header">
+    <h1>中华名小吃</h1>
+    <div class="date">按地理位置从北到南排列 | 26个地区</div>
+</div>
+
+<div class="content-list" id="contentList">
+    <!-- 内容将通过JS渲染 -->
+</div>
+
+<div class="pagination" id="pagination">
+    <!-- 分页将通过JS渲染 -->
+</div>
+
+<script>
+    // 数据按从北到南的地理纬度顺序排列
+    const rawData = [
+        { category: "东北", snacks: "朝鲜族冷面,长宽猪蹄,杨家吊沪饼,列巴,肉火烧,猴头蘑,大丰收,克东腐乳,鸡西冷面,白肉血肠,石锅拌饭,得莫利炖鱼,哈尔滨熏鸡,李连贵熏肉大饼,老山记海城馅饼,哈尔滨红肠,金达莱锅包肉" },
+        { category: "新疆", snacks: "串烤肉,馕" },
+        { category: "内蒙古", snacks: "手把肉,稍美,奶皮子" },
+        { category: "北京", snacks: "驴打滚,褡裢火烧,芸豆卷,京东肉饼,芥末墩,奶油炸糕,蝴蝶酥,黄糕,油茶,炒肝,山药饼,糖火烧,银丝卷,自来白,艾窝窝,豌豆黄,豆汁,灌肠,焦圈,爆肚" },
+        { category: "天津", snacks: "芝兰斋糕干,恩发德蒸饺,耳朵眼炸糕,蜜麻花,狗不理包子,桂发祥麻花,贴饽饽熬小鱼,棒槌果子" },
+        { category: "河北", snacks: "血馅饺,驴肉火烧,大慈阁素面,棋子烧饼" },
+        { category: "山西", snacks: "刀削面,莜面栲栳,揪片" },
+        { category: "甘肃", snacks: "兰州牛肉面,驴肉黄面" },
+        { category: "青海", snacks: "甜醅" },
+        { category: "山东", snacks: "红烧兔头,水煎包,周村烧饼,黄焖鸡,油炸螺丝糕,羊肉汤,把子肉" },
+        { category: "陕西", snacks: "西安油锅盔,岐山擀面皮,岐山臊子面,凤翔豆花泡馍,羊肉泡馍,油泼面,蘸水面,扯面,Biangbiang面,肉夹馍,汉中热面皮" },
+        { category: "河南", snacks: "马豫兴桶子鸡,道口烧鸡,郑州萧记烩面,逍遥胡辣汤,薛湖牛肉水煎包,阿利茄汁面,开封灌汤包,洛阳水席,合记烩面" },
+        { category: "安徽", snacks: "五城茶干,伏岭玫瑰酥,徽州臭豆腐,徽州饼,大救驾,油煎毛豆腐" },
+        { category: "上海", snacks: "蟹壳黄,汤包,排骨年糕,小绍兴鸡粥,南翔小笼馒头" },
+        { category: "浙江", snacks: "鲜肉粽子,知味小笼,酥油饼,虾爆鳝面,缙云烧饼" },
+        { category: "湖北", snacks: "热干面,云梦鱼面,豆皮,东坡饼" },
+        { category: "四川", snacks: "火腿鸡丝卷,莲茸层层酥,酥皮鸡饺,宜宾燃面,棒棒鸡,廖记棒棒鸡,廖排骨,龙抄手,夫妻肺片,赖汤圆,祥和祥抄手,藤椒钵钵鸡,伤心凉粉,沈肥肠,南充米粉,川北凉粉,张飞牛肉,锅盔凉粉" },
+        { category: "西藏", snacks: "酥油茶" },
+        { category: "湖南", snacks: "红烧猪脚,火宫殿臭豆腐,腌萝卜干,潇湘五元龟,米粉,荷兰粉,口味虾,洪江鸭血粑" },
+        { category: "江西", snacks: "蛋味香,风味烤卤" },
+        { category: "贵州", snacks: "恋爱豆腐果,荷叶糍粑,丝娃娃,肠旺面" },
+        { category: "福建", snacks: "鼎边糊,土笋冻,光饼,蛎饼,手抓面,汀州鸡肠面" },
+        { category: "台湾", snacks: "度小月担仔面,卤肉饭,棺材板" },
+        { category: "广东", snacks: "广式月饼,干蒸烧卖,荷叶饭,和味牛杂萝卜,蟹黄灌汤饺,薄皮鲜虾饺,酥皮莲蓉包,炒田螺,艇仔粥,及第粥,沙河粉,裹蒸棕,伦教糕,鸡仔饼,马蹄糕,粉果,蒸肠粉,龟苓膏,酷比爽味包,汕头牛肉丸" },
+        { category: "广西", snacks: "柳州酸,牛肉丸,肉棕,老友面,竹筒鸡,冰泉豆浆,吉列粟子卷,玉林牛巴,桂林米粉,螺蛳粉,炒田螺" },
+        { category: "海南", snacks: "抱罗粉,海南椰子盅,虾饺,海南嘉积鸭,燕稞千孔糕,海南粉,竹筒饭,煎堆" }
+    ];
+
+    let currentPage = 1;
+    const itemsPerPage = 10;
+    const totalPages = Math.ceil(rawData.length / itemsPerPage);
+
+    // 渲染页面函数
+    function renderPage(page) {
+        const contentList = document.getElementById('contentList');
+        contentList.innerHTML = '';
+
+        const startIndex = (page - 1) * itemsPerPage;
+        const endIndex = Math.min(startIndex + itemsPerPage, rawData.length);
+        const pageData = rawData.slice(startIndex, endIndex);
+
+        pageData.forEach((item) => {
+            const snackList = item.snacks.split(',');
+            // 生成标签HTML
+            const tagsHtml = snackList.map(snack => `<span class="tag">${snack}</span>`).join('');
+
+            const div = document.createElement('div');
+            div.className = 'item';
+            div.innerHTML = `
+                <div class="item-head">
+                    <span class="category">${item.category}</span>
+                    <span class="item-count">共 ${snackList.length} 款</span>
+                </div>
+                <div class="snack-tags">
+                    ${tagsHtml}
+                </div>
+            `;
+            contentList.appendChild(div);
+        });
+
+        renderPagination(page);
+    }
+
+    // 渲染分页函数
+    function renderPagination(page) {
+        const pagination = document.getElementById('pagination');
+        pagination.innerHTML = '';
+
+        // 上一页
+        const prevBtn = document.createElement('button');
+        prevBtn.className = 'page-btn';
+        prevBtn.innerHTML = '&lt;';
+        prevBtn.disabled = page === 1;
+        prevBtn.onclick = () => {
+            if (page > 1) renderPage(page - 1);
+        };
+        pagination.appendChild(prevBtn);
+
+        // 页码
+        for (let i = 1; i <= totalPages; i++) {
+            const btn = document.createElement('button');
+            btn.className = `page-btn ${i === page ? 'active' : ''}`;
+            btn.innerText = i;
+            btn.onclick = () => renderPage(i);
+            pagination.appendChild(btn);
+        }
+
+        // 下一页
+        const nextBtn = document.createElement('button');
+        nextBtn.className = 'page-btn';
+        nextBtn.innerHTML = '&gt;';
+        nextBtn.disabled = page === totalPages;
+        nextBtn.onclick = () => {
+            if (page < totalPages) renderPage(page + 1);
+        };
+        pagination.appendChild(nextBtn);
+        
+        // 信息
+        const info = document.createElement('span');
+        info.className = 'page-info';
+        info.innerText = `${page}/${totalPages}`;
+        pagination.appendChild(info);
+    }
+
+    // 初始化
+    document.addEventListener('DOMContentLoaded', () => {
+        renderPage(currentPage);
+    });
+</script>
+
+</body>
+</html>

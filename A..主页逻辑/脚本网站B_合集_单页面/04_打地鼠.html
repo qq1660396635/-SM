@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>农场3D 打地鼠</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            background: linear-gradient(to bottom, #ff6b35 0%, #f7931e 50%, #ff8c00 100%);
+            touch-action: none;
+        }
+        #gameUI {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(139, 69, 19, 0.95);
+            color: #fff8dc;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            z-index: 100;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            border-bottom: 4px solid #daa520;
+        }
+        .game-title {
+            font-size: 20px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.7);
+            margin-bottom: 5px;
+            color: #ffd700;
+        }
+        .score-coins-container {
+            display: flex;
+            gap: 20px;
+        }
+        .ui-item {
+            font-size: 16px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.7);
+            background: rgba(218, 165, 32, 0.3);
+            padding: 5px 15px;
+            border-radius: 20px;
+            backdrop-filter: blur(5px);
+            border: 2px solid rgba(255, 140, 0, 0.5);
+            color: #fff8dc;
+        }
+        #hammer {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            pointer-events: none;
+            z-index: 50;
+            display: none;
+            transform: translate(-50%, -50%);
+            filter: drop-shadow(3px 3px 6px rgba(0,0,0,0.7));
+        }
+        #instructions {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #fff8dc;
+            background: rgba(139, 69, 19, 0.95);
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            border: 2px solid rgba(255, 140, 0, 0.5);
+        }
+    </style>
+</head>
+<body>
+    <div id="gameUI">
+        <div class="game-title">🍂秋季农场</div>
+        <div class="score-coins-container">
+            <div class="ui-item">分数: <span id="score">0</span></div>
+            <div class="ui-item">金币: <span id="coins">0</span> 🍎</div>
+            <div class="ui-item"> 最高分: <span id="highScore">0</span>🏆</div>
+        </div>
+        <button id="resetButton" style="margin-top: 10px; padding: 5px 15px; background: rgba(218, 165, 32, 0.3); border: 2px solid rgba(255, 140, 0, 0.5); border-radius: 15px; color: #fff8dc; cursor: pointer;">重置成绩</button>
+    </div>
+    <div id="hammer">🍁</div>
+    <div id="instructions">
+        移动秋叶锤砸地鼠！<br>
+        按住并拖动可旋转视角
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // 游戏变量
+        let score = 0;
+        let coins = 0;
+        let highScore = 0;
+        let moleGrid = 4;
+        let moles = [];
+        let holes = [];
+        let isRotating = false;
+        let lastMouseX = 0;
+        let cameraRotation = 0;
+        let cameraDistance = 20;
+        let hammer3D = new THREE.Vector3();
+        
+        // 本地存储管理
+        const STORAGE_KEYS = {
+            SCORE: 'autumnFarm_score',
+            COINS: 'autumnFarm_coins',
+            HIGH_SCORE: 'autumnFarm_highScore'
+        };
+        
+        // 从本地存储加载游戏数据 - 立即执行！
+        function loadGameData() {
+            const savedScore = localStorage.getItem(STORAGE_KEYS.SCORE);
+            const savedCoins = localStorage.getItem(STORAGE_KEYS.COINS);
+            const savedHighScore = localStorage.getItem(STORAGE_KEYS.HIGH_SCORE);
+            
+            score = savedScore ? parseInt(savedScore) : 0;
+            coins = savedCoins ? parseInt(savedCoins) : 0;
+            highScore = savedHighScore ? parseInt(savedHighScore) : 0;
+            
+            // 更新UI显示
+            document.getElementById('score').textContent = score;
+            document.getElementById('coins').textContent = coins;
+            document.getElementById('highScore').textContent = highScore;
+            
+            console.log('📥 数据已加载:', { score, coins, highScore });
+            console.table({ score, coins, highScore });
+        }
+        
+        // 立即加载存储的数据 - 在所有其他操作之前！
+        loadGameData();
+        
+        // 保存游戏数据到本地存储
+        function saveGameData() {
+            localStorage.setItem(STORAGE_KEYS.SCORE, score.toString());
+            localStorage.setItem(STORAGE_KEYS.COINS, coins.toString());
+            localStorage.setItem(STORAGE_KEYS.HIGH_SCORE, highScore.toString());
+            console.log('💾 数据已保存:', { score, coins, highScore });
+        }
+        
+        // 重置游戏数据
+        function resetGameData() {
+            if (confirm('确定要重置所有成绩吗？\n这将清除您的分数和金币！')) {
+                score = 0;
+                coins = 0;
+                highScore = 0;
+                saveGameData();
+                
+                // 更新UI显示
+                document.getElementById('score').textContent = score;
+                document.getElementById('coins').textContent = coins;
+                document.getElementById('highScore').textContent = highScore;
+                
+                alert('成绩已重置！');
+            }
+        }
+        
+        // 更新最高分
+        function updateHighScore() {
+            if (score > highScore) {
+                highScore = score;
+                document.getElementById('highScore').textContent = highScore;
+                saveGameData();
+                
+                // 显示新记录提示
+                const title = document.querySelector('.game-title');
+                title.textContent = '🍂秋季农场 - 新纪录！🏆';
+                title.style.color = '#ff6347';
+                setTimeout(() => {
+                    title.textContent = '🍂秋季农场';
+                    title.style.color = '#ffd700';
+                }, 3000);
+            }
+        }
+        
+        // Three.js 场景设置
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.Fog(0xff8c00, 15, 100);
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 12, cameraDistance);
+        camera.lookAt(0, 0, 0);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.setClearColor(0xff8c00);
+        document.body.appendChild(renderer.domElement);
+        
+        // 光照
+        const ambientLight = new THREE.AmbientLight(0xffa500, 0.5);
+        scene.add(ambientLight);
+        const directionalLight = new THREE.DirectionalLight(0xffd700, 0.8);
+        directionalLight.position.set(15, 25, 10);
+        directionalLight.castShadow = true;
+        directionalLight.shadow.camera.left = -25;
+        directionalLight.shadow.camera.right = 25;
+        directionalLight.shadow.camera.top = 25;
+        directionalLight.shadow.camera.bottom = -25;
+        directionalLight.shadow.mapSize.width = 2048;
+        directionalLight.shadow.mapSize.height = 2048;
+        directionalLight.shadow.bias = -0.001;
+        scene.add(directionalLight);
+        
+        // 地面
+        const platformGeometry = new THREE.BoxGeometry(20, 1, 20);
+        const platformMaterial = new THREE.MeshLambertMaterial({
+            color: 0xd2691e,
+            roughness: 0.8
+        });
+        const platform = new THREE.Mesh(platformGeometry, platformMaterial);
+        platform.position.y = -0.5;
+        platform.receiveShadow = true;
+        scene.add(platform);
+        
+        // 草地
+        const grassGeometry = new THREE.PlaneGeometry(30, 30);
+        const grassMaterial = new THREE.MeshLambertMaterial({ color: 0xdaa520 });
+        const grass = new THREE.Mesh(grassGeometry, grassMaterial);
+        grass.rotation.x = -Math.PI / 2;
+        grass.position.y = -1;
+        grass.receiveShadow = true;
+        scene.add(grass);
+        
+        // 创建山峰
+        function createMountains() {
+            for (let i = 0; i < 5; i++) {
+                const mountainGeometry = new THREE.ConeGeometry(8 + Math.random() * 4, 15 + Math.random() * 10, 6);
+                const mountainMaterial = new THREE.MeshLambertMaterial({ color: 0xb22222 });
+                const mountain = new THREE.Mesh(mountainGeometry, mountainMaterial);
+                const angle = (i / 5) * Math.PI * 2;
+                const distance = 40 + Math.random() * 20;
+                mountain.position.set(
+                    Math.sin(angle) * distance,
+                    -5,
+                    Math.cos(angle) * distance
+                );
+                scene.add(mountain);
+            }
+        }
+        createMountains();
+        
+        // 创建农场装饰
+        function createFarmDecorations() {
+            // 创建树木
+            function createTree(x, z) {
+                const treeGroup = new THREE.Group();
+                // 树干
+                const trunkGeometry = new THREE.CylinderGeometry(0.5, 0.7, 4);
+                const trunkMaterial = new THREE.MeshLambertMaterial({ color: 0x8b4513 });
+                const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
+                trunk.position.y = 2;
+                trunk.castShadow = true;
+                treeGroup.add(trunk);
+                // 树冠
+                const crownGeometry = new THREE.SphereGeometry(2.5, 8, 6);
+                const crownMaterial = new THREE.MeshLambertMaterial({ color: 0xff6347 });
+                const crown = new THREE.Mesh(crownGeometry, crownMaterial);
+                crown.position.y = 5;
+                crown.castShadow = true;
+                crown.receiveShadow = true;
+                treeGroup.add(crown);
+                treeGroup.position.set(x, 0, z);
+                return treeGroup;
+            }
+            
+            // 添加树木
+            const treePositions = [
+                [-25, -25], [-20, -30], [-30, -20],
+                [25, -25], [20, -30], [30, -20],
+                [-25, 25], [-20, 30], [-30, 20],
+                [25, 25], [20, 30], [30, 20]
+            ];
+            treePositions.forEach(pos => {
+                scene.add(createTree(pos[0], pos[1]));
+            });
+            
+            // 创建干草堆
+            function createHaystack(x, z) {
+                const hayGeometry = new THREE.CylinderGeometry(1.5, 2, 2);
+                const hayMaterial = new THREE.MeshLambertMaterial({ color: 0xffd700 });
+                const hay = new THREE.Mesh(hayGeometry, hayMaterial);
+                hay.position.set(x, 1, z);
+                hay.castShadow = true;
+                hay.receiveShadow = true;
+                return hay;
+            }
+            
+            // 添加干草堆
+            scene.add(createHaystack(-12, -12));
+            scene.add(createHaystack(12, 12));
+            scene.add(createHaystack(-12, 12));
+            scene.add(createHaystack(12, -12));
+        }
+        createFarmDecorations();
+        
+        // 创建地鼠洞
+        function createHoles() {
+            const spacing = 4;
+            const start = -(moleGrid - 1) * spacing / 2;
+            for (let i = 0; i < moleGrid; i++) {
+                for (let j = 0; j < moleGrid; j++) {
+                    // 洞的外部
+                    const holeOuterGeometry = new THREE.CylinderGeometry(1.2, 1.4, 0.3);
+                    const holeOuterMaterial = new THREE.MeshLambertMaterial({ color: 0x8b4513 });
+                    const holeOuter = new THREE.Mesh(holeOuterGeometry, holeOuterMaterial);
+                    holeOuter.position.set(start + i * spacing, 0.15, start + j * spacing);
+                    holeOuter.receiveShadow = true;
+                    scene.add(holeOuter);
+                    
+                    // 洞的内部
+                    const holeInnerGeometry = new THREE.CylinderGeometry(1, 1, 0.2);
+                    const holeInnerMaterial = new THREE.MeshLambertMaterial({ color: 0x2f1b14 });
+                    const holeInner = new THREE.Mesh(holeInnerGeometry, holeInnerMaterial);
+                    holeInner.position.set(start + i * spacing, 0.05, start + j * spacing);
+                    holeInner.receiveShadow = true;
+                    scene.add(holeInner);
+                    
+                    holes.push({
+                        x: start + i * spacing,
+                        z: start + j * spacing,
+                        occupied: false
+                    });
+                }
+            }
+        }
+        createHoles();
+        
+        // 创建地鼠
+        function createMole() {
+            const moleGroup = new THREE.Group();
+            // 身体
+            const bodyGeometry = new THREE.SphereGeometry(1, 16, 12);
+            const bodyMaterial = new THREE.MeshLambertMaterial({ color: 0x8b4513 });
+            const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+            body.castShadow = true;
+            body.receiveShadow = true;
+            moleGroup.add(body);
+            
+            // 头部
+            const headGeometry = new THREE.SphereGeometry(0.8, 16, 12);
+            const headMaterial = new THREE.MeshLambertMaterial({ color: 0xa0522d });
+            const head = new THREE.Mesh(headGeometry, headMaterial);
+            head.position.y = 1.2;
+            head.castShadow = true;
+            head.receiveShadow = true;
+            moleGroup.add(head);
+            
+            // 鼻子
+            const noseGeometry = new THREE.SphereGeometry(0.2, 8, 6);
+            const noseMaterial = new THREE.MeshLambertMaterial({ color: 0xff4500 });
+            const nose = new THREE.Mesh(noseGeometry, noseMaterial);
+            nose.position.set(0, 1.2, 0.6);
+            nose.castShadow = true;
+            moleGroup.add(nose);
+            
+            // 眼睛
+            const eyeGeometry = new THREE.SphereGeometry(0.15, 8, 6);
+            const eyeMaterial = new THREE.MeshLambertMaterial({ color: 0x000000 });
+            const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+            leftEye.position.set(-0.3, 1.4, 0.5);
+            moleGroup.add(leftEye);
+            const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+            rightEye.position.set(0.3, 1.4, 0.5);
+            moleGroup.add(rightEye);
+            
+            // 耳朵
+            const earGeometry = new THREE.SphereGeometry(0.3, 8, 6);
+            const earMaterial = new THREE.MeshLambertMaterial({ color: 0xa0522d });
+            const leftEar = new THREE.Mesh(earGeometry, earMaterial);
+            leftEar.position.set(-0.5, 1.8, 0);
+            leftEar.castShadow = true;
+            moleGroup.add(leftEar);
+            const rightEar = new THREE.Mesh(earGeometry, earMaterial);
+            rightEar.position.set(0.5, 1.8, 0);
+            rightEar.castShadow = true;
+            moleGroup.add(rightEar);
+            
+            return moleGroup;
+        }
+        
+        // 创建金币
+        function createCoin() {
+            const coinGroup = new THREE.Group();
+            // 金币主体
+            const coinGeometry = new THREE.CylinderGeometry(0.4, 0.4, 0.1, 16);
+            const coinMaterial = new THREE.MeshLambertMaterial({
+                color: 0xff6347,
+                shininess: 100
+            });
+            const coin = new THREE.Mesh(coinGeometry, coinMaterial);
+            coin.castShadow = true;
+            coin.receiveShadow = true;
+            coinGroup.add(coin);
+            
+            // 金币上的星星装饰
+            const starGeometry = new THREE.ConeGeometry(0.2, 0.05, 5);
+            const starMaterial = new THREE.MeshLambertMaterial({ color: 0xffd700 });
+            const star = new THREE.Mesh(starGeometry, starMaterial);
+            star.position.y = 0.1;
+            star.rotation.x = Math.PI / 2;
+            coinGroup.add(star);
+            
+            return coinGroup;
+        }
+        
+        // 地鼠类
+        class Mole {
+            constructor(hole) {
+                this.hole = hole;
+                this.mesh = createMole();
+                this.mesh.position.set(hole.x, -2, hole.z);
+                this.isUp = false;
+                this.isHit = false;
+                this.upDuration = 2000 + Math.random() * 2000;
+                this.upStartTime = 0;
+                this.speed = 0.08 + Math.random() * 0.04;
+                this.hitbox = new THREE.Box3();
+                scene.add(this.mesh);
+            }
+            
+            show() {
+                if (!this.isUp && !this.isHit) {
+                    this.isUp = true;
+                    this.upStartTime = Date.now();
+                }
+            }
+            
+            hide() {
+                if (this.isUp && !this.isHit) {
+                    this.isUp = false;
+                }
+            }
+            
+            checkHammerCollision(hammerPosition) {
+                if (this.isUp && !this.isHit) {
+                    this.hitbox.setFromObject(this.mesh);
+                    const distance = hammerPosition.distanceTo(this.mesh.position);
+                    if (distance < 2.5) {
+                        this.hit();
+                        return true;
+                    }
+                }
+                return false;
+            }
+            
+            hit() {
+                if (this.isUp && !this.isHit) {
+                    this.isHit = true;
+                    score += 50;
+                    document.getElementById('score').textContent = score;
+                    
+                    // 更新最高分并保存
+                    updateHighScore();
+                    saveGameData();
+                    
+                    this.createHitEffect();
+                    
+                    if (Math.random() < 0.3) {
+                        this.dropCoin();
+                    }
+                    
+                    let spinCount = 0;
+                    const spinAnimation = () => {
+                        if (spinCount < 30) {
+                            this.mesh.rotation.y += 0.3;
+                            this.mesh.position.y -= 0.15;
+                            this.mesh.scale.multiplyScalar(0.95);
+                            spinCount++;
+                            requestAnimationFrame(spinAnimation);
+                        } else {
+                            this.destroy();
+                        }
+                    };
+                    spinAnimation();
+                }
+            }
+            
+            createHitEffect() {
+                const particleCount = 10;
+                for (let i = 0; i < particleCount; i++) {
+                    const particleGeometry = new THREE.SphereGeometry(0.1, 4, 4);
+                    const particleMaterial = new THREE.MeshBasicMaterial({
+                        color: Math.random() > 0.5 ? 0xff6347 : 0xffd700
+                    });
+                    const particle = new THREE.Mesh(particleGeometry, particleMaterial);
+                    particle.position.copy(this.mesh.position);
+                    particle.position.y += 1;
+                    const velocity = new THREE.Vector3(
+                        (Math.random() - 0.5) * 0.3,
+                        Math.random() * 0.4 + 0.1,
+                        (Math.random() - 0.5) * 0.3
+                    );
+                    scene.add(particle);
+                    let life = 30;
+                    const animateParticle = () => {
+                        if (life > 0) {
+                            particle.position.add(velocity);
+                            velocity.y -= 0.015;
+                            particle.material.opacity = life / 30;
+                            particle.material.transparent = true;
+                            life--;
+                            requestAnimationFrame(animateParticle);
+                        } else {
+                            scene.remove(particle);
+                        }
+                    };
+                    animateParticle();
+                }
+            }
+            
+            dropCoin() {
+                const coin = createCoin();
+                coin.position.set(this.hole.x, this.mesh.position.y + 2, this.hole.z);
+                scene.add(coin);
+                const velocity = { y: 0.15, rotation: 0.2 };
+                const coinAnimation = () => {
+                    if (coin.position.y > 0.2) {
+                        coin.position.y += velocity.y;
+                        velocity.y -= 0.008;
+                        coin.rotation.y += velocity.rotation;
+                        requestAnimationFrame(coinAnimation);
+                    } else {
+                        setTimeout(() => {
+                            let moveCount = 0;
+                            const collectAnimation = () => {
+                                if (moveCount < 20) {
+                                    coin.position.y += 0.1;
+                                    coin.position.x += (0 - coin.position.x) * 0.1;
+                                    coin.position.z += (15 - coin.position.z) * 0.1;
+                                    coin.scale.multiplyScalar(0.9);
+                                    moveCount++;
+                                    requestAnimationFrame(collectAnimation);
+                                } else {
+                                    coins += 5;
+                                    document.getElementById('coins').textContent = coins;
+                                    // 保存游戏数据
+                                    saveGameData();
+                                    scene.remove(coin);
+                                }
+                            };
+                            collectAnimation();
+                        }, 500);
+                    }
+                };
+                coinAnimation();
+            }
+            
+            update() {
+                if (this.isHit) return;
+                
+                if (this.isUp) {
+                    if (this.mesh.position.y < 1.5) {
+                        this.mesh.position.y += this.speed;
+                    } else if (Date.now() - this.upStartTime > this.upDuration) {
+                        this.hide();
+                    }
+                } else {
+                    if (this.mesh.position.y > -2) {
+                        this.mesh.position.y -= this.speed;
+                    }
+                }
+            }
+            
+            destroy() {
+                scene.remove(this.mesh);
+                this.hole.occupied = false;
+                const index = moles.indexOf(this);
+                if (index > -1) {
+                    moles.splice(index, 1);
+                }
+            }
+        }
+        
+        // 随机生成地鼠
+        function spawnMole() {
+            const availableHoles = holes.filter(hole => !hole.occupied);
+            if (availableHoles.length > 0) {
+                const randomHole = availableHoles[Math.floor(Math.random() * availableHoles.length)];
+                randomHole.occupied = true;
+                const mole = new Mole(randomHole);
+                moles.push(mole);
+                setTimeout(() => {
+                    mole.show();
+                }, Math.random() * 2000);
+            }
+        }
+        
+        // 定期生成地鼠
+        let spawnInterval = setInterval(spawnMole, 1500);
+        
+        // Raycaster 用于检测锤子位置
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        
+        // 更新摄像机位置
+        function updateCameraPosition() {
+            camera.position.x = Math.sin(cameraRotation) * cameraDistance;
+            camera.position.z = Math.cos(cameraRotation) * cameraDistance;
+            camera.lookAt(0, 0, 0);
+        }
+        
+        // 鼠标/触摸事件
+        function onMouseMove(event) {
+            const x = event.clientX || (event.touches && event.touches[0].clientX);
+            const y = event.clientY || (event.touches && event.touches[0].clientY);
+            
+            mouse.x = (x / window.innerWidth) * 2 - 1;
+            mouse.y = -(y / window.innerHeight) * 2 + 1;
+            
+            // 更新锤子位置
+            const hammer = document.getElementById('hammer');
+            hammer.style.left = x + 'px';
+            hammer.style.top = y + 'px';
+            hammer.style.display = 'block';
+            
+            // 更新3D锤子的位置
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObject(platform);
+            if (intersects.length > 0) {
+                hammer3D.copy(intersects[0].point);
+                hammer3D.y += 1;
+                
+                // 检查锤子与地鼠的碰撞
+                moles.forEach(mole => {
+                    mole.checkHammerCollision(hammer3D);
+                });
+            }
+            
+            // 如果正在旋转相机
+            if (isRotating) {
+                const deltaX = x - lastMouseX;
+                cameraRotation += deltaX * 0.01;
+                updateCameraPosition();
+                lastMouseX = x;
+            }
+        }
+        
+        function onMouseDown(event) {
+            const x = event.clientX || (event.touches && event.touches[0].clientX);
+            const y = event.clientY || (event.touches && event.touches[0].clientY);
+            
+            // 检查是否点击在平台区域外
+            if (y < 100 || y > window.innerHeight - 100) {
+                isRotating = true;
+                lastMouseX = x;
+                document.getElementById('hammer').style.display = 'none';
+            }
+        }
+        
+        function onMouseUp() {
+            isRotating = false;
+            document.getElementById('hammer').style.display = 'block';
+        }
+        
+        // 事件监听
+        document.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('mousedown', onMouseDown);
+        document.addEventListener('mouseup', onMouseUp);
+        document.addEventListener('touchmove', onMouseMove);
+        document.addEventListener('touchstart', onMouseDown);
+        document.addEventListener('touchend', onMouseUp);
+        
+        // 窗口大小调整
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+        
+        // 重置按钮事件监听
+        document.getElementById('resetButton').addEventListener('click', resetGameData);
+        
+        // 游戏循环
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // 更新地鼠
+            moles.forEach(mole => mole.update());
+            
+            // 定期清理过期的地鼠
+            if (moles.length > 8) {
+                const oldMole = moles.find(m => !m.isUp && !m.isHit && m.mesh.position.y <= -1.5);
+                if (oldMole) {
+                    oldMole.destroy();
+                }
+            }
+            
+            renderer.render(scene, camera);
+        }
+        
+        // 开始游戏
+        // ❌ 删除了初始化时保存默认值的代码，防止覆盖存储数据
+        // saveGameData(); 
+        animate();
+        
+        // 初始生成几个地鼠
+        setTimeout(() => {
+            for (let i = 0; i < 3; i++) {
+                setTimeout(spawnMole, i * 800);
+            }
+        }, 1000);
+    </script>
+</body>
+</html>

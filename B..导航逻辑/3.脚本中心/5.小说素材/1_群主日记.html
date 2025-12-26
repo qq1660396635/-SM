@@ -1,0 +1,764 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>段子展示</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 10px;
+            transition: background 0.8s ease;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 15px;
+            color: white;
+            animation: fadeInDown 0.8s ease;
+        }
+        
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 5px;
+            text-shadow: 3px 3px 6px rgba(0,0,0,0.3);
+            letter-spacing: 2px;
+        }
+        
+        .subtitle {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            animation: fadeInUp 0.8s ease;
+        }
+        
+        /* 搜索卡片样式 */
+        .search-card {
+            background: rgba(255,255,255,0.95);
+            border-radius: 15px;
+            padding: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+            backdrop-filter: blur(10px);
+            animation: fadeIn 1s ease;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .search-box {
+            width: 80%; /* 固定占80% */
+            padding: 12px 15px;
+            border: none;
+            border-radius: 25px;
+            font-size: 0.9rem;
+            background: rgba(240,240,240,0.8);
+            transition: all 0.3s ease;
+        }
+        
+        .search-box:focus {
+            outline: none;
+            background: rgba(255,255,255,1);
+            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.5);
+        }
+        
+        .add-btn {
+            width: 20%; /* 固定占20% */
+            padding: 12px 10px;
+            border: none;
+            border-radius: 25px;
+            background: linear-gradient(135deg, #43e97b, #38f9d7);
+            color: white;
+            cursor: pointer;
+            font-size: 0.85rem;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .add-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+        }
+        
+        /* 段落网格样式 */
+        .paragraphs-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 15px;
+            margin-bottom: 80px;
+            animation: fadeIn 1s ease;
+        }
+        
+        .paragraph-card {
+            background: rgba(255,255,255,0.95);
+            border-radius: 15px;
+            padding: 15px;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .paragraph-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+        
+        .paragraph-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+        }
+        
+        .paragraph-card:hover::before {
+            transform: scaleX(1);
+        }
+        
+        .paragraph-number {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        
+        .paragraph-text {
+            font-size: 0.9rem;
+            line-height: 1.5;
+            color: #333;
+            margin-bottom: 12px;
+            flex-grow: 1;
+        }
+        
+        .paragraph-author {
+            font-size: 0.8rem;
+            color: #666;
+            font-style: italic;
+            margin-bottom: 8px;
+        }
+        
+        .paragraph-categories {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+        }
+        
+        .category-tag {
+            background: rgba(102, 126, 234, 0.1);
+            color: #667eea;
+            padding: 2px 6px;
+            border-radius: 8px;
+            font-size: 0.7rem;
+        }
+        
+        /* 分页样式 */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            margin: 30px 0;
+            animation: fadeIn 1s ease;
+            flex-wrap: wrap;
+        }
+        
+        .pagination button {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 15px;
+            background: rgba(255,255,255,0.9);
+            color: #333;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.8rem;
+        }
+        
+        .pagination button:hover:not(:disabled) {
+            background: rgba(255,255,255,1);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .pagination .active {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+        
+        .page-info {
+            color: white;
+            font-size: 0.8rem;
+            margin: 0 8px;
+        }
+        
+        .page-jump {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            color: white;
+            margin-top: 10px;
+            width: 100%;
+            justify-content: center;
+        }
+        
+        .page-jump input {
+            width: 50px;
+            padding: 4px;
+            border: none;
+            border-radius: 5px;
+            text-align: center;
+            font-size: 0.8rem;
+        }
+        
+        .page-jump button {
+            padding: 4px 8px;
+            border: none;
+            border-radius: 5px;
+            background: rgba(255,255,255,0.9);
+            color: #333;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+        
+        /* 统计信息 */
+        .stats {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(255,255,255,0.9);
+            padding: 8px 12px;
+            border-radius: 10px;
+            color: #333;
+            font-size: 0.8rem;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        /* 模态框样式 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 2000;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            width: 95%;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+            animation: slideIn 0.3s ease;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .modal-title {
+            font-size: 1.3rem;
+            color: #333;
+        }
+        
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.3rem;
+            cursor: pointer;
+            color: #666;
+        }
+        
+        .form-group {
+            margin-bottom: 12px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+        
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+        
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        
+        .submit-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 10px 25px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+        
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translate(-50%, -60%);
+            }
+            to {
+                opacity: 1;
+                transform: translate(-50%, -50%);
+            }
+        }
+        
+        /* 移动端优化 - 保持左右布局 */
+        @media (max-width: 768px) {
+            .paragraphs-grid {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+            
+            h1 {
+                font-size: 1.6rem;
+            }
+            
+            .subtitle {
+                font-size: 0.8rem;
+            }
+            
+            .search-card {
+                padding: 12px;
+                gap: 8px;
+            }
+            
+            .search-box {
+                font-size: 0.85rem;
+                padding: 10px 12px;
+            }
+            
+            .add-btn {
+                font-size: 0.75rem;
+                padding: 10px 5px;
+            }
+            
+            .paragraph-card {
+                padding: 12px;
+            }
+            
+            .paragraph-text {
+                font-size: 0.85rem;
+            }
+            
+            .paragraph-author {
+                font-size: 0.75rem;
+            }
+            
+            .category-tag {
+                font-size: 0.65rem;
+            }
+            
+            .stats {
+                display: none;
+            }
+        }
+        
+        /* 超小屏幕优化 */
+        @media (max-width: 400px) {
+            .search-box {
+                font-size: 0.8rem;
+                padding: 8px 10px;
+            }
+            
+            .add-btn {
+                font-size: 0.7rem;
+                padding: 8px 3px;
+            }
+            
+            .add-btn span:last-child {
+                display: none; /* 在超小屏幕上只显示+号 */
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>😄 群主日记</h1>
+            
+        </header>
+        
+        <main>
+            <!-- 搜索卡片 -->
+            <div class="search-card">
+                <input type="text" class="search-box" id="searchBox" placeholder="搜索段子内容、作者或标签...">
+                <button class="add-btn" id="addParagraphBtn">
+                    <span>+</span>
+                    <span>添加段子</span>
+                </button>
+            </div>
+            
+            <!-- 段落网格 -->
+            <div class="paragraphs-grid" id="paragraphsGrid"></div>
+            
+            <!-- 分页 -->
+            <div class="pagination" id="pagination"></div>
+        </main>
+    </div>
+    
+    <!-- 统计信息 -->
+    <div class="stats" id="stats">
+        共 <span id="paragraphCount">0</span> 个段子
+    </div>
+    
+    <!-- 添加段落模态框 -->
+    <div class="modal" id="addModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">添加新段子</h2>
+                <button class="close-btn" id="closeModal">&times;</button>
+            </div>
+            <form id="addForm">
+                <div class="form-group">
+                    <label for="newText">段子内容：</label>
+                    <textarea id="newText" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="newAuthor">作者：</label>
+                    <input type="text" id="newAuthor" required>
+                </div>
+                <div class="form-group">
+                    <label for="newCategories">标签（用逗号分隔）：</label>
+                    <input type="text" id="newCategories" placeholder="例如：幽默,日常">
+                </div>
+                <button type="submit" class="submit-btn">添加段子</button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- 引入配置文件 -->
+    <script src="1_日记config.js"></script>
+    <script>
+        let currentPage = 1;
+        const itemsPerPage = 9;
+        let filteredParagraphs = [];
+        let allParagraphs = [];
+        
+        // 初始化页面
+        function init() {
+            // 检查配置是否加载成功
+            if (!window.paragraphConfig) {
+                console.error('配置文件未加载成功！');
+                document.getElementById('paragraphsGrid').innerHTML = '<div style="color: white; text-align: center; padding: 50px;">配置文件加载失败，请检查 paragraph-config.js 文件是否存在</div>';
+                return;
+            }
+            
+            // 设置随机背景色
+            setRandomBackground();
+            
+            // 获取所有段子并随机排序
+            allParagraphs = shuffleArray(window.paragraphConfig.getAllParagraphs());
+            filteredParagraphs = [...allParagraphs];
+            updateStats();
+            renderParagraphs();
+            renderPagination();
+        }
+        
+        // 随机排序数组
+        function shuffleArray(array) {
+            const newArray = [...array];
+            for (let i = newArray.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+            }
+            return newArray;
+        }
+        
+        // 设置随机背景
+        function setRandomBackground() {
+            const newGradient = window.paragraphConfig.getRandomGradient();
+            document.body.style.background = newGradient;
+        }
+        
+        // 更新统计信息
+        function updateStats() {
+            document.getElementById('paragraphCount').textContent = allParagraphs.length;
+        }
+        
+        // 搜索功能
+        function searchParagraphs(query) {
+            if (!query.trim()) {
+                filteredParagraphs = [...allParagraphs];
+            } else {
+                const lowerQuery = query.toLowerCase();
+                filteredParagraphs = allParagraphs.filter(p => 
+                    p.text.toLowerCase().includes(lowerQuery) ||
+                    p.author.toLowerCase().includes(lowerQuery) ||
+                    p.category.some(cat => cat.toLowerCase().includes(lowerQuery))
+                );
+            }
+            currentPage = 1;
+            renderParagraphs();
+            renderPagination();
+        }
+        
+        // 渲染段落
+        function renderParagraphs() {
+            const grid = document.getElementById('paragraphsGrid');
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = startIndex + itemsPerPage;
+            const pageParagraphs = filteredParagraphs.slice(startIndex, endIndex);
+            
+            if (pageParagraphs.length === 0) {
+                grid.innerHTML = '<div style="color: white; text-align: center; padding: 50px; grid-column: 1/-1;">没有找到匹配的段子</div>';
+                return;
+            }
+            
+            grid.innerHTML = pageParagraphs.map((paragraph, index) => {
+                const globalIndex = startIndex + index;
+                return `
+                    <div class="paragraph-card">
+                        <span class="paragraph-number">#${globalIndex + 1}</span>
+                        <div class="paragraph-text">${paragraph.text}</div>
+                        <div class="paragraph-author">—— ${paragraph.author}</div>
+                        <div class="paragraph-categories">
+                            ${paragraph.category.map(cat => `<span class="category-tag">${cat}</span>`).join('')}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        // 渲染分页
+        function renderPagination() {
+            const pagination = document.getElementById('pagination');
+            const totalPages = Math.ceil(filteredParagraphs.length / itemsPerPage);
+            
+            if (totalPages <= 1) {
+                pagination.innerHTML = '';
+                return;
+            }
+            
+            let html = '';
+            
+            // 上一页按钮
+            html += `<button ${currentPage === 1 ? 'disabled' : ''} onclick="goToPage(${currentPage - 1})">上一页</button>`;
+            
+            // 页码按钮
+            const maxVisiblePages = 5;
+            let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+            let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+            
+            if (endPage - startPage < maxVisiblePages - 1) {
+                startPage = Math.max(1, endPage - maxVisiblePages + 1);
+            }
+            
+            if (startPage > 1) {
+                html += `<button onclick="goToPage(1)">1</button>`;
+                if (startPage > 2) {
+                    html += `<span class="page-info">...</span>`;
+                }
+            }
+            
+            for (let i = startPage; i <= endPage; i++) {
+                html += `<button class="${i === currentPage ? 'active' : ''}" onclick="goToPage(${i})">${i}</button>`;
+            }
+            
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) {
+                    html += `<span class="page-info">...</span>`;
+                }
+                html += `<button onclick="goToPage(${totalPages})">${totalPages}</button>`;
+            }
+            
+            // 下一页按钮
+            html += `<button ${currentPage === totalPages ? 'disabled' : ''} onclick="goToPage(${currentPage + 1})">下一页</button>`;
+            
+            // 页面信息
+            html += `<span class="page-info">第 ${currentPage} / ${totalPages} 页</span>`;
+            
+            // 页面跳转
+            html += `
+                <div class="page-jump">
+                    <span>跳转到</span>
+                    <input type="number" id="jumpPage" min="1" max="${totalPages}" value="${currentPage}">
+                    <button onclick="jumpToPage()">确定</button>
+                </div>
+            `;
+            
+            pagination.innerHTML = html;
+        }
+        
+        // 跳转到指定页面
+        function goToPage(page) {
+            currentPage = page;
+            renderParagraphs();
+            renderPagination();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+        
+        // 跳转到输入的页面
+        function jumpToPage() {
+            const jumpInput = document.getElementById('jumpPage');
+            const targetPage = parseInt(jumpInput.value);
+            const totalPages = Math.ceil(filteredParagraphs.length / itemsPerPage);
+            
+            if (targetPage >= 1 && targetPage <= totalPages) {
+                goToPage(targetPage);
+            } else {
+                jumpInput.value = currentPage;
+            }
+        }
+        
+        // 显示添加模态框
+        function showAddModal() {
+            document.getElementById('addModal').style.display = 'block';
+        }
+        
+        // 隐藏添加模态框
+        function hideAddModal() {
+            document.getElementById('addModal').style.display = 'none';
+            document.getElementById('addForm').reset();
+        }
+        
+        // 添加新段子
+        function addParagraph(e) {
+            e.preventDefault();
+            
+            const text = document.getElementById('newText').value.trim();
+            const author = document.getElementById('newAuthor').value.trim();
+            const categoriesText = document.getElementById('newCategories').value.trim();
+            const categories = categoriesText ? categoriesText.split(',').map(cat => cat.trim()).filter(cat => cat) : ['用户添加'];
+            
+            const newParagraph = {
+                text: text,
+                author: author,
+                category: categories,
+                isUserAdded: true
+            };
+            
+            window.paragraphConfig.addParagraph(newParagraph);
+            hideAddModal();
+            init(); // 重新初始化页面，会重新随机排序
+        }
+        
+        // 绑定事件
+        document.getElementById('searchBox').addEventListener('input', (e) => searchParagraphs(e.target.value));
+        document.getElementById('addParagraphBtn').addEventListener('click', showAddModal);
+        document.getElementById('closeModal').addEventListener('click', hideAddModal);
+        document.getElementById('addForm').addEventListener('submit', addParagraph);
+        
+        // 点击模态框外部关闭
+        document.getElementById('addModal').addEventListener('click', (e) => {
+            if (e.target.id === 'addModal') {
+                hideAddModal();
+            }
+        });
+        
+        // 键盘快捷键
+        document.addEventListener('keydown', function(e) {
+            // Ctrl+F 聚焦搜索框
+            if (e.ctrlKey && e.key === 'f') {
+                e.preventDefault();
+                document.getElementById('searchBox').focus();
+            }
+            // ESC 关闭模态框
+            if (e.key === 'Escape') {
+                hideAddModal();
+            }
+            // Enter键在跳转页面输入框中触发跳转
+            if (e.key === 'Enter' && document.activeElement.id === 'jumpPage') {
+                jumpToPage();
+            }
+        });
+        
+        // 页面加载时初始化
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>

@@ -1,0 +1,782 @@
+<!DOCTYPE html> 
+<html lang="zh-CN"> 
+<head>
+    <meta charset="UTF-8"> 
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>围棋对战- 13 路棋盘-自我对弈</title>
+    <!-- 引入数据库管理器-->
+    <script src="/db.js"></script>
+    <!-- 引入插件工具箱-->
+    <script src="/A2_全局中心/B_插件工具/toolbox.js"></script> 
+    <style>
+        * {
+            margin: 0; 
+            padding: 0; 
+            box-sizing: border-box; 
+            -webkit-tap-highlight-color: transparent;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #00c6ff 0%, #00ff9d 100%); 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            min-height: 100vh; 
+            padding: 10px;
+        }
+        .container {
+            width: 100%; 
+            max-width: 500px; 
+            background: white; 
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2); 
+            border-radius: 10px; 
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 15px; 
+            text-align: center; 
+            position: relative;
+        }
+        .header h3 {
+            font-size: 18px; 
+            margin-bottom: 5px;
+        }
+        .wins-info {
+            font-size: 16px;
+            margin: 5px 0;
+            font-weight: bold;
+        }
+        .score-info {
+            display: flex; 
+            justify-content: space-around; 
+            margin-top: 10px; 
+            font-size: 14px;
+        }
+        .score-item {
+            display: flex; 
+            align-items: center; 
+            gap: 5px;
+        }
+        .score-dot {
+            width: 12px; 
+            height: 12px; 
+            border-radius: 50%; 
+            display: inline-block;
+        }
+        .board-container {
+            padding: 20px; 
+            background: #dcb35c; 
+            position: relative;
+        }
+        .board {
+            position: relative; 
+            width: 100%; 
+            padding-bottom: 100%; 
+            background: #dcb35c; 
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.1);
+        }
+        .grid {
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            right: 0; 
+            bottom: 0;
+        }
+        .line {
+            position: absolute; 
+            background: #333;
+        }
+        .h-line {
+            height: 1px; 
+            width: 100%;
+        }
+        .v-line {
+            width: 1px; 
+            height: 100%;
+        }
+        .star-point {
+            position: absolute; 
+            width: 6px; 
+            height: 6px; 
+            background: #333; 
+            border-radius: 50%; 
+            transform: translate(-50%, -50%); 
+            z-index: 1;
+        }
+        .point {
+            position: absolute; 
+            width: 7.69%; 
+            height: 7.69%; 
+            cursor: pointer; 
+            z-index: 2;
+        }
+        .point:hover::before {
+            content: ''; 
+            position: absolute;
+            top: 50%; 
+            left: 50%; 
+            transform: translate(-50%, -50%); 
+            width: 70%; 
+            height: 70%; 
+            border-radius: 50%; 
+            opacity: 0.5;
+        }
+        .point.preview-black:hover::before {
+            background: radial-gradient(circle at 30% 30%, #555, #000);
+        }
+        .point.preview-white:hover::before {
+            background: radial-gradient(circle at 30% 30%, #fff, #ddd); 
+            border: 1px solid #999;
+        }
+        .point.eye-protected {
+            cursor: not-allowed; 
+            opacity: 0.7; 
+            background: rgba(255, 215, 0, 0.3); 
+            border-radius: 50%;
+        }
+        .point.eye-protected::after {
+            content: '👁'; 
+            position: absolute; 
+            top: 50%; 
+            left: 50%; 
+            transform: translate(-50%, -50%); 
+            font-size: 12px; 
+            z-index: 3;
+        }
+        .stone {
+            position: absolute; 
+            top: 50%; 
+            left: 50%; 
+            transform: translate(-50%, -50%); 
+            width: 85%; 
+            height: 85%; 
+            border-radius: 50%; 
+            animation: placeStone 0.3s ease-out;
+        }
+        @keyframes placeStone {
+            from {
+                transform: translate(-50%, -50%) scale(0); 
+            } 
+            to {
+                transform: translate(-50%, -50%) scale(1);
+            }
+        }
+        .black {
+            background: radial-gradient(circle at 30% 30%, #555, #000); 
+            box-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        .white {
+            background: radial-gradient(circle at 30% 30%, #fff, #ddd); 
+            border: 1px solid #999; 
+            box-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+        .last-move {
+            position: absolute; 
+            top: 50%; 
+            left: 50%; 
+            transform: translate(-50%, -50%); 
+            width: 30%; 
+            height: 30%; 
+            border: 2px solid; 
+            border-radius: 50%; 
+            z-index: 3; 
+            pointer-events: none;
+        }
+        .last-black {
+            border-color: white;
+        }
+        .last-white {
+            border-color: black;
+        }
+        .controls {
+            padding: 15px; 
+            display: flex; 
+            gap: 10px; 
+            justify-content: center; 
+            background: #f8f9fa;
+        }
+        button {
+            padding: 10px 20px; 
+            border: none; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            font-size: 14px; 
+            font-weight: 500; 
+            transition: all 0.3s ease; 
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        button:hover {
+            transform: translateY(-2px); 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        .pass {
+            background: linear-gradient(135deg, #4CAF50, #45a049); 
+            color: white;
+        }
+        .reset {
+            background: linear-gradient(135deg, #f44336, #da190b); 
+            color: white;
+        }
+        .info {
+            padding: 10px; 
+            text-align: center; 
+            background: #e8f4f8; 
+            font-size: 14px; 
+            min-height: 40px; 
+            display: flex;
+            align-items: center; 
+            justify-content: center;
+        }
+        .captured-info {
+            display: flex; 
+            justify-content: space-around; 
+            padding: 10px; 
+            background: #fff; 
+            border-top: 1px solid #eee; 
+            font-size: 13px;
+        }
+        .captured-item {
+            display: flex; 
+            align-items: center; 
+            gap: 5px;
+        }
+        .eye-info {
+            padding: 10px; 
+            background: #f0f8ff; 
+            border-top: 1px solid #ddd; 
+            font-size: 12px; 
+            text-align: center;
+        }
+    </style> 
+</head> 
+<body>
+    <div class="container">
+        <div class="header">
+            <h3 id="status">黑棋回合</h3>
+            <div class="wins-info">黑棋胜利: <span id="blackWins">0</span> 次</div>
+            <div class="score-info">
+                <div class="score-item">
+                    <span class="score-dot" style="background:radial-gradient(circle at 30% 30%, #555, #000);"></span>
+                    <span>黑棋: <span id="blackScore">0</span></span> 
+                </div> 
+                <div class="score-item">
+                    <span class="score-dot" style="background:radial-gradient(circle at 30% 30%, #fff, #ddd); border: 1px solid #999;"></span>
+                    <span>白棋: <span id="whiteScore">0</span></span> 
+                </div>
+            </div> 
+        </div>
+        <div class="board-container">
+            <div class="board" id="board">
+                <div class="grid" id="grid"></div> 
+            </div> 
+        </div>
+        <div class="eye-info" id="eyeInfo">
+            已保护眼位: <span id="protectedEyes">0</span> 个 
+        </div>
+        <div class="captured-info">
+            <div class="captured-item">
+                <span> 黑 棋 提 子 : <span id="blackCaptured">0</span></span>
+            </div> 
+            <div class="captured-item">
+                <span> 白 棋 提 子 : <span id="whiteCaptured">0</span></span>
+            </div> 
+        </div>
+        <div class="controls">
+            <button class="pass" onclick="game.pass()">虚手Pass</button> 
+            <button class="reset" onclick="game.reset()">重新开始</button> 
+        </div>
+        <div class="info" id="info"></div> 
+    </div>
+    <script>
+        class GoGame {
+            constructor(size = 13) {
+                this.size = size; 
+                this.board = []; 
+                this.currentPlayer = 'black'; 
+                this.lastMove = null; 
+                this.koPoint = null; 
+                this.passCount = 0; 
+                this.capturedStones = { black: 0, white: 0 }; 
+                this.territory = { black: 0, white: 0 }; 
+                this.gameOver = false;
+                this.moveHistory = []; 
+                this.protectedEyes = new Set(); 
+                this.blackWins = 0;
+                
+                // 尝试从localStorage恢复游戏状态
+                this.loadGameState();
+                
+                // 如果没有保存的状态，初始化新游戏
+                if (!this.gameStateLoaded) {
+                    this.init();
+                }
+                
+                // 加载黑棋胜利次数
+                this.loadBlackWins();
+            }
+            
+            // 从localStorage加载游戏状态
+            loadGameState() {
+                const savedState = localStorage.getItem('goGameState');
+                if (savedState) {
+                    try {
+                        const state = JSON.parse(savedState);
+                        this.board = state.board || Array(this.size).fill(null).map(() => Array(this.size).fill(null));
+                        this.currentPlayer = state.currentPlayer || 'black';
+                        this.lastMove = state.lastMove || null;
+                        this.koPoint = state.koPoint || null;
+                        this.passCount = state.passCount || 0;
+                        this.capturedStones = state.capturedStones || { black: 0, white: 0 };
+                        this.territory = state.territory || { black: 0, white: 0 };
+                        this.gameOver = state.gameOver || false;
+                        this.moveHistory = state.moveHistory || [];
+                        this.protectedEyes = new Set(state.protectedEyes || []);
+                        
+                        this.gameStateLoaded = true;
+                        this.renderBoard();
+                        this.updateStatus();
+                        this.updateProtectedEyes();
+                        this.renderStones();
+                        this.updateCapturedDisplay();
+                        this.updateScoreDisplay();
+                    } catch (e) {
+                        console.error('Failed to load game state:', e);
+                        this.gameStateLoaded = false;
+                    }
+                } else {
+                    this.gameStateLoaded = false;
+                }
+            }
+            
+            // 保存游戏状态到localStorage
+            saveGameState() {
+                const state = {
+                    board: this.board,
+                    currentPlayer: this.currentPlayer,
+                    lastMove: this.lastMove,
+                    koPoint: this.koPoint,
+                    passCount: this.passCount,
+                    capturedStones: this.capturedStones,
+                    territory: this.territory,
+                    gameOver: this.gameOver,
+                    moveHistory: this.moveHistory,
+                    protectedEyes: Array.from(this.protectedEyes)
+                };
+                localStorage.setItem('goGameState', JSON.stringify(state));
+            }
+            
+            // 加载黑棋胜利次数
+            loadBlackWins() {
+                const wins = localStorage.getItem('blackWins');
+                if (wins) {
+                    this.blackWins = parseInt(wins, 10);
+                }
+                document.getElementById('blackWins').textContent = this.blackWins;
+            }
+            
+            // 保存黑棋胜利次数
+            saveBlackWins() {
+                localStorage.setItem('blackWins', this.blackWins.toString());
+                document.getElementById('blackWins').textContent = this.blackWins;
+            }
+            
+            init() { 
+                this.board = Array(this.size).fill(null).map(() => Array(this.size).fill(null) ); 
+                this.renderBoard(); 
+                this.updateStatus(); 
+                this.updateProtectedEyes();
+                this.saveGameState();
+            }
+            
+            renderBoard() { 
+                const grid = document.getElementById('grid'); 
+                grid.innerHTML = '';
+                
+                // 绘制网格线 
+                for (let i = 0; i < this.size; i++) { 
+                    const hLine = document.createElement('div'); 
+                    hLine.className = 'line h-line'; 
+                    hLine.style.top = `${(i * 100 / (this.size - 1))}%`; 
+                    grid.appendChild(hLine);
+                    
+                    const vLine = document.createElement('div'); 
+                    vLine.className = 'line v-line'; 
+                    vLine.style.left = `${(i * 100 / (this.size - 1))}%`; 
+                    grid.appendChild(vLine);
+                }
+                
+                // 绘制星位 
+                const starPoints = this.getStarPoints(); 
+                starPoints.forEach(([x, y]) => { 
+                    const star = document.createElement('div'); 
+                    star.className = 'star-point'; 
+                    star.style.left = `${(x * 100 / (this.size - 1))}%`; 
+                    star.style.top = `${(y * 100 / (this.size - 1))}%`; 
+                    grid.appendChild(star); 
+                });
+                
+                // 创建交叉点 
+                for (let y = 0; y < this.size; y++) { 
+                    for (let x = 0; x < this.size; x++) { 
+                        const point = document.createElement('div'); 
+                        point.className = 'point'; 
+                        point.style.left = `${(x * 100 / (this.size - 1) - 3.845)}%`;
+                        point.style.top = `${(y * 100 / (this.size - 1) - 3.845)}%`;
+                        point.dataset.x = x; 
+                        point.dataset.y = y; 
+                        point.classList.add(`preview-${this.currentPlayer}`); 
+                        point.onclick = () => this.handleClick(x, y); 
+                        grid.appendChild(point);
+                    }
+                }
+                
+                this.renderStones();
+            }
+            
+            getStarPoints() { 
+                if (this.size === 13) { 
+                    return [[3, 3], [9, 3], [6, 6], [3, 9], [9, 9]]; 
+                } 
+                return [];
+            }
+            
+            // 检查某个点是否被7个同色棋子包围（做眼保护） 
+            isEyeProtected(x, y, color) { 
+                if (this.board[y][x] !== null) { 
+                    return false;
+                }
+                let surroundingCount = 0; 
+                // 检查周围的8个方向 
+                const directions = [ 
+                    [-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1] 
+                ];
+                
+                for (const [dx, dy] of directions) { 
+                    const nx = x + dx; 
+                    const ny = y + dy; 
+                    if (nx >= 0 && nx < this.size && ny >= 0 && ny < this.size) { 
+                        if (this.board[ny][nx] === color) { 
+                            surroundingCount++;
+                        }
+                    }
+                }
+                
+                return surroundingCount >= 7;
+            }
+            
+            // 更新所有被保护的眼位 
+            updateProtectedEyes() { 
+                this.protectedEyes.clear();
+                
+                for (let y = 0; y < this.size; y++) { 
+                    for (let x = 0; x < this.size; x++) { 
+                        if (this.board[y][x] === null) { 
+                            if (this.isEyeProtected(x, y, 'black')) { 
+                                this.protectedEyes.add(`${x},${y},black`); 
+                            } 
+                            if (this.isEyeProtected(x, y, 'white')) { 
+                                this.protectedEyes.add(`${x},${y},white`); 
+                            }
+                        }
+                    }
+                }
+                
+                // 更新UI显示 
+                document.querySelectorAll('.point').forEach(point => { 
+                    point.classList.remove('eye-protected'); 
+                    const x = parseInt(point.dataset.x); 
+                    const y = parseInt(point.dataset.y);
+                    
+                    for (const eyeKey of this.protectedEyes) { 
+                        const [ex, ey, color] = eyeKey.split(','); 
+                        if (parseInt(ex) === x && parseInt(ey) === y) { 
+                            point.classList.add('eye-protected'); 
+                            break;
+                        }
+                    }
+                });
+                
+                document.getElementById('protectedEyes').textContent = this.protectedEyes.size;
+            }
+            
+            renderStones() { 
+                document.querySelectorAll('.stone, .last-move').forEach(el => el.remove() );
+                
+                for (let y = 0; y < this.size; y++) { 
+                    for (let x = 0; x < this.size; x++) { 
+                        if (this.board[y][x]) { 
+                            const point = document.querySelector( `.point[data-x="${x}"][data-y="${y}"]` );
+                            const stone = document.createElement('div'); 
+                            stone.className = `stone ${this.board[y][x]}`; 
+                            point.appendChild(stone);
+                        }
+                    }
+                }
+                
+                if (this.lastMove) { 
+                    const point = document.querySelector( `.point[data-x="${this.lastMove.x}"][data-y="${this.lastMove.y}"]` );
+                    const lastMoveMarker = document.createElement('div'); 
+                    lastMoveMarker.className = `last-move last-${this.board[this.lastMove.y][this.lastMove.x]}`;
+                    point.appendChild(lastMoveMarker);
+                }
+                
+                this.updateProtectedEyes();
+            }
+            
+            handleClick(x, y) { 
+                if (this.gameOver) { 
+                    this.showInfo('游戏已结束，请重新开始'); 
+                    return;
+                }
+                
+                if (this.board[y][x] !== null) { 
+                    this.showInfo('此处已有棋子'); 
+                    return;
+                }
+                
+                // 检查是否是受保护的眼位 
+                const eyeKey = `${x},${y},${this.currentPlayer}`; 
+                if (this.protectedEyes.has(eyeKey)) { 
+                    this.showInfo('此处为已完成的眼位，不能下子'); 
+                    return;
+                }
+                
+                if (this.makeMove(x, y)) { 
+                    this.passCount = 0; 
+                    this.renderStones();
+                    
+                    if (!this.gameOver) { 
+                        // 切换玩家 
+                        this.currentPlayer = this.currentPlayer === 'black' ? 'white' : 'black'; 
+                        this.updateStatus(); 
+                        this.updatePreview();
+                    }
+                    
+                    // 保存游戏状态
+                    this.saveGameState();
+                }
+            }
+            
+            makeMove(x, y) { 
+                if (this.koPoint && this.koPoint.x === x && this.koPoint.y === y) { 
+                    this.showInfo('此处为劫，不能立即提回'); 
+                    return false;
+                }
+                
+                this.board[y][x] = this.currentPlayer; 
+                const opponent = this.currentPlayer === 'black' ? 'white' : 'black';
+                const capturedGroups = [];
+                
+                const neighbors = this.getNeighbors(x, y); 
+                for (const [nx, ny] of neighbors) { 
+                    if (this.board[ny][nx] === opponent) { 
+                        const group = this.getGroup(nx, ny); 
+                        if (!this.hasLiberty(group)) { 
+                            capturedGroups.push(group);
+                        }
+                    }
+                }
+                
+                let capturedCount = 0; 
+                for (const group of capturedGroups) { 
+                    for (const [gx, gy] of group) { 
+                        this.board[gy][gx] = null; 
+                        capturedCount++;
+                    }
+                }
+                
+                const myGroup = this.getGroup(x, y); 
+                if (!this.hasLiberty(myGroup) && capturedCount === 0) { 
+                    this.board[y][x] = null; 
+                    this.showInfo('不能自杀'); 
+                    return false;
+                }
+                
+                if (capturedCount > 0) { 
+                    this.capturedStones[this.currentPlayer] += capturedCount;
+                    document.getElementById(`${this.currentPlayer}Captured`).textContent = this.capturedStones[this.currentPlayer];
+                    
+                    if (capturedCount === 1 && myGroup.length === 1) { 
+                        this.koPoint = capturedGroups[0][0]; 
+                    } else { 
+                        this.koPoint = null;
+                    }
+                } else { 
+                    this.koPoint = null;
+                }
+                
+                this.lastMove = { x, y }; 
+                this.moveHistory.push({ x, y, player: this.currentPlayer }); 
+                return true;
+            }
+            
+            getNeighbors(x, y) { 
+                const neighbors = []; 
+                const directions = [[0, 1], [1, 0], [0, -1], [-1, 0]]; 
+                for (const [dx, dy] of directions) { 
+                    const nx = x + dx; 
+                    const ny = y + dy; 
+                    if (nx >= 0 && nx < this.size && ny >= 0 && ny < this.size) { 
+                        neighbors.push([nx, ny]);
+                    }
+                } 
+                return neighbors;
+            }
+            
+            getGroup(x, y) { 
+                const color = this.board[y][x]; 
+                if (!color) return [];
+                
+                const group = []; 
+                const visited = new Set(); 
+                const stack = [[x, y]];
+                
+                while (stack.length > 0) { 
+                    const [cx, cy] = stack.pop(); 
+                    const key = `${cx},${cy}`; 
+                    if (visited.has(key)) continue; 
+                    visited.add(key); 
+                    group.push([cx, cy]);
+                    
+                    const neighbors = this.getNeighbors(cx, cy); 
+                    for (const [nx, ny] of neighbors) { 
+                        if (this.board[ny][nx] === color && !visited.has(`${nx},${ny}`)) { 
+                            stack.push([nx, ny]);
+                        }
+                    }
+                }
+                
+                return group;
+            }
+            
+            hasLiberty(group) { 
+                for (const [x, y] of group) { 
+                    const neighbors = this.getNeighbors(x, y); 
+                    for (const [nx, ny] of neighbors) { 
+                        if (this.board[ny][nx] === null) { 
+                            return true;
+                        }
+                    }
+                } 
+                return false;
+            }
+            
+            pass() { 
+                this.passCount++;
+                this.showInfo(`${this.currentPlayer === 'black' ? '黑棋' : '白棋'}虚手`);
+                
+                if (this.passCount >= 2) { 
+                    this.endGame(); 
+                } else { 
+                    this.currentPlayer = this.currentPlayer === 'black' ? 'white' : 'black'; 
+                    this.updateStatus(); 
+                    this.updatePreview();
+                }
+                
+                // 保存游戏状态
+                this.saveGameState();
+            }
+            
+            endGame() { 
+                this.gameOver = true; 
+                this.calculateScore();
+                
+                const winner = this.territory.black > this.territory.white ? '黑棋' : '白棋';
+                
+                // 更新黑棋胜利次数
+                if (winner === '黑棋') {
+                    this.blackWins++;
+                    this.saveBlackWins();
+                }
+                
+                this.showInfo(` 游 戏 结 束 ！${winner} 获 胜 ！黑 棋:${this.territory.black}目，白棋: ${this.territory.white}目`);
+                
+                // 保存游戏状态
+                this.saveGameState();
+            }
+            
+            calculateScore() { 
+                let blackStones = 0; 
+                let whiteStones = 0;
+                
+                for (let y = 0; y < this.size; y++) { 
+                    for (let x = 0; x < this.size; x++) { 
+                        if (this.board[y][x] === 'black') blackStones++; 
+                        else if (this.board[y][x] === 'white') whiteStones++;
+                    }
+                }
+                
+                this.territory.black = blackStones + this.capturedStones.black; 
+                this.territory.white = whiteStones + this.capturedStones.white + 6.5;
+                
+                document.getElementById('blackScore').textContent = this.territory.black; 
+                document.getElementById('whiteScore').textContent = this.territory.white;
+            }
+            
+            reset() { 
+                this.board = Array(this.size).fill(null).map(() => Array(this.size).fill(null) );
+                this.currentPlayer = 'black'; 
+                this.lastMove = null; 
+                this.koPoint = null; 
+                this.passCount = 0; 
+                this.capturedStones = { black: 0, white: 0 }; 
+                this.territory = { black: 0, white: 0 }; 
+                this.gameOver = false; 
+                this.moveHistory = []; 
+                this.protectedEyes.clear();
+                
+                document.getElementById('blackCaptured').textContent = '0'; 
+                document.getElementById('whiteCaptured').textContent = '0'; 
+                document.getElementById('blackScore').textContent = '0'; 
+                document.getElementById('whiteScore').textContent = '0'; 
+                document.getElementById('protectedEyes').textContent = '0';
+                
+                this.renderStones(); 
+                this.updateStatus(); 
+                this.updatePreview(); 
+                this.showInfo('');
+                
+                // 保存游戏状态
+                this.saveGameState();
+            }
+            
+            updateStatus() { 
+                const statusText = this.gameOver ? '游戏结束' : `${this.currentPlayer === 'black' ? '黑棋' : '白棋'}回合`;
+                document.getElementById('status').textContent = statusText;
+            }
+            
+            updatePreview() { 
+                document.querySelectorAll('.point').forEach(point => { 
+                    point.classList.remove('preview-black', 'preview-white'); 
+                    if (!this.gameOver && this.board[point.dataset.y][point.dataset.x] === null) { 
+                        point.classList.add(`preview-${this.currentPlayer}`);
+                    }
+                });
+            }
+            
+            updateCapturedDisplay() {
+                document.getElementById('blackCaptured').textContent = this.capturedStones.black;
+                document.getElementById('whiteCaptured').textContent = this.capturedStones.white;
+            }
+            
+            updateScoreDisplay() {
+                document.getElementById('blackScore').textContent = this.territory.black;
+                document.getElementById('whiteScore').textContent = this.territory.white;
+            }
+            
+            showInfo(message, className = '') { 
+                const info = document.getElementById('info'); 
+                info.textContent = message; 
+                info.className = 'info ' + className;
+            }
+        }
+        
+        const game = new GoGame(13); 
+    </script> 
+</body> 
+</html>

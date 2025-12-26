@@ -1,0 +1,476 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title> 功能导航</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            background: #000;
+            overflow: hidden;
+            position: relative;
+            height: 100vh;
+        }
+        
+        /* 星星背景 */
+        .stars {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        
+        .star {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle 3s infinite;
+        }
+        
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+        }
+        
+        /* 主容器 */
+        .container {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        /* 标题 */
+        .title {
+            position: absolute;
+            top: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: white;
+            font-size: 2rem;
+            font-weight: bold;
+            text-shadow: 0 0 20px rgba(100, 150, 255, 0.8);
+            letter-spacing: 3px;
+            z-index: 100;
+            animation: titleGlow 2s ease-in-out infinite alternate;
+        }
+        
+        @keyframes titleGlow {
+            from { text-shadow: 0 0 20px rgba(100, 150, 255, 0.8); }
+            to { text-shadow: 0 0 30px rgba(100, 150, 255, 1), 0 0 40px rgba(100, 150, 255, 0.6); }
+        }
+        
+        /* 三角形网格容器 */
+        .triangle-grid {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        /* 中心球体 */
+        .center-sphere {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100px;
+            height: 100px;
+            background: radial-gradient(circle at 30% 30%, #ffffff, #4a90e2, #1a5490);
+            border-radius: 50%;
+            box-shadow: 0 0 40px rgba(74, 144, 226, 0.8), 
+                        0 0 80px rgba(74, 144, 226, 0.5),
+                        inset -15px -15px 25px rgba(0, 0, 0, 0.3),
+                        inset 8px 8px 15px rgba(255, 255, 255, 0.3);
+            animation: spherePulse 2s ease-in-out infinite, sphereRotate 12s linear infinite;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .center-sphere:hover {
+            transform: translate(-50%, -50%) scale(1.1);
+            box-shadow: 0 0 60px rgba(74, 144, 226, 1), 
+                        0 0 100px rgba(74, 144, 226, 0.7);
+        }
+        
+        @keyframes spherePulse {
+            0%, 100% { transform: translate(-50%, -50%) scale(1); }
+            50% { transform: translate(-50%, -50%) scale(1.05); }
+        }
+        
+        @keyframes sphereRotate {
+            from { transform: translate(-50%, -50%) rotate(0deg); }
+            to { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+        
+        /* 三角形按钮 - 8个三角形 */
+        .triangle-btn {
+            position: absolute;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 5;
+            backdrop-filter: blur(3px);
+        }
+        
+        /* 左上长方形 - 2个三角形 */
+        .triangle-1 {
+            top: 0;
+            left: 0;
+            width: 50%;
+            height: 50%;
+            clip-path: polygon(0 0, 100% 0, 0 100%);
+            background: 
+                repeating-linear-gradient(45deg, #1a5490 0px, #1a5490 10px, #2a6490 10px, #2a6490 20px),
+                linear-gradient(135deg, rgba(74, 144, 226, 0.6), rgba(26, 84, 144, 0.8));
+            border-right: 2px solid rgba(255, 255, 255, 0.3);
+            border-bottom: 2px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        .triangle-2 {
+            top: 0;
+            left: 0;
+            width: 50%;
+            height: 50%;
+            clip-path: polygon(100% 0, 100% 100%, 0 100%);
+            background: 
+                repeating-linear-gradient(-45deg, #5490a0 0px, #5490a0 15px, #64a0b0 15px, #64a0b0 30px),
+                linear-gradient(45deg, rgba(144, 74, 226, 0.6), rgba(84, 144, 160, 0.8));
+            border-left: 2px solid rgba(255, 255, 255, 0.3);
+            border-top: 2px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        /* 右上长方形 - 2个三角形 */
+        .triangle-3 {
+            top: 0;
+            right: 0;
+            width: 50%;
+            height: 50%;
+            clip-path: polygon(0 0, 100% 0, 0 100%);
+            background: 
+                repeating-linear-gradient(45deg, #e2904a 0px, #e2904a 12px, #f2a05a 12px, #f2a05a 24px),
+                linear-gradient(135deg, rgba(226, 144, 74, 0.6), rgba(226, 144, 116, 0.8));
+            border-left: 2px solid rgba(255, 255, 255, 0.3);
+            border-bottom: 2px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        .triangle-4 {
+            top: 0;
+            right: 0;
+            width: 50%;
+            height: 50%;
+            clip-path: polygon(100% 0, 100% 100%, 0 100%);
+            background: 
+                repeating-linear-gradient(-45deg, #4ae290 0px, #4ae290 8px, #5af2a0 8px, #5af2a0 16px),
+                linear-gradient(45deg, rgba(74, 226, 144, 0.6), rgba(90, 242, 160, 0.8));
+            border-right: 2px solid rgba(255, 255, 255, 0.3);
+            border-top: 2px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        /* 左下长方形 - 2个三角形 */
+        .triangle-5 {
+            bottom: 0;
+            left: 0;
+            width: 50%;
+            height: 50%;
+            clip-path: polygon(0 0, 100% 0, 0 100%);
+            background: 
+                repeating-linear-gradient(45deg, #e24a90 0px, #e24a90 18px, #f25aa0 18px, #f25aa0 36px),
+                linear-gradient(135deg, rgba(226, 74, 144, 0.6), rgba(242, 90, 160, 0.8));
+            border-right: 2px solid rgba(255, 255, 255, 0.3);
+            border-bottom: 2px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        .triangle-6 {
+            bottom: 0;
+            left: 0;
+            width: 50%;
+            height: 50%;
+            clip-path: polygon(100% 0, 100% 100%, 0 100%);
+            background: 
+                repeating-linear-gradient(-45deg, #90e24a 0px, #90e24a 14px, #a0f25a 14px, #a0f25a 28px),
+                linear-gradient(45deg, rgba(144, 226, 74, 0.6), rgba(160, 242, 90, 0.8));
+            border-left: 2px solid rgba(255, 255, 255, 0.3);
+            border-top: 2px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        /* 右下长方形 - 2个三角形 */
+        .triangle-7 {
+            bottom: 0;
+            right: 0;
+            width: 50%;
+            height: 50%;
+            clip-path: polygon(0 0, 100% 0, 0 100%);
+            background: 
+                repeating-linear-gradient(45deg, #4a90e2 0px, #4a90e2 20px, #5aa0f2 20px, #5aa0f2 40px),
+                linear-gradient(135deg, rgba(74, 144, 226, 0.6), rgba(90, 160, 242, 0.8));
+            border-left: 2px solid rgba(255, 255, 255, 0.3);
+            border-bottom: 2px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        .triangle-8 {
+            bottom: 0;
+            right: 0;
+            width: 50%;
+            height: 50%;
+            clip-path: polygon(100% 0, 100% 100%, 0 100%);
+            background: 
+                repeating-linear-gradient(-45deg, #904ae2 0px, #904ae2 16px, #a05af2 16px, #a05af2 32px),
+                linear-gradient(45deg, rgba(144, 74, 226, 0.6), rgba(160, 90, 242, 0.8));
+            border-right: 2px solid rgba(255, 255, 255, 0.3);
+            border-top: 2px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        /* 悬停效果 */
+        .triangle-btn:hover {
+            filter: brightness(1.4) drop-shadow(0 0 25px currentColor);
+            transform: scale(1.02);
+            z-index: 6;
+        }
+        
+        /* 点击时的放大效果 */
+        .triangle-btn:active {
+            filter: brightness(1.6) drop-shadow(0 0 35px currentColor);
+            transform: scale(1.05);
+            z-index: 7;
+        }
+        
+        .triangle-btn.disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            filter: grayscale(1) brightness(0.5);
+        }
+        
+        .triangle-btn.disabled:hover {
+            transform: scale(1);
+            filter: grayscale(1) brightness(0.5);
+            z-index: 5;
+        }
+        
+        /* 图标定位 - 增大尺寸 */
+        .triangle-icon {
+            position: absolute;
+            font-size: 3.5rem;
+            color: white;
+            text-shadow: 0 0 15px rgba(255, 255, 255, 0.8), 0 0 30px rgba(255, 255, 255, 0.5);
+            pointer-events: none;
+            transition: all 0.3s ease;
+        }
+        
+        .triangle-btn:hover .triangle-icon {
+            transform: scale(1.2);
+            text-shadow: 0 0 20px rgba(255, 255, 255, 1), 0 0 40px rgba(255, 255, 255, 0.7);
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .title {
+                font-size: 1.5rem;
+                top: 20px;
+            }
+            
+            .center-sphere {
+                width: 80px;
+                height: 80px;
+                font-size: 1.5rem;
+            }
+            
+            .triangle-icon {
+                font-size: 2.5rem;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .title {
+                font-size: 1.2rem;
+                top: 15px;
+            }
+            
+            .center-sphere {
+                width: 65px;
+                height: 65px;
+                font-size: 1.2rem;
+            }
+            
+            .triangle-icon {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="stars" id="stars"></div>
+    
+    <div class="container">
+        <h1 class="title">破解工具</h1>
+        
+        <div class="triangle-grid">
+            <!-- 左上长方形 - 2个三角形 -->
+            <div class="triangle-btn triangle-1" data-index="0">
+                <span class="triangle-icon" style="top: 30%; left: 30%;"></span>
+            </div>
+            <div class="triangle-btn triangle-2" data-index="1">
+                <span class="triangle-icon" style="bottom: 30%; right: 30%;"></span>
+            </div>
+            
+            <!-- 右上长方形 - 2个三角形 -->
+            <div class="triangle-btn triangle-3" data-index="2">
+                <span class="triangle-icon" style="top: 30%; left: 30%;"></span>
+            </div>
+            <div class="triangle-btn triangle-4" data-index="3">
+                <span class="triangle-icon" style="bottom: 30%; right: 30%;"></span>
+            </div>
+            
+            <!-- 左下长方形 - 2个三角形 -->
+            <div class="triangle-btn triangle-5" data-index="4">
+                <span class="triangle-icon" style="top: 30%; left: 30%;"></span>
+            </div>
+            <div class="triangle-btn triangle-6" data-index="5">
+                <span class="triangle-icon" style="bottom: 30%; right: 30%;"></span>
+            </div>
+            
+            <!-- 右下长方形 - 2个三角形 -->
+            <div class="triangle-btn triangle-7" data-index="6">
+                <span class="triangle-icon" style="top: 30%; left: 30%;"></span>
+            </div>
+            <div class="triangle-btn triangle-8" data-index="7">
+                <span class="triangle-icon" style="bottom: 30%; right: 30%;"></span>
+            </div>
+            
+            <!-- 中心球体 -->
+            <div class="center-sphere" id="centerSphere">🌌</div>
+        </div>
+    </div>
+    
+    <!-- 配置文件 -->
+    <script src="破解导航配置.js"></script>
+    
+    <script>
+        // 创建星星背景
+        function createStars() {
+            const starsContainer = document.getElementById('stars');
+            const starCount = 50;
+            
+            for (let i = 0; i < starCount; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                
+                // 随机大小
+                const size = Math.random() * 3 + 1;
+                star.style.width = size + 'px';
+                star.style.height = size + 'px';
+                
+                // 随机位置
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                
+                // 随机延迟
+                star.style.animationDelay = Math.random() * 3 + 's';
+                
+                starsContainer.appendChild(star);
+            }
+        }
+        
+        // 初始化三角形按钮
+        function initTriangles() {
+            const tools = window.triangleNavConfig.getAllTools();
+            const triangles = document.querySelectorAll('.triangle-btn');
+            
+            triangles.forEach((triangle, index) => {
+                const tool = tools[index];
+                const icon = triangle.querySelector('.triangle-icon');
+                
+                if (tool) {
+                    icon.innerHTML = tool.icon;
+                    triangle.title = tool.name;
+                    
+                    if (window.triangleNavConfig.isToolAvailable(tool)) {
+                        triangle.classList.remove('disabled');
+                        triangle.addEventListener('click', (e) => {
+                            // 防止事件冒泡
+                            e.stopPropagation();
+                            window.location.href = tool.file;
+                        });
+                    } else {
+                        triangle.classList.add('disabled');
+                    }
+                } else {
+                    triangle.classList.add('disabled');
+                }
+            });
+        }
+        
+        // 中心球点击事件
+        document.getElementById('centerSphere').addEventListener('click', function() {
+            // 添加点击动画
+            this.style.animation = 'none';
+            setTimeout(() => {
+                this.style.animation = 'spherePulse 2s ease-in-out infinite, sphereRotate 12s linear infinite';
+            }, 10);
+            
+            // 随机跳转到一个可用工具
+            const tools = window.triangleNavConfig.getAllTools();
+            const availableTools = tools.filter(tool => window.triangleNavConfig.isToolAvailable(tool));
+            if (availableTools.length > 0) {
+                const randomTool = availableTools[Math.floor(Math.random() * availableTools.length)];
+                window.location.href = randomTool.file;
+            }
+        });
+        
+        // 页面加载完成后初始化
+        window.addEventListener('load', function() {
+            // 检查配置是否加载
+            if (window.triangleNavConfig) {
+                initTriangles();
+            } else {
+                console.error('配置文件加载失败');
+                return;
+            }
+            
+            // 创建星星背景
+            createStars();
+            
+            // 添加键盘快捷键支持
+            document.addEventListener('keydown', function(e) {
+                if (e.key >= '1' && e.key <= '8') {
+                    const index = parseInt(e.key) - 1;
+                    const tools = window.triangleNavConfig.getAllTools();
+                    const tool = tools[index];
+                    if (tool && window.triangleNavConfig.isToolAvailable(tool)) {
+                        window.location.href = tool.file;
+                    }
+                }
+            });
+        });
+        
+        // 页面可见性改变时的处理
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                // 页面隐藏时暂停动画
+                document.querySelector('.center-sphere').style.animationPlayState = 'paused';
+            } else {
+                // 页面显示时恢复动画
+                document.querySelector('.center-sphere').style.animationPlayState = 'running';
+            }
+        });
+    </script>
+</body>
+</html>

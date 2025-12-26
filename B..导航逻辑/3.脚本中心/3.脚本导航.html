@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>脚本导航</title>
+    <script src="/A2_全局中心/B_插件工具/1.插件_主页跳转.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%); min-height: 100vh; padding: 10px; position: relative; overflow-x: hidden; }
+        .geometric-structures { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
+        .geo-structure { position: absolute; opacity: 0.1; }
+        .cube-structure { width: 120px; height: 120px; transform-style: preserve-3d; animation: rotateCube 20s infinite linear; }
+        .cube-face { position: absolute; width: 120px; height: 120px; border: 2px solid rgba(100, 200, 255, 0.8); background: rgba(100, 200, 255, 0.05); }
+        .cube-face:nth-child(1) { transform: translateZ(60px); }
+        .cube-face:nth-child(2) { transform: rotateY(90deg) translateZ(60px); }
+        .cube-face:nth-child(3) { transform: rotateY(180deg) translateZ(60px); }
+        .cube-face:nth-child(4) { transform: rotateY(-90deg) translateZ(60px); }
+        .cube-face:nth-child(5) { transform: rotateX(90deg) translateZ(60px); }
+        .cube-face:nth-child(6) { transform: rotateX(-90deg) translateZ(60px); }
+        @keyframes rotateCube { 0% { transform: rotateX(0) rotateY(0); } 100% { transform: rotateX(360deg) rotateY(360deg); } }
+        .pyramid-structure { width: 100px; height: 100px; transform-style: preserve-3d; animation: rotatePyramid 15s infinite linear; }
+        .pyramid-face { position: absolute; border: 2px solid rgba(255, 150, 100, 0.8); background: rgba(255, 150, 100, 0.05); }
+        .pyramid-face:nth-child(1) { width: 0; height: 0; border-left: 50px solid transparent; border-right: 50px solid transparent; border-bottom: 86px solid rgba(255, 150, 100, 0.2); transform: translateZ(30px); }
+        .pyramid-face:nth-child(2) { width: 0; height: 0; border-left: 50px solid transparent; border-right: 50px solid transparent; border-bottom: 86px solid rgba(255, 150, 100, 0.2); transform: rotateY(120deg) translateZ(30px); }
+        .pyramid-face:nth-child(3) { width: 0; height: 0; border-left: 50px solid transparent; border-right: 50px solid transparent; border-bottom: 86px solid rgba(255, 150, 100, 0.2); transform: rotateY(240deg) translateZ(30px); }
+        .pyramid-base { width: 100px; height: 100px; border: 2px solid rgba(255, 150, 100, 0.8); background: rgba(255, 150, 100, 0.05); transform: rotateX(90deg) translateZ(-43px); }
+        @keyframes rotatePyramid { 0% { transform: rotateX(0) rotateY(0); } 100% { transform: rotateX(360deg) rotateY(360deg); } }
+        .network-lines { position: absolute; width: 100%; height: 100%; }
+        .network-line { stroke: rgba(150, 255, 200, 0.3); stroke-width: 1; fill: none; animation: pulseLine 3s infinite ease-in-out; }
+        @keyframes pulseLine { 0%, 100% { opacity: 0.3; } 50% { opacity: 0.8; } }
+        .network-node { fill: rgba(150, 255, 200, 0.6); animation: pulseNode 2s infinite ease-in-out; }
+        @keyframes pulseNode { 0%, 100% { r: 3; } 50% { r: 5; } }
+        .hexagon-grid { position: absolute; width: 300px; height: 300px; animation: floatHex 25s infinite ease-in-out; }
+        @keyframes floatHex { 0%, 100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-30px) rotate(180deg); } }
+        .container { max-width: 100%; position: relative; z-index: 2; }
+        header { text-align: center; margin-bottom: 20px; color: white; text-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+        h1 { font-size: 1.8rem; margin-bottom: 5px; }
+        
+        /* 主要修改：一行3列 */
+        .tools-grid { 
+            display: grid; 
+            grid-template-columns: repeat(3, 1fr); 
+            gap: 10px; 
+            margin-bottom: 40px; 
+        }
+        
+        .tool-card { 
+            background: rgba(255,255,255,0.95); 
+            border-radius: 12px; 
+            padding: 12px 8px; 
+            text-decoration: none; 
+            color: #333; 
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1); 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            text-align: center; 
+            min-height: 110px; 
+            position: relative; 
+            overflow: hidden; 
+            backdrop-filter: blur(10px); 
+            border: 1px solid rgba(255,255,255,0.3); 
+        }
+        
+        .tool-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 100%); opacity: 0; transition: opacity 0.3s ease; }
+        .tool-card:hover::before { opacity: 1; }
+        .tool-card:hover { transform: translateY(-5px) scale(1.02); box-shadow: 0 8px 25px rgba(0,0,0,0.15); background: rgba(255,255,255,0.98); }
+        .tool-icon { font-size: 1.6rem; margin-bottom: 8px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1)); transition: transform 0.3s ease; }
+        .tool-card:hover .tool-icon { transform: scale(1.1); }
+        .tool-number { position: absolute; top: 6px; left: 6px; background: linear-gradient(135deg, #ff6b6b, #ff8787); color: white; font-size: 9px; padding: 2px 6px; border-radius: 10px; font-weight: bold; box-shadow: 0 2px 8px rgba(255, 107, 107, 0.4); z-index: 10; animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+        .tool-name { font-size: 0.75rem; font-weight: 700; margin-bottom: 4px; color: #2c3e50; text-align: center; width: 100%; line-height: 1.3; }
+        .tool-description { font-size: 0.6rem; color: #7f8c8d; line-height: 1.3; text-align: center; width: 100%; padding: 0 2px; }
+        
+        .pagination { display: flex; justify-content: center; gap: 8px; margin: 40px 0; flex-wrap: wrap; }
+        .pagination button { padding: 8px 12px; border: none; border-radius: 20px; background: rgba(255,255,255,0.9); color: #333; cursor: pointer; transition: all 0.3s ease; font-size: 0.85rem; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+        .pagination button:hover:not(:disabled) { background: white; transform: translateY(-2px); }
+        .pagination button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .pagination .active { background: linear-gradient(135deg, #4a69bd, #1e3799); color: white; }
+        .error-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: none; justify-content: center; align-items: center; z-index: 9999; }
+        .error-modal.show { display: flex; }
+        .error-content { background: white; padding: 25px; border-radius: 15px; max-width: 350px; text-align: center; box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
+        .error-content h3 { color: #d32f2f; margin-bottom: 15px; }
+        .error-content p { color: #666; margin-bottom: 20px; line-height: 1.5; }
+        .error-content button { padding: 10px 20px; background: linear-gradient(135deg, #4a69bd, #1e3799); color: white; border: none; border-radius: 8px; cursor: pointer; }
+        
+
+    </style>
+</head>
+<body>
+    <div class="geometric-structures" id="geometricStructures"></div>
+    
+    <div class="container">
+        <header>
+            <h1>🗂️ 脚本导航</h1>
+        </header>
+        <main>
+            <div class="tools-grid" id="toolsGrid"></div>
+            <div class="pagination" id="pagination"></div>
+        </main>
+    </div>
+    
+    <div class="error-modal" id="errorModal">
+        <div class="error-content">
+            <h3>⚠️ 配置文件加载失败</h3>
+            <p id="errorMessage">无法找到配置文件3.search-config.js，请检查文件是否存在。</p>
+            <button onclick="closeErrorModal()">确定</button>
+        </div>
+    </div>
+    
+    <script src="3.search-config.js"></script>
+<script>
+    /**
+     * 1. 创建几何结构背景
+     */
+    function createGeometricStructures() {
+        const container = document.getElementById('geometricStructures');
+        
+        for (let i = 0; i < 3; i++) {
+            const cube = document.createElement('div');
+            cube.className = 'geo-structure cube-structure';
+            cube.style.left = Math.random() * 80 + 10 + '%';
+            cube.style.top = Math.random() * 80 + 10 + '%';
+            cube.style.animationDelay = Math.random() * 20 + 's';
+            for (let j = 0; j < 6; j++) {
+                const face = document.createElement('div');
+                face.className = 'cube-face';
+                cube.appendChild(face);
+            }
+            container.appendChild(cube);
+        }
+        
+        for (let i = 0; i < 2; i++) {
+            const pyramid = document.createElement('div');
+            pyramid.className = 'geo-structure pyramid-structure';
+            pyramid.style.left = Math.random() * 80 + 10 + '%';
+            pyramid.style.top = Math.random() * 80 + 10 + '%';
+            pyramid.style.animationDelay = Math.random() * 15 + 's';
+            for (let j = 0; j < 3; j++) {
+                const face = document.createElement('div');
+                face.className = 'pyramid-face';
+                pyramid.appendChild(face);
+            }
+            const base = document.createElement('div');
+            base.className = 'pyramid-base';
+            pyramid.appendChild(base);
+            container.appendChild(pyramid);
+        }
+        
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.className = 'network-lines';
+        svg.setAttribute('width', '100%');
+        svg.setAttribute('height', '100%');
+        const nodes = [];
+        for (let i = 0; i < 8; i++) {
+            const x = Math.random() * 100;
+            const y = Math.random() * 100;
+            nodes.push({ x, y });
+            const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            circle.setAttribute('cx', x + '%');
+            circle.setAttribute('cy', y + '%');
+            circle.setAttribute('r', '3');
+            circle.className = 'network-node';
+            circle.style.animationDelay = Math.random() * 2 + 's';
+            svg.appendChild(circle);
+        }
+        for (let i = 0; i < nodes.length; i++) {
+            for (let j = i + 1; j < nodes.length; j++) {
+                if (Math.random() > 0.6) {
+                    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                    line.setAttribute('x1', nodes[i].x + '%');
+                    line.setAttribute('y1', nodes[i].y + '%');
+                    line.setAttribute('x2', nodes[j].x + '%');
+                    line.setAttribute('y2', nodes[j].y + '%');
+                    line.className = 'network-line';
+                    line.style.animationDelay = Math.random() * 3 + 's';
+                    svg.appendChild(line);
+                }
+            }
+        }
+        container.appendChild(svg);
+        
+        const hexGrid = document.createElement('div');
+        hexGrid.className = 'geo-structure hexagon-grid';
+        hexGrid.style.left = Math.random() * 70 + 15 + '%';
+        hexGrid.style.top = Math.random() * 70 + 15 + '%';
+        hexGrid.style.animationDelay = Math.random() * 25 + 's';
+        const hexSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        hexSvg.setAttribute('width', '300');
+        hexSvg.setAttribute('height', '300');
+        hexSvg.setAttribute('viewBox', '0 0 300 300');
+        for (let row = 0; row < 4; row++) {
+            for (let col = 0; col < 4; col++) {
+                const hex = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+                const x = col * 60 + (row % 2) * 30 + 30;
+                const y = row * 52 + 30;
+                const points = `${x},${y-15} ${x+13},${y-7.5} ${x+13},${y+7.5} ${x},${y+15} ${x-13},${y+7.5} ${x-13},${y-7.5}`;
+                hex.setAttribute('points', points);
+                hex.setAttribute('fill', 'none');
+                hex.setAttribute('stroke', 'rgba(200, 150, 255, 0.3)');
+                hex.setAttribute('stroke-width', '1');
+                hexSvg.appendChild(hex);
+            }
+        }
+        hexGrid.appendChild(hexSvg);
+        container.appendChild(hexGrid);
+    }
+</script>
+
+<script>
+    /**
+     * 2. 渲染工具卡片
+     */
+    function renderTools() {
+        const toolsGrid = document.getElementById('toolsGrid');
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        const endIndex = startIndex + itemsPerPage;
+        const pageTools = allTools.slice(startIndex, endIndex);
+        
+        toolsGrid.innerHTML = pageTools.map((tool, index) => {
+            const globalIndex = startIndex + index;
+            return `
+                <a href="${tool.file}" class="tool-card" target="_blank">
+                    <span class="tool-number">#${globalIndex + 1}</span>
+                    <span class="tool-icon">${tool.icon}</span>
+                    <div class="tool-name">${tool.name}</div>
+                    <div class="tool-description">${tool.description}</div>
+                </a>
+            `;
+        }).join('');
+    }
+    
+    /**
+     * 3. 渲染分页控件
+     */
+    function renderPagination() {
+        const pagination = document.getElementById('pagination');
+        if (totalPages <= 1) {
+            pagination.innerHTML = '';
+            return;
+        }
+        let html = '';
+        html += `<button ${currentPage === 1 ? 'disabled' : ''} onclick="goToPage(${currentPage - 1})">上一页</button>`;
+        const maxVisiblePages = 5;
+        let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+        let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+        if (endPage - startPage < maxVisiblePages - 1) {
+            startPage = Math.max(1, endPage - maxVisiblePages + 1);
+        }
+        for (let i = startPage; i <= endPage; i++) {
+            html += `<button class="${i === currentPage ? 'active' : ''}" onclick="goToPage(${i})">${i}</button>`;
+        }
+        html += `<button ${currentPage === totalPages ? 'disabled' : ''} onclick="goToPage(${currentPage + 1})">下一页</button>`;
+        pagination.innerHTML = html;
+    }
+    
+    /**
+     * 4. 跳转到指定页
+     */
+    function goToPage(page) {
+        if (page >= 1 && page <= totalPages) {
+            currentPage = page;
+            renderTools();
+            renderPagination();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    }
+</script>
+
+<script>
+    let currentPage = 1;
+    const itemsPerPage = 9;     /* 每页9个，适配3列 x 3行 */
+    let allTools = [];
+    let totalPages = 1;
+    
+    function showErrorModal(message) {
+        document.getElementById('errorMessage').textContent = message;
+        document.getElementById('errorModal').classList.add('show');
+    }
+    
+    function closeErrorModal() {
+        document.getElementById('errorModal').classList.remove('show');
+    }
+    
+    function initTools() {
+        if (typeof window.toolsConfig === 'undefined') {
+            showErrorModal('无法找到配置文件3.search-config.js，请检查文件是否存在。');
+            return;
+        }
+        if (typeof window.toolsConfig.getAllTools !== 'function') {
+            showErrorModal('配置文件中缺少getAllTools方法，请检查配置文件格式。');
+            return;
+        }
+        try {
+            allTools = window.toolsConfig.getAllTools();
+            totalPages = Math.ceil(allTools.length / itemsPerPage);
+            renderTools();
+            renderPagination();
+        } catch (error) {
+            showErrorModal('配置文件解析失败：' + error.message);
+        }
+    }
+    
+    window.addEventListener('load', function() {
+        createGeometricStructures();
+        initTools();
+    });
+</script>
+</body>
+</html>

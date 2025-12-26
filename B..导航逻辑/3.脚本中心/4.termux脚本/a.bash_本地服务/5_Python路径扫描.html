@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Python 代码查看器</title>
+    
+        <!-- prism.js 语法高亮   -->
+      <script src="/A2_全局中心/B_插件缓存-CDN/1.prism代码高亮/1.prism-css-白色主题.js"></script>   
+      <script src="/A2_全局中心/B_插件缓存-CDN/1.prism代码高亮/prism-core.min.js"></script>    <!-- 核心文件 -->
+      <script src="/A2_全局中心/B_插件缓存-CDN/1.prism代码高亮/prism-python.min.js"></script>   
+    
+    <style>
+        /* 1. 基础样式重置 */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        /* 2. 页面主体样式 */
+        body { 
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace; 
+            background: #ffffff; 
+            color: #2c3e50; 
+            line-height: 1.6; 
+            padding: 0;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        /* 3. 代码容器 */
+        .code-container { 
+            height: 100vh; 
+            display: flex; 
+            flex-direction: column; 
+        }
+        
+        /* 4. 代码头部 - 减少padding */
+        .code-header { 
+            background: linear-gradient(90deg, #f8f9fa 0%, #e9ecef 100%); 
+            padding: 8px 12px; 
+            border-bottom: 1px solid #dee2e6; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            flex-shrink: 0;
+        }
+        
+        /* 5. 代码标题 - 减小字体 */
+        .code-title { 
+            color: #6c757d; 
+            font-size: 12px; 
+            font-weight: 600; 
+            letter-spacing: 0.5px; 
+        }
+        
+        /* 6. 按钮组 */
+        .button-group {
+            display: flex;
+            gap: 6px;
+        }
+        
+        /* 7. 复制按钮 - 减小padding */
+        .copy-btn { 
+            color: white; 
+            border: none; 
+            padding: 4px 10px; 
+            border-radius: 4px; 
+            cursor: pointer; 
+            font-size: 11px; 
+            font-weight: 600; 
+            transition: all 0.3s ease; 
+            display: flex; 
+            align-items: center; 
+            gap: 4px; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            box-shadow: 0 2px 4px rgba(118, 75, 162, 0.3); 
+        }
+        
+        /* 8. 复制按钮悬停效果 */
+        .copy-btn:hover { 
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%); 
+            transform: scale(1.05); 
+        }
+        
+        /* 9. 代码内容区域 - 减少padding */
+        .code-content { 
+            flex: 1; 
+            overflow: auto; 
+            background: #f8f9fa; 
+            padding: 10px; 
+        }
+        
+        /* 10. 代码块样式 - 减小字体 */
+        pre { 
+            margin: 0; 
+            padding: 0; 
+            background: transparent; 
+            font-size: 12px; 
+            line-height: 1.4; 
+        }
+        
+        /* 11. 代码样式 */
+        code { 
+            font-family: inherit; 
+            white-space: pre; 
+        }
+    </style>
+</head>
+<body>
+    <div class="code-container">
+        <div class="code-header">
+            <span class="code-title">scan.py</span>
+            <div class="button-group">
+                <button class="copy-btn" onclick="copyCode()">
+                    <span>📋</span>
+                    <span>复制</span>
+                </button>
+            </div>
+        </div>
+        <div class="code-content">
+            <pre><code class="language-python">#!/data/data/com.termux/files/usr/bin/env python3
+# 1. 脚本名称：scan.py —— Termux 交互式目录层级扫描器（Python 版）
+# 2. 依赖：仅内置库，无需额外安装
+
+# 3. 导入所需标准库
+import os
+import sys
+from pathlib import Path
+
+# 4. 彩色输出工具（跨平台）
+def color(text: str, code: int) -> str:
+    """给文本加 ANSI 颜色码，失败时返回原文本"""
+    return f"\033[{code}m{text}\033[0m" if sys.stdout.isatty() else text
+
+red    = lambda t: color(t, 31)
+green  = lambda t: color(t, 32)
+yellow = lambda t: color(t, 33)
+
+# 5. 递归打印目录树，支持层级限制
+def tree(path: Path, prefix: str = "", depth_left: int = None) -> None:
+    """
+    递归打印目录树
+    :param path:        当前要扫描的路径（Path 对象）
+    :param prefix:      前缀字符串，用于对齐树状结构
+    :param depth_left:  剩余可递归深度，None=无限
+    """
+    if depth_left is not None and depth_left < 0:
+        return
+
+    entries = sorted(path.iterdir(), key=lambda p: (p.is_file(), p.name.lower()))
+    pointers = ["├── "] * (len(entries) - 1) + ["└── "] if entries else []
+    for pointer, entry in zip(pointers, entries):
+        print(prefix + pointer + (red(entry.name) if entry.is_dir() else entry.name))
+        if entry.is_dir():
+            extension = "│   " if pointer == "├── " else "    "
+            tree(entry, prefix + extension,
+                 depth_left if depth_left is None else depth_left - 1)
+
+# 6. 主逻辑函数
+def main() -> None:
+    try:
+        print(yellow("\n=== Termux 目录扫描器 (Python) ==="))
+        # 7. 读取待扫描目录
+        target = input("请输入想要扫描的目录（绝对或相对路径）: ").strip()
+        target_path = Path(target).expanduser().resolve()
+        if not target_path.exists():
+            print(red(f"错误：路径不存在 → {target_path}"))
+            return
+        if not target_path.is_dir():
+            print(red(f"错误：路径不是目录 → {target_path}"))
+            return
+
+        # 8. 读取层级
+        depth_input = input("请选择扫描层级（数字，直接回车=全部层级）: ").strip()
+        depth = None
+        if depth_input:
+            if not depth_input.isdigit() or int(depth_input) < 0:
+                print(red("错误：层级必须是≥0的整数"))
+                return
+            depth = int(depth_input)
+
+        # 9. 执行扫描
+        print(green("\n扫描结果："))
+        print("-" * 40)
+        tree(target_path, depth_left=depth)
+        print("-" * 40)
+    except KeyboardInterrupt:
+        print(yellow("\n用户中断，已退出。"))
+    except Exception as e:
+        print(red(f"未知异常：{e}"))
+
+# 10. 入口保护
+if __name__ == "__main__":
+    main()</code></pre>
+        </div>
+    </div>
+
+    <script>
+        // 1. 页面加载完成后应用语法高亮
+        document.addEventListener('DOMContentLoaded', function() {
+            Prism.highlightAll();
+        });
+        
+        // 2. 复制代码（只复制脚本内容）
+        function copyCode() {
+            // 精确选择代码内容，排除HTML标签
+            const codeElement = document.querySelector('code.language-python');
+            if (!codeElement) {
+                console.error('未找到代码元素');
+                return;
+            }
+            
+            // 获取纯文本内容，去除可能的HTML实体
+            let codeContent = codeElement.textContent || codeElement.innerText;
+            
+            // 清理内容：去除前后空白，但保留内部格式
+            codeContent = codeContent.trim();
+            
+            // 调试信息
+            console.log('复制的代码长度:', codeContent.length);
+            console.log('复制的前50个字符:', codeContent.substring(0, 50));
+            
+            // 直接在当前页面复制，不通过父页面
+            navigator.clipboard.writeText(codeContent).then(() => {
+                // 显示成功提示
+                showCopySuccess();
+                
+                // 同时通知父页面（可选）
+                window.parent.postMessage({
+                    type: 'copySuccess',
+                    content: '代码已复制到剪贴板'
+                }, '*');
+            }).catch(err => {
+                console.error('复制失败:', err);
+                // 降级方案：创建临时文本区域
+                fallbackCopy(codeContent);
+            });
+        }
+        
+        // 3. 降级复制方案
+        function fallbackCopy(text) {
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-999999px';
+            textArea.style.top = '-999999px';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    showCopySuccess();
+                }
+            } catch (err) {
+                console.error('降级复制失败:', err);
+            }
+            
+            document.body.removeChild(textArea);
+        }
+        
+        // 4. 显示复制成功提示
+        function showCopySuccess() {
+            // 创建提示元素
+            const toast = document.createElement('div');
+            toast.textContent = '✅ 代码已复制到剪贴板';
+            toast.style.cssText = `
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: rgba(40, 167, 69, 0.9);
+                color: white;
+                padding: 8px 16px;
+                border-radius: 4px;
+                font-size: 12px;
+                z-index: 1000;
+                pointer-events: none;
+            `;
+            
+            document.body.appendChild(toast);
+            
+            // 1.5秒后移除提示
+            setTimeout(() => {
+                if (toast.parentNode) {
+                    toast.parentNode.removeChild(toast);
+                }
+            }, 1500);
+        }
+        
+        // 5. 监听来自主页面的缩放消息
+        window.addEventListener('message', function(event) {
+            if (event.data.type === 'zoom') {
+                // 应用缩放到iframe内部
+                applyIframeZoom(event.data.zoomLevel);
+            }
+        });
+
+        // 6. 应用iframe内部缩放
+        function applyIframeZoom(zoomLevel) {
+            const root = document.documentElement;
+            root.style.fontSize = `${zoomLevel / 100}rem`;
+            
+            // 特殊处理代码块
+            const codeElements = document.querySelectorAll('pre, code');
+            codeElements.forEach(element => {
+                element.style.fontSize = `${zoomLevel / 100}rem`;
+            });
+            
+            console.log(`iframe缩放已应用到: ${zoomLevel}%`);
+        }
+
+        // 7. 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 应用语法高亮
+            Prism.highlightAll();
+            
+            // 通知主页面iframe已准备好接收缩放消息
+            window.parent.postMessage({
+                type: 'iframeReady'
+            }, '*');
+        });
+    </script>
+</body>
+</html>

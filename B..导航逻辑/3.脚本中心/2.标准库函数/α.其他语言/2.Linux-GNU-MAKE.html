@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>GNU Make 指令全集</title>
+    <script src="../A.插件_字体缩放.js"></script>
+    <style>
+        :root {
+            --primary-color: #0ea5e9;
+            --secondary-color: #06b6d4;
+            --accent-color: #3b82f6;
+            --text-color: #0f172a;
+            --text-secondary: #475569;
+            --bg-color: #f0f9ff;
+            --border-color: #bae6fd;
+            --hover-bg: #e0f2fe;
+            --code-bg: #ffffff;
+            --tree-line: #7dd3fc;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            color: var(--text-color);
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 50%, #bae6fd 100%);
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            flex-direction: column;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            text-rendering: optimizeLegibility;
+        }
+
+        .container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: rgba(255, 255, 255, 0.95);
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            margin: 8px;
+            border-radius: 8px;
+            border: 1px solid rgba(186, 230, 253, 0.3);
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: #fff;
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            flex-shrink: 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        header::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+            animation: shimmer 3s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+        header h1 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 4px;
+            position: relative;
+        }
+
+        header p {
+            opacity: 0.9;
+            font-size: 12px;
+            position: relative;
+        }
+
+        .controls {
+            padding: 10px 16px;
+            background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        .controls button {
+            background: linear-gradient(135deg, var(--accent-color), var(--secondary-color));
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 12px;
+            font-family: inherit;
+            font-weight: 500;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .controls button:hover {
+            background: linear-gradient(135deg, var(--secondary-color), var(--primary-color));
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        #searchInput {
+            padding: 6px 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background-color: rgba(240, 249, 255, 0.8);
+            color: var(--text-color);
+            font-size: 12px;
+            font-family: inherit;
+            width: 180px;
+            transition: all 0.3s;
+        }
+
+        #searchInput:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            background: rgba(255, 255, 255, 0.95);
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }
+
+        .tree-container {
+            flex: 1;
+            padding: 12px;
+            overflow: auto;
+            background: linear-gradient(180deg, rgba(240, 249, 255, 0.4) 0%, rgba(240, 249, 255, 0.2) 100%);
+        }
+
+        .tree-container::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .tree-container::-webkit-scrollbar-thumb {
+            background: var(--accent-color);
+            border-radius: 3px;
+        }
+
+        .tree ul {
+            list-style-type: none;
+            padding-left: 16px;
+            margin: 0;
+        }
+
+        .tree li {
+            position: relative;
+            padding: 1px 0;
+            white-space: nowrap;
+        }
+
+        .tree li::before {
+            content: "";
+            position: absolute;
+            left: -10px;
+            top: 8px;
+            width: 10px;
+            height: 1px;
+            background-color: var(--tree-line);
+        }
+
+        .tree li::after {
+            content: "";
+            position: absolute;
+            left: -10px;
+            top: -2px;
+            width: 1px;
+            height: 100%;
+            background-color: var(--tree-line);
+        }
+
+        .tree li:last-child::after {
+            height: 10px;
+        }
+
+        .tree > ul > li::before, .tree > ul > li::after {
+            display: none;
+        }
+
+        .tree-node {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            padding: 2px 4px;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        .tree-node:hover {
+            background: linear-gradient(135deg, rgba(14, 165, 233, 0.08) 0%, rgba(6, 182, 212, 0.05) 100%);
+            transform: translateX(2px);
+        }
+
+        .tree-node i {
+            margin-right: 6px;
+            color: var(--text-color);
+            width: 12px;
+            text-align: center;
+            font-size: 10px;
+        }
+
+        .tree-node .folder {
+            color: var(--primary-color);
+        }
+
+        .tree-node .file {
+            color: var(--text-secondary);
+        }
+
+        .tree-node .toggle {
+            color: #94a3b8;
+            margin-right: 3px;
+            font-size: 9px;
+            transition: transform 0.2s;
+        }
+
+        .collapsed .toggle.fa-chevron-down::before {
+            content: "\f054";
+        }
+
+        .tree-content {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            min-width: 0;
+        }
+
+        .tree-name {
+            font-weight: 500;
+            font-size: 13px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: var(--text-color);
+        }
+
+        .tree-desc {
+            font-style: normal !important;
+            white-space: normal !important;
+            max-width: none !important;
+            overflow: visible !important;
+            text-overflow: unset !important;
+            display: inline-block !important;
+            line-height: 1.4 !important;
+            margin-left: 6px !important;
+            font-size: 11px !important;
+            color: var(--text-secondary) !important;
+            background: rgba(14, 165, 233, 0.06) !important;
+            padding: 1px 4px !important;
+            border-radius: 3px !important;
+            border: 1px solid rgba(14, 165, 233, 0.1) !important;
+            transition: all 0.2s !important;
+        }
+
+        .tree-node:hover .tree-desc {
+            background: rgba(14, 165, 233, 0.1) !important;
+            border-color: rgba(14, 165, 233, 0.2) !important;
+        }
+
+        .collapsed > ul {
+            display: none;
+        }
+
+        .highlight {
+            background: linear-gradient(135deg, var(--accent-color), var(--secondary-color));
+            padding: 0 3px;
+            border-radius: 3px;
+            color: #fff;
+            font-weight: 500;
+        }
+
+        footer {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 8px 16px;
+            text-align: center;
+            font-size: 10px;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+            flex-shrink: 0;
+        }
+
+        @media (max-width: 768px) {
+            body { font-size: 12px; }
+            .container { margin: 4px; }
+            header h1 { font-size: 16px; }
+            header p { font-size: 11px; }
+            .tree ul { padding-left: 14px; }
+            .tree-name { font-size: 12px; }
+            .tree-desc { font-size: 10px; }
+            #searchInput { width: 140px; font-size: 11px; }
+            .controls button { font-size: 11px; padding: 5px 10px; }
+        }
+
+        @media (max-width: 480px) {
+            body { font-size: 11px; }
+            .container { margin: 2px; }
+            header h1 { font-size: 14px; }
+            header p { font-size: 10px; }
+            .tree ul { padding-left: 12px; }
+            .tree-node { padding: 1px 3px; }
+            .tree-name { font-size: 11px; }
+            .tree-desc { font-size: 9px; }
+            #searchInput { width: 120px; font-size: 10px; }
+            .controls button { font-size: 10px; padding: 4px 8px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>GNU Make 指令全集</h1>
+            <p>GNU Make Command Reference</p>
+        </header>
+        <div class="controls">
+            <div>
+                <button id="expandAll">展开</button>
+                <button id="collapseAll">折叠</button>
+            </div>
+            <div>
+                <input type="text" id="searchInput" placeholder="搜索...">
+            </div>
+        </div>
+        <div class="tree-container">
+            <div class="tree">
+                <ul id="treeRoot"></ul>
+            </div>
+        </div>
+        <footer>
+            <p>© 2025 GNU Make 指令全集 | Generated by 凉安</p>
+        </footer>
+    </div>
+
+    <!-- 第一部分：数据定义 -->
+    <script>
+        // 定义树形数据结构
+        const treeData = [
+            {
+                name: '一、命令行调用与全局选项',
+                type: 'folder',
+                children: [
+                    {
+                        name: '1.1 基础调用',
+                        type: 'folder',
+                        children: [
+                            { name: 'make', desc: '默认目标', type: 'file' },
+                            { name: 'make [目标]', desc: '指定目标', type: 'file' },
+                            { name: 'make -f [文件]', desc: '指定Makefile', type: 'file' },
+                            { name: 'make -C [目录]', desc: '先切换目录再执行', type: 'file' },
+                            { name: 'make -n', desc: '仅回显不执行', type: 'file' },
+                            { name: 'make -t', desc: '仅更新时间戳', type: 'file' },
+                            { name: 'make -q', desc: '静默检查是否需更新', type: 'file' },
+                            { name: 'make -k', desc: '遇错继续', type: 'file' },
+                            { name: 'make -s', desc: '关闭回显', type: 'file' },
+                            { name: 'make -B', desc: '强制全部重建', type: 'file' },
+                            { name: 'make -r', desc: '禁用内置规则', type: 'file' },
+                            { name: 'make -R', desc: '禁用内置变量', type: 'file' },
+                            { name: 'make -v', desc: '版本信息', type: 'file' },
+                            { name: 'make -h', desc: '帮助总览', type: 'file' },
+                            { name: 'make -d', desc: '调试输出', type: 'file' },
+                            { name: 'make -p', desc: '打印规则数据库', type: 'file' },
+                            { name: 'make -w', desc: '进出目录打印', type: 'file' },
+                            { name: 'make --no-print-directory', desc: '关闭目录打印', type: 'file' },
+                            { name: 'make -L', desc: '跟踪符号链时间', type: 'file' },
+                            { name: 'make -O[type]', desc: '并行输出同步', type: 'file' },
+                            { name: 'make --shuffle', desc: '随机/反向/种子重排', type: 'file' },
+                            { name: 'make -W [文件]', desc: '假设文件已更新', type: 'file' },
+                            { name: 'make -o [文件]', desc: '当作旧文件', type: 'file' },
+                            { name: 'make -l [负载]', desc: '负载上限', type: 'file' },
+                            { name: 'make -j [N]', desc: '并行作业数', type: 'file' },
+                            { name: 'make --jobserver-style', desc: '作业服务器实现', type: 'file' },
+                            { name: 'make -i', desc: '忽略所有错误', type: 'file' },
+                            { name: 'make -S', desc: '取消-k', type: 'file' },
+                            { name: 'make --warn-undefined-variables', desc: '未定义变量警告', type: 'file' },
+                            { name: 'make -E [串]', desc: '命令行eval', type: 'file' }
+                        ]
+                    },
+                    {
+                        name: '1.2 变量覆盖',
+                        type: 'folder',
+                        children: [
+                            { name: 'make VAR=value', desc: '递归变量', type: 'file' },
+                            { name: 'make VAR:=value', desc: '简单变量', type: 'file' },
+                            { name: 'make VAR+=value', desc: '追加', type: 'file' },
+                            { name: 'make VAR?=value', desc: '条件赋值', type: 'file' },
+                            { name: 'make override VAR=value', desc: '强制赋值', type: 'file' }
+                        ]
+                    },
+                    {
+                        name: '1.3 特殊目标',
+                        type: 'folder',
+                        children: [
+                            { name: '.PHONY:目标', desc: '伪目标', type: 'file' },
+                            { name: '.DEFAULT:命令', desc: '缺省规则', type: 'file' },
+                            { name: '.PRECIOUS:目标', desc: '中断保留', type: 'file' },
+                            { name: '.INTERMEDIATE:目标', desc: '中间文件', type: 'file' },
+                            { name: '.SECONDARY:目标', desc: '中间但保留', type: 'file' },
+                            { name: '.NOTINTERMEDIATE:目标', desc: '非中间', type: 'file' },
+                            { name: '.DELETE_ON_ERROR:目标', desc: '出错即删', type: 'file' },
+                            { name: '.IGNORE:目标', desc: '忽略错误', type: 'file' },
+                            { name: '.SILENT:目标', desc: '静默', type: 'file' },
+                            { name: '.SUFFIXES:后缀列表', desc: '后缀规则', type: 'file' },
+                            { name: '.ONESHELL:', desc: '单Shell', type: 'file' },
+                            { name: '.POSIX:', desc: 'POSIX模式', type: 'file' },
+                            { name: '.NOTPARALLEL:', desc: '禁用并行', type: 'file' },
+                            { name: '.WAIT', desc: '串行等待', type: 'file' },
+                            { name: '.EXPORT_ALL_VARIABLES:', desc: '导出所有变量', type: 'file' },
+                            { name: '.SECONDEXPANSION:', desc: '二次展开', type: 'file' },
+                            { name: '.LOW_RESOLUTION_TIME:', desc: '低分辨率时间', type: 'file' },
+                            { name: '.EXTRA_PREREQS:', desc: '额外依赖', type: 'file' }
+                        ]
+                    }
+                ]
+            },
+            {
+                name: '二、Makefile 内部语法',
+                type: 'folder',
+                children: [
+                    {
+                        name: '2.1 变量与赋值',
+                        type: 'folder',
+                        children: [
+                            { name: 'VAR = 值', desc: '递归展开', type: 'file' },
+                            { name: 'VAR := 值', desc: '简单展开', type: 'file' },
+                            { name: 'VAR ::= 值', desc: 'POSIX简单展开', type: 'file' },
+                            { name: 'VAR :::= 值', desc: '立即展开并转义', type: 'file' },
+                            { name: 'VAR += 值', desc: '追加', type: 'file' },
+                            { name: 'VAR ?= 值', desc: '条件赋值', type: 'file' },
+                            { name: 'VAR != 命令', desc: 'Shell赋值', type: 'file' },
+                            { name: 'define VAR', desc: '多行定义', type: 'file' },
+                            { name: 'override VAR = 值', desc: '强制覆盖', type: 'file' },
+                            { name: 'undefine VAR', desc: '取消变量', type: 'file' },
+                            { name: 'export VAR', desc: '导出变量', type: 'file' },
+                            { name: 'unexport VAR', desc: '不导出', type: 'file' },
+                            { name: 'private VAR = 值', desc: '不继承', type: 'file' }
+                        ]
+                    },
+                    {
+                        name: '2.2 包含与条件',
+                        type: 'folder',
+                        children: [
+                            { name: 'include 文件...', desc: '包含', type: 'file' },
+                            { name: '-include 文件...', desc: '可选包含', type: 'file' },
+                            { name: 'ifdef VAR', desc: '变量存在判断', type: 'file' },
+                            { name: 'ifndef VAR', desc: '变量不存在判断', type: 'file' },
+                            { name: 'ifeq (a,b)', desc: '相等判断', type: 'file' },
+                            { name: 'ifneq (a,b)', desc: '不等判断', type: 'file' },
+                            { name: 'else', desc: '分支', type: 'file' },
+                            { name: 'endif', desc: '分支结束', type: 'file' }
+                        ]
+                    },
+                    {
+                        name: '2.3 规则写法',
+                        type: 'folder',
+                        children: [
+                            { name: '目标:依赖', desc: '普通规则', type: 'file' },
+                            { name: '目标&依赖:命令', desc: '分组目标', type: 'file' },
+                            { name: '目标::依赖:命令', desc: '双冒号规则', type: 'file' },
+                            { name: '%.o:%.c', desc: '模式规则', type: 'file' },
+                            { name: '静态模式:目标…:模式:依赖…', desc: '静态模式规则', type: 'file' },
+                            { name: '目标:普通依赖|顺序依赖', desc: '顺序依赖', type: 'file' },
+                            { name: '-命令', desc: '忽略错误', type: 'file' },
+                            { name: '@命令', desc: '不回显', type: 'file' },
+                            { name: '+命令', desc: '递归make标志', type: 'file' }
+                        ]
+                    },
+                    {
+                        name: '2.4 函数调用（内置）',
+                        type: 'folder',
+                        children: [
+                            { name: '$(subst from,to,text)', desc: '替换', type: 'file' },
+                            { name: '$(patsubst 模式,替换,text)', desc: '模式替换', type: 'file' },
+                            { name: '$(strip text)', desc: '去多余空白', type: 'file' },
+                            { name: '$(findstring 查找,text)', desc: '查找', type: 'file' },
+                            { name: '$(filter 模式…,text)', desc: '过滤保留', type: 'file' },
+                            { name: '$(filter-out 模式…,text)', desc: '过滤排除', type: 'file' },
+                            { name: '$(sort list)', desc: '排序去重', type: 'file' },
+                            { name: '$(word n,text)', desc: '取第n词', type: 'file' },
+                            { name: '$(wordlist s,e,text)', desc: '取区间词', type: 'file' },
+                            { name: '$(words text)', desc: '词计数', type: 'file' },
+                            { name: '$(firstword text)', desc: '首词', type: 'file' },
+                            { name: '$(lastword text)', desc: '末词', type: 'file' },
+                            { name: '$(dir 文件…)', desc: '目录部分', type: 'file' },
+                            { name: '$(notdir 文件…)', desc: '文件名部分', type: 'file' },
+                            { name: '$(suffix 文件…)', desc: '后缀', type: 'file' },
+                            { name: '$(basename 文件…)', desc: '去后缀', type: 'file' },
+                            { name: '$(addsuffix 后缀,文件…)', desc: '加后缀', type: 'file' },
+                            { name: '$(addprefix 前缀,文件…)', desc: '加前缀', type: 'file' },
+                            { name: '$(join 列表1,列表2)', desc: '逐对拼接', type: 'file' },
+                            { name: '$(wildcard 模式…)', desc: '通配展开', type: 'file' },
+                            { name: '$(realpath 文件…)', desc: '绝对路径（解析链接）', type: 'file' },
+                            { name: '$(abspath 文件…)', desc: '绝对路径（不解析）', type: 'file' },
+                            { name: '$(if 条件,then[,else])', desc: '条件', type: 'file' },
+                            { name: '$(or 条件…)', desc: '逻辑或', type: 'file' },
+                            { name: '$(and 条件…)', desc: '逻辑与', type: 'file' },
+                            { name: '$(intcmp lhs,rhs[,lt,eq,gt])', desc: '整数比较', type: 'file' },
+                            { name: '$(call 函数,参数…)', desc: '调用用户函数', type: 'file' },
+                            { name: '$(let v1 v2…,列表,文本)', desc: '局部变量', type: 'file' },
+                            { name: '$(foreach 变量,列表,文本)', desc: '循环', type: 'file' },
+                            { name: '$(shell 命令)', desc: 'Shell命令', type: 'file' },
+                            { name: '$(guile 表达式)', desc: 'Guile脚本', type: 'file' },
+                            { name: '$(error 文本…)', desc: '报错', type: 'file' },
+                            { name: '$(warning 文本…)', desc: '警告', type: 'file' },
+                            { name: '$(info 文本…)', desc: '信息', type: 'file' },
+                            { name: '$(value VAR)', desc: '取未展开值', type: 'file' },
+                            { name: '$(eval 文本)', desc: '动态求值', type: 'file' },
+                            { name: '$(origin VAR)', desc: '变量来源', type: 'file' },
+                            { name: '$(flavor VAR)', desc: '变量风味', type: 'file' }
+                        ]
+                    },
+                    {
+                        name: '2.5 自动变量（规则内）',
+                        type: 'folder',
+                        children: [
+                            { name: '$@', desc: '目标名', type: 'file' },
+                            { name: '$%', desc: '归档成员名', type: 'file' },
+                            { name: '$<', desc: '首个依赖', type: 'file' },
+                            { name: '$?', desc: '比目标新的依赖', type: 'file' },
+                            { name: '$^', desc: '全部依赖（去重）', type: 'file' },
+                            { name: '$+', desc: '全部依赖（含重复）', type: 'file' },
+                            { name: '$|', desc: '顺序依赖', type: 'file' },
+                            { name: '$*', desc: '模式干', type: 'file' },
+                            { name: '$(@D)/$(@F)', desc: '目标目录/文件', type: 'file' },
+                            { name: '$(<D)/$(<F)', desc: '首依赖目录/文件', type: 'file' },
+                            { name: '$(^D)/$(^F)', desc: '全部依赖目录/文件', type: 'file' },
+                            { name: '$(?D)/$(?F)', desc: '新依赖目录/文件', type: 'file' }
+                        ]
+                    },
+                    {
+                        name: '2.6 目录搜索',
+                        type: 'folder',
+                        children: [
+                            { name: 'VPATH = 路径:路径…', desc: '全局搜索路径', type: 'file' },
+                            { name: 'vpath 模式路径', desc: '模式搜索', type: 'file' },
+                            { name: 'vpath 模式', desc: '清除该模式', type: 'file' },
+                            { name: 'vpath', desc: '清除所有模式', type: 'file' },
+                            { name: 'GPATH = 路径:路径…', desc: '重建时保留路径', type: 'file' }
+                        ]
+                    },
+                    {
+                        name: '2.7 递归make',
+                        type: 'folder',
+                        children: [
+                            { name: '$(MAKE)', desc: '递归调用', type: 'file' },
+                            { name: '$(MAKECMDGOALS)', desc: '命令行目标', type: 'file' },
+                            { name: '$(MAKEFLAGS)', desc: '传递标志', type: 'file' },
+                            { name: '$(MAKELEVEL)', desc: '递归深度', type: 'file' },
+                            { name: '$(MAKE_RESTARTS)', desc: '重启次数', type: 'file' }
+                        ]
+                    },
+                    {
+                        name: '2.8 文件函数',
+                        type: 'folder',
+                        children: [
+                            { name: '$(file >文件名,内容)', desc: '覆盖写', type: 'file' },
+                            { name: '$(file >>文件名,内容)', desc: '追加写', type: 'file' },
+                            { name: '$(file <文件名)', desc: '读文件', type: 'file' }
+                        ]
+                    },
+                    {
+                        name: '2.9 特殊变量',
+                        type: 'folder',
+                        children: [
+                            { name: '.FEATURES', desc: '特性列表', type: 'file' },
+                            { name: '.INCLUDE_DIRS', desc: '包含目录', type: 'file' },
+                            { name: '.LOADED', desc: '已加载对象', type: 'file' },
+                            { name: '.RECIPEPREFIX', desc: '命令前缀字符', type: 'file' },
+                            { name: '.SHELLFLAGS', desc: 'Shell参数', type: 'file' },
+                            { name: 'SHELL', desc: 'Shell程序', type: 'file' },
+                            { name: 'CURDIR', desc: '当前目录', type: 'file' },
+                            { name: 'DESTDIR', desc: '安装前缀', type: 'file' },
+                            { name: 'prefix/exec_prefix', desc: '安装根', type: 'file' },
+                            { name: 'bindir/sbindir/libexecdir', desc: '可执行目录', type: 'file' },
+                            { name: 'datadir/sysconfdir/includedir', desc: '数据目录', type: 'file' },
+                            { name: 'INSTALL/INSTALL_PROGRAM/INSTALL_DATA', desc: '安装命令', type: 'file' }
+                        ]
+                    },
+                    {
+                        name: '2.10 加载扩展',
+                        type: 'folder',
+                        children: [
+                            { name: 'load 对象.so', desc: '加载动态对象', type: 'file' },
+                            { name: '-load 对象.so', desc: '可选加载', type: 'file' },
+                            { name: 'plugin_is_GPL_compatible', desc: 'GPL兼容声明', type: 'file' }
+                        ]
+                    },
+                    {
+                        name: '2.11 内置隐式规则（常用）',
+                        type: 'folder',
+                        children: [
+                            { name: '*.c →*.o', desc: '$(CC) $(CPPFLAGS) $(CFLAGS) -c', type: 'file' },
+                            { name: '*.cc/cpp/C →*.o', desc: '$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c', type: 'file' },
+                            { name: '*.y →*.c', desc: '$(YACC) $(YFLAGS)', type: 'file' },
+                            { name: '*.l →*.c', desc: '$(LEX) $(LFLAGS)', type: 'file' },
+                            { name: '*.s →*.o', desc: '$(AS) $(ASFLAGS)', type: 'file' },
+                            { name: '*.o →可执行', desc: '$(CC) $(LDFLAGS) $^ $(LOADLIBES) $(LDLIBS) -o $@', type: 'file' },
+                            { name: '归档库：*.a(成员)', desc: 'ar r $@ $^', type: 'file' }
+                        ]
+                    },
+                    {
+                        name: '2.12 标准目标',
+                        type: 'folder',
+                        children: [
+                            { name: 'all', desc: '默认全部', type: 'file' },
+                            { name: 'clean/distclean/maintainer-clean', desc: '清理级别', type: 'file' },
+                            { name: 'install/uninstall', desc: '安装/卸载', type: 'file' },
+                            { name: 'install-strip', desc: '安装并剥离', type: 'file' },
+                            { name: 'installdirs', desc: '创建安装目录', type: 'file' },
+                            { name: 'check/test', desc: '自检', type: 'file' },
+                            { name: 'installcheck', desc: '安装后测试', type: 'file' },
+                            { name: 'dvi/html/pdf/ps', desc: '文档格式', type: 'file' },
+                            { name: 'info', desc: 'Info文档', type: 'file' },
+                            { name: 'dist', desc: '发布tarball', type: 'file' },
+                            { name: 'TAGS', desc: '标签表', type: 'file' }
+                        ]
+                    },
+                    {
+                        name: '2.13 环境变量',
+                        type: 'folder',
+                        children: [
+                            { name: 'MAKEFILES', desc: '启动额外Makefile', type: 'file' },
+                            { name: 'MAKE_TMPDIR', desc: '临时目录', type: 'file' },
+                            { name: 'MAKE_TERMOUT/MAKE_TERMERR', desc: '终端检测', type: 'file' },
+                            { name: 'MFLAGS/GNUMAKEFLAGS', desc: '标志传递', type: 'file' }
+                        ]
+                    }
+                ]
+            }
+        ];
+    </script>
+
+    <!-- 第二部分：渲染逻辑 -->
+    <script>
+        // 创建节点元素的函数
+        function createTreeNode(data) {
+            const li = document.createElement('li');
+            
+            // 创建节点容器
+            const nodeDiv = document.createElement('div');
+            nodeDiv.className = 'tree-node';
+            
+            // 添加折叠图标（仅文件夹）
+            if (data.type === 'folder') {
+                const toggleIcon = document.createElement('span');
+                toggleIcon.className = 'toggle';
+                toggleIcon.textContent = '▼';
+                nodeDiv.appendChild(toggleIcon);
+            }
+            
+            // 添加文件夹/文件图标（使用emoji）
+            const icon = document.createElement('span');
+            icon.className = 'icon';
+            if (data.type === 'folder') {
+                icon.className += ' folder-icon';
+                icon.textContent = '👑';
+            } else {
+                icon.className += ' file-icon';
+                icon.textContent = '🍟';
+            }
+            nodeDiv.appendChild(icon);
+            
+            // 添加内容区域
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'tree-content';
+            
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'tree-name';
+            nameSpan.textContent = data.name;
+            contentDiv.appendChild(nameSpan);
+            
+            if (data.desc) {
+                const descSpan = document.createElement('span');
+                descSpan.className = 'tree-desc';
+                descSpan.textContent = data.desc;
+                contentDiv.appendChild(descSpan);
+            }
+            
+            nodeDiv.appendChild(contentDiv);
+            li.appendChild(nodeDiv);
+            
+            // 递归创建子节点
+            if (data.children && data.children.length > 0) {
+                const ul = document.createElement('ul');
+                data.children.forEach(child => {
+                    ul.appendChild(createTreeNode(child));
+                });
+                li.appendChild(ul);
+            }
+            
+            return li;
+        }
+        
+        // 初始化树形结构
+        function initTree() {
+            const treeRoot = document.getElementById('treeRoot');
+            treeData.forEach(item => {
+                treeRoot.appendChild(createTreeNode(item));
+            });
+            
+            // 修改：默认展开到第二层级，折叠第三层级及以下
+            // 找到所有有子节点的li元素
+            document.querySelectorAll('.tree li:has(> ul)').forEach(li => {
+                // 计算当前节点的层级
+                let level = 0;
+                let parent = li.parentElement;
+                while (parent && !parent.classList.contains('tree')) {
+                    level++;
+                    parent = parent.parentElement.closest('li');
+                }
+                
+                // 如果是第三层级或更深，则折叠
+                if (level >= 2) {
+                    li.classList.add('collapsed');
+                }
+            });
+        }
+    </script>
+
+    <!-- 第三部分：交互功能 -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 初始化树形结构
+            initTree();
+            
+            // 使用事件委托处理折叠/展开
+            document.getElementById('treeRoot').addEventListener('click', function(e) {
+                const treeNode = e.target.closest('.tree-node');
+                if (!treeNode) return;
+                
+                const folderIcon = treeNode.querySelector('.folder-icon');
+                if (!folderIcon) return;
+                
+                const li = treeNode.parentElement;
+                li.classList.toggle('collapsed');
+            });
+            
+            // 展开全部按钮
+            document.getElementById('expandAll').addEventListener('click', function() {
+                document.querySelectorAll('.tree li.collapsed').forEach(li => {
+                    li.classList.remove('collapsed');
+                });
+            });
+            
+            // 折叠全部按钮
+            document.getElementById('collapseAll').addEventListener('click', function() {
+                document.querySelectorAll('.tree li:has(.folder-icon)').forEach(li => {
+                    if (!li.parentElement.classList.contains('tree')) {
+                        li.classList.add('collapsed');
+                    }
+                });
+            });
+            
+            // 搜索功能
+            document.getElementById('searchInput').addEventListener('input', function(e) {
+                const searchTerm = e.target.value.toLowerCase();
+                
+                // 清除之前的高亮
+                document.querySelectorAll('.highlight').forEach(el => {
+                    el.classList.remove('highlight');
+                });
+                
+                if (searchTerm === '') return;
+                
+                // 搜索并高亮匹配项
+                document.querySelectorAll('.tree-node').forEach(node => {
+                    const text = node.textContent.toLowerCase();
+                    if (text.includes(searchTerm)) {
+                        node.querySelector('.tree-name').classList.add('highlight');
+                        
+                        // 展开父节点
+                        let parent = node.closest('li');
+                        while (parent && !parent.classList.contains('tree')) {
+                            parent.classList.remove('collapsed');
+                            parent = parent.parentElement.closest('li');
+                        }
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

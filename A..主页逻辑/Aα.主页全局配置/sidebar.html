@@ -1,0 +1,606 @@
+<!DOCTYPE html> 
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"> 
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>用户中心</title> 
+    <!-- 引入样式配置文件-->
+   <script src="sidebar-css.js"></script> 
+   
+   <!-- 引入全局数据导出/导入模块-->
+    <script src="全局数据导出.js"></script> 
+   <!-- 引入快捷便签数据导出模块-->
+   <script src="快捷便签数据导出.js"></script> 
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"> 
+</head> 
+<body>
+
+<div class="top-bar">
+<div class="user-status" id="userStatus">[USER_MODE:STANDARD]</div>
+<div class="button-group">
+<button class="sidebar-btn" onclick="changeBackground()" title="更换背景"><i class="fas fa-image"></i></button>
+<button class="sidebar-btn" onclick="closeSidebar()"><i class="fas fa-times"></i></button>
+</div>
+</div> 
+<div class="user-profile-section">
+<div class="avatar-container">
+<img id="sidebarUserAvatar" class="sidebar-avatar" src="https://picsum.photos/seed/default-avatar/100/100.jpg" alt="用户头像" onclick="document.getElementById('avatarInput').click()">
+<input type="file" id="avatarInput" accept="image/*" onchange="handleAvatarUpload(event)">
+</div> 
+<div class="username-container">
+<div class="sidebar-username" id="usernameDisplay" onclick="editUsername()">苏沫</div>
+<input type="text" class="username-input" id="usernameInput" maxlength="20" placeholder="输入用户名">
+<div class="username-actions" id="usernameActions">
+<button class="btn-save" onclick="saveUsername()">保存</button>
+<button class="btn-cancel" onclick="cancelEditUsername()">取消</button>
+</div>
+</div> 
+<div class="signature-container">
+<label class="signature-label">Signature</label> 
+<div class="signature" id="signatureDisplay" onclick="editSignature()">暂无个性签名</div>
+<input type="text" class="signature-input" id="signatureInput" maxlength="19" placeholder="输入个性签名(最多19字)">
+<div class="signature-actions" id="signatureActions">
+<button class="btn-save" onclick="saveSignature()">保存</button>
+<button class="btn-cancel" onclick="cancelEditSignature()">取消</button>
+</div> 
+</div>
+</div> 
+<div class="menu-section">
+<div class="menu-title">Data Management</div> 
+<div class="menu-grid">
+<div class="menu-item" onclick="showFileModal()">
+<div class="menu-icon"><i class="fas fa-file-export"></i></div>
+<div class="menu-name">文件导出</div>
+</div> 
+<div class="menu-item" onclick="showFileImportModal()">
+<div class="menu-icon"><i class="fas fa-file-import"></i></div>
+<div class="menu-name">文件导入</div>
+</div> 
+<div class="menu-item" onclick="showCopyModal()">
+<div class="menu-icon"><i class="fas fa-copy"></i></div> 
+<div class="menu-name">复制数据</div>
+</div> 
+<div class="menu-item" onclick="showPasteModal()">
+<div class="menu-icon"><i class="fas fa-paste"></i></div> 
+<div class="menu-name">粘贴导入</div> 
+</div> 
+</div> 
+</div>
+
+<!-- ============================================== -->
+<!-- 新增：数据导出中心卡片 -->
+<!-- ============================================== -->
+<div class="menu-section">
+    <div class="menu-title">数据导出中心</div>
+    <div class="menu-grid" id="dataExportGrid">
+        <!-- 便签数据导出按钮将由JS动态插入 -->
+    </div>
+</div>
+
+<!-- 已删除System Modules和Settings卡片-->
+<div class="cordova-status cordova-waiting" id="environmentStatus">[ENVIRONMENT:DETECTING]</div>
+
+<!-- 文件导出模态框-->
+<div id="fileModal" class="modal">
+<div class="modal-content">
+<div class="modal-header">
+<div class="modal-title">文件导出</div> 
+</div> 
+<div class="modal-body">
+<div class="auth-section">
+<div class="auth-title">身份验证</div> 
+<div class="form-group">
+<label class="form-label">账号</label> 
+<input type="text" class="form-input" id="exportAccount" placeholder="请输入导出账号">
+</div> 
+<div class="form-group">
+<label class="form-label">密码</label> 
+<input type="password" class="form-input" id="exportPassword" placeholder="请输入导出密码">
+</div>
+</div> 
+<div class="form-group">
+<label class="form-label">存储区</label> 
+<select class="form-input" id="fileStore">
+<option value="all">全部数据</option> 
+<option value="userdata">用户数据</option> 
+<option value="configs">配置数据</option> 
+<option value="official">官方数据</option> 
+</select>
+</div> 
+<div class="form-group">
+<button class="copy-btn" onclick="executeFileExport()">导出为文件</button>
+</div>
+</div> 
+<div class="modal-footer">
+<button class="modal-btn modal-btn-secondary" onclick="closeModal('fileModal')">关闭</button>
+</div> 
+</div> 
+</div>
+
+<!-- 文件导入模态框-->
+<div id="fileImportModal" class="modal">
+<div class="modal-content">
+<div class="modal-header">
+<div class="modal-title">文件导入</div> 
+</div>
+<div class="modal-body">
+<div class="auth-section">
+<div class="auth-title">身份验证</div> 
+<div class="form-group">
+<label class="form-label">账号</label> 
+<input type="text" class="form-input" id="importAccount" placeholder="请输入导入账号">
+</div> 
+<div class="form-group">
+<label class="form-label">密码</label> 
+<input type="password" class="form-input" id="importPassword" placeholder="请输入导入密码">
+</div>
+</div> 
+<div class="form-group">
+<input type="file" class="form-input" id="importFile" accept=".json">
+</div> 
+<div class="form-group">
+<label class="form-label">
+<input type="checkbox" id="overwriteFile" checked>覆盖现有数据
+</label>
+</div> 
+<div class="form-group">
+<button class="copy-btn" onclick="executeFileImport()">导入文件</button>
+</div>
+</div> 
+<div class="modal-footer">
+<button class="modal-btn modal-btn-secondary" onclick="closeModal('fileImportModal')">关闭</button>
+</div> 
+</div> 
+</div>
+
+<!-- 复制数据模态框-->
+<div id="copyModal" class="modal">
+<div class="modal-content">
+<div class="modal-header">
+<div class="modal-title">复制数据</div> 
+</div> 
+<div class="modal-body">
+<div class="auth-section">
+<div class="auth-title">身份验证</div>
+<div class="form-group">
+<label class="form-label">账号</label> 
+<input type="text" class="form-input" id="copyAccount" placeholder="请输入导出账号">
+</div> 
+<div class="form-group">
+<label class="form-label">密码</label> 
+<input type="password" class="form-input" id="copyPassword" placeholder="请输入导出密码">
+</div>
+</div> 
+<div class="form-group">
+<button class="copy-btn" onclick="executeCopy()">生成数据</button>
+</div> 
+<div class="form-group">
+<textarea class="form-textarea" id="copyResult" placeholder="数据将显示在这里" readonly></textarea>
+</div> 
+<div class="form-group">
+<button class="copy-btn" onclick="copyToClipboard()">复制到剪贴板</button>
+</div>
+</div> 
+<div class="modal-footer">
+<button class="modal-btn modal-btn-secondary" onclick="closeModal('copyModal')">关闭</button>
+</div> 
+</div> 
+</div>
+
+<!-- 粘贴导入模态框-->
+<div id="pasteModal" class="modal">
+<div class="modal-content">
+<div class="modal-header">
+<div class="modal-title">粘贴导入</div> 
+</div> 
+<div class="modal-body">
+<div class="auth-section">
+<div class="auth-title">身份验证</div> 
+<div class="form-group">
+<label class="form-label">账号</label> 
+<input type="text" class="form-input" id="pasteAccount" placeholder="请输入导入账号">
+</div> 
+<div class="form-group">
+<label class="form-label">密码</label> 
+<input type="password" class="form-input" id="pastePassword" placeholder="请输入导入密码">
+</div>
+</div> 
+<div class="form-group">
+<textarea class="form-textarea" id="pasteData" placeholder="粘贴要导入的JSON数据"></textarea>
+</div> 
+<div class="form-group">
+<label class="form-label">
+<input type="checkbox" id="overwritePaste" checked>覆盖现有数据
+</label>
+</div> 
+<div class="form-group">
+<button class="copy-btn" onclick="executePasteImport()">导入数据</button>
+</div>
+</div> 
+<div class="modal-footer">
+<button class="modal-btn modal-btn-secondary" onclick="closeModal('pasteModal')">关闭</button>
+</div> 
+</div> 
+</div>
+
+<script>
+//==============================================
+// 1. 全局变量
+//==============================================
+let cordovaReady = false; 
+let cordovaTime = null; 
+let environmentType = 'browser';
+
+//==============================================
+// 2. 监听主页面的Cordova状态
+//==============================================
+window.addEventListener('message', function(event) {
+    if (event.data.type === 'cordovaReady') {
+        console.log('侧边栏收到Cordova票！', event.data.time); 
+        cordovaReady = true; 
+        cordovaTime = event.data.time; 
+        environmentType = 'cordova'; 
+        onEnvironmentDetected();
+    }
+});
+
+//==============================================
+// 3. 环境检测完成处理
+//==============================================
+function onEnvironmentDetected() {
+    const statusEl = document.getElementById('environmentStatus'); 
+    if (environmentType === 'cordova') {
+        statusEl.className = 'cordova-status cordova-ready'; 
+        statusEl.textContent = `[ENVIRONMENT:CORDOVA${cordovaTime}]`;
+        // parent.postMessage({type:'showToast', message: 'Cordova环境，支持手机导出'}, '*');
+    } else {
+        statusEl.className = 'cordova-status cordova-browser'; 
+        statusEl.textContent = '[ENVIRONMENT:BROWSER]'; 
+        parent.postMessage({type:'showToast', message: '浏览器环境，支持下载导出'}, '*');
+    }
+}
+
+//==============================================
+// 4. 用户数据管理
+//==============================================
+function updateUserData() {
+    loadUserAvatar(); 
+    loadUserData();
+}
+
+function loadUserData() {
+    const savedUsername = localStorage.getItem('username'); 
+    if (savedUsername) {
+        document.getElementById('usernameDisplay').textContent = savedUsername;
+    } else {
+        document.getElementById('usernameDisplay').textContent = '苏沫';
+    } 
+    const savedSignature = localStorage.getItem('userSignature'); 
+    if (savedSignature) {
+        document.getElementById('signatureDisplay').textContent = savedSignature;
+    } else {
+        document.getElementById('signatureDisplay').textContent = '暂无个性签名';
+    } 
+    const userStatus = localStorage.getItem('userStatus'); 
+    if (userStatus) {
+        document.getElementById('userStatus').textContent = userStatus;
+    }
+}
+
+function loadUserAvatar() {
+    const savedAvatar = localStorage.getItem('userAvatar'); 
+    if (savedAvatar) {
+        document.getElementById('sidebarUserAvatar').src = savedAvatar;
+    }
+}
+
+//==============================================
+// 5. 头像上传处理
+//==============================================
+function handleAvatarUpload(event) {
+    const file = event.target.files[0]; 
+    if (!file) return; 
+    if (!file.type.startsWith('image/')) {
+        parent.postMessage({type:'showToast', message: '请选择有效的图片文件'}, '*'); 
+        return;
+    } 
+    if (file.size > 5 * 1024 * 1024) {
+        parent.postMessage({type:'showToast', message: '图片大小不能超过5MB'}, '*'); 
+        return;
+    } 
+    const reader = new FileReader(); 
+    reader.onload = function(e) {
+        const avatarData = e.target.result; 
+        document.getElementById('sidebarUserAvatar').src = avatarData;
+        localStorage.setItem('userAvatar', avatarData); 
+        parent.postMessage({type: 'updateAvatar', avatar: avatarData}, '*'); 
+        parent.postMessage({type:'showToast', message: '头像更换成功!'}, '*');
+    }; 
+    reader.readAsDataURL(file); 
+    event.target.value = "";
+}
+
+//==============================================
+// 6. 用户名编辑
+//==============================================
+function editUsername() {
+    const display = document.getElementById('usernameDisplay'); 
+    const input = document.getElementById('usernameInput'); 
+    const actions = document.getElementById('usernameActions'); 
+    input.value = display.textContent; 
+    display.style.display = 'none'; 
+    input.style.display = 'block'; 
+    actions.style.display = 'flex'; 
+    input.focus(); 
+    input.select();
+}
+
+function saveUsername() {
+    const input = document.getElementById('usernameInput'); 
+    const display = document.getElementById('usernameDisplay'); 
+    const actions = document.getElementById('usernameActions'); 
+    const username = input.value.trim(); 
+    if (username === "") {
+        parent.postMessage({type:'showToast', message: '用户名不能为空'}, '*'); 
+        return;
+    } 
+    display.textContent = username; 
+    localStorage.setItem('username', username); 
+    display.style.display = 'inline-block'; 
+    input.style.display = 'none'; 
+    actions.style.display = 'none'; 
+    parent.postMessage({type:'showToast', message: '用户名已更新'}, '*');
+}
+
+function cancelEditUsername() {
+    const display = document.getElementById('usernameDisplay'); 
+    const input = document.getElementById('usernameInput'); 
+    const actions = document.getElementById('usernameActions'); 
+    display.style.display = 'inline-block'; 
+    input.style.display = 'none'; 
+    actions.style.display = 'none';
+}
+
+//==============================================
+// 7. 个性签名编辑
+//==============================================
+function editSignature() {
+    const display = document.getElementById('signatureDisplay'); 
+    const input = document.getElementById('signatureInput'); 
+    const actions = document.getElementById('signatureActions');
+    input.value = display.textContent === "暂无个性签名" ? "" : display.textContent;
+    display.style.display = 'none'; 
+    input.style.display = 'block'; 
+    actions.style.display = 'flex'; 
+    input.focus();
+}
+
+function saveSignature() {
+    const input = document.getElementById('signatureInput'); 
+    const display = document.getElementById('signatureDisplay'); 
+    const actions = document.getElementById('signatureActions'); 
+    const signature = input.value.trim(); 
+    if (signature === "") {
+        parent.postMessage({type:'showToast', message: '个性签名不能为空'}, '*'); 
+        return;
+    } 
+    display.textContent = signature; 
+    localStorage.setItem('userSignature', signature); 
+    display.style.display = 'block'; 
+    input.style.display = 'none'; 
+    actions.style.display = 'none'; 
+    parent.postMessage({type:'showToast', message: '个性签名已更新'}, '*');
+}
+
+function cancelEditSignature() {
+    const display = document.getElementById('signatureDisplay'); 
+    const input = document.getElementById('signatureInput'); 
+    const actions = document.getElementById('signatureActions'); 
+    display.style.display = 'block'; 
+    input.style.display = 'none'; 
+    actions.style.display = 'none';
+}
+
+//==============================================
+// 8. 模态框控制
+//==============================================
+function closeSidebar() {
+    parent.postMessage({type: 'closeSidebar'}, '*');
+}
+
+function changeBackground() {
+    parent.postMessage({type: 'changeBackground'}, '*');
+}
+
+function showFileModal() {
+    document.getElementById('fileModal').style.display = 'block';
+}
+
+function showFileImportModal() {
+    document.getElementById('fileImportModal').style.display = 'block';
+}
+
+function showCopyModal() {
+    document.getElementById('copyModal').style.display = 'block';
+}
+
+function showPasteModal() {
+    document.getElementById('pasteModal').style.display = 'block';
+}
+
+//==============================================
+// 9. 复制数据功能 - 支持对象参数
+//==============================================
+async function executeCopy() {
+    const account = document.getElementById('copyAccount').value.trim();
+    const password = document.getElementById('copyPassword').value.trim();
+    const resultEl = document.getElementById('copyResult');
+
+    if (!account || !password) {
+        parent.postMessage({
+            type: 'showToast', 
+            message: '请输入账号和密码'
+        }, '*');
+        return;
+    }
+
+    resultEl.value = '正在生成数据...';
+
+    try {
+        const IDB = getIDB();
+        if (!IDB) {
+            throw new Error('IDB数据库未加载');
+        }
+
+        // 使用新的对象参数格式
+        const exportData = await IDB.exportData({
+            account: account,
+            password: password,
+            includeUserData: true,
+            includeConfigs: true
+        });
+        
+        resultEl.value = JSON.stringify(exportData, null, 2);
+        parent.postMessage({
+            type: 'showToast', 
+            message: '数据生成成功'
+        }, '*');
+
+        // 清空账号密码
+        document.getElementById('copyAccount').value = '';
+        document.getElementById('copyPassword').value = '';
+    } catch (error) {
+        console.error('生成数据失败:', error);
+        resultEl.value = `生成失败: ${error.message}`;
+        parent.postMessage({
+            type: 'showToast', 
+            message: `生成失败:${error.message}`
+        }, '*');
+    }
+}
+
+//==============================================
+// 10. 复制到剪贴板
+//==============================================
+function copyToClipboard() {
+    const resultEl = document.getElementById('copyResult'); 
+    const text = resultEl.value;
+    
+    if (!text || text.includes('生成失败') || text.includes('正在生成')) {
+        parent.postMessage({
+            type: 'showToast', 
+            message: '没有可复制的数据'
+        }, '*'); 
+        return;
+    }
+    
+    try {
+        navigator.clipboard.writeText(text).then(() => {
+            parent.postMessage({
+                type: 'showToast', 
+                message: '已复制到剪贴板'
+            }, '*');
+        }).catch(() => {
+            // 降级方案
+            const textArea = document.createElement('textarea'); 
+            textArea.value = text; 
+            document.body.appendChild(textArea); 
+            textArea.select(); 
+            document.execCommand('copy'); 
+            document.body.removeChild(textArea);
+            parent.postMessage({
+                type: 'showToast', 
+                message: '已复制到剪贴板'
+            }, '*');
+        });
+    } catch (error) {
+        parent.postMessage({
+            type: 'showToast', 
+            message: '复制失败'
+        }, '*');
+    }
+}
+
+//==============================================
+// 11. 粘贴导入数据功能 - 支持对象参数
+//==============================================
+async function executePasteImport() {
+    const account = document.getElementById('pasteAccount').value.trim();
+    const password = document.getElementById('pastePassword').value.trim();
+    const pasteData = document.getElementById('pasteData').value;
+    const overwrite = document.getElementById('overwritePaste').checked;
+
+    if (!account || !password) {
+        parent.postMessage({
+            type: 'showToast', 
+            message: '请输入账号和密码'
+        }, '*');
+        return;
+    }
+    
+    if (!pasteData.trim()) {
+        parent.postMessage({
+            type: 'showToast', 
+            message: '请粘贴要导入的数据'
+        }, '*');
+        return;
+    }
+
+    try {
+        const importData = JSON.parse(pasteData);
+
+        // 使用新的对象参数格式
+        const IDB = getIDB();
+        if (!IDB) {
+            throw new Error('IDB数据库未加载');
+        }
+        
+        await IDB.importData({
+            jsonData: importData,
+            account: account,
+            password: password,
+            overwrite: overwrite
+        });
+        
+        parent.postMessage({
+            type: 'showToast', 
+            message: '导入成功'
+        }, '*');
+        closeModal('pasteModal');
+        document.getElementById('pasteData').value = '';
+
+        // 清空账号密码
+        document.getElementById('pasteAccount').value = '';
+        document.getElementById('pastePassword').value = '';
+    } catch (error) {
+        console.error('导入失败:', error);
+        parent.postMessage({
+            type: 'showToast', 
+            message: `导入失败:${error.message}`
+        }, '*');
+    }
+}
+
+//==============================================
+// 12. 事件处理
+//==============================================
+window.onclick = function(event) {
+    if (event.target.classList.contains('modal')) {
+        event.target.style.display = 'none';
+    }
+};
+
+window.addEventListener('load', function() {
+    loadUserAvatar(); 
+    loadUserData(); 
+    setTimeout(() => {
+        if (!cordovaReady) {
+            environmentType = 'browser'; 
+            onEnvironmentDetected();
+        }
+    }, 3000); 
+});
+</script>
+</body> 
+</html>

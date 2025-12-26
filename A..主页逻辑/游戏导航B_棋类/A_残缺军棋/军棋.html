@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>中国军棋AI版 - XSimple</title>
+    <script src="style.js"></script>
+</head>
+<body>
+
+<div class="header">
+    <div class="header-left">
+        <h1 class="game-title">军棋大师</h1>
+        <div id="status">准备开始</div>
+    </div>
+    <div class="header-right">
+        <span id="role-badge" class="role-badge">未选色</span>
+        <button class="btn btn-primary" onclick="resetGame()">重新开始</button>
+    </div>
+</div>
+
+<div class="game-container">
+    <div class="board-wrapper">
+        <div class="board-container">
+            <div class="grid-area" id="board-top"></div>
+            <div class="river">
+                <div class="river-text">界 河</div>
+                <div class="river-decoration"></div>
+            </div>
+            <div class="grid-area" id="board-bottom"></div>
+        </div>
+    </div>
+</div>
+
+<div class="modal" id="end-modal">
+    <div class="modal-content">
+        <h2 id="end-msg">游戏结束</h2>
+        <button class="btn btn-primary btn-large" onclick="resetGame()">再来一局</button>
+    </div>
+</div>
+
+<script src="logic.js"></script>
+</body>
+</html>

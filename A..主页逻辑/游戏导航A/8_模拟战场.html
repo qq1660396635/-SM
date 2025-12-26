@@ -1,0 +1,734 @@
+<!DOCTYPE html> <html lang="zh-CN"> <head><meta charset="UTF-8"> <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>角色战场模拟器</title>
+
+            <!-- 引入数据库管理器 -->
+    <script src="/db.js"></script>
+    
+        <!-- 引入插件工具箱 🏄-->
+    <script src="/A2_全局中心/B_插件工具/toolbox.js"></script>  
+
+
+ <style>* { margin: 0; padding: 0; box-sizing: border-box; } 
+body { overflow: hidden; font-family: 'Segoe UI', Arial, sans-serif;touch-action: none; position: relative; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); } 
+#gameContainer { position: fixed; top: 50px; left: 0; right: 0; bottom: 0;overflow: auto; } 
+#canvas { cursor: crosshair; background: radial-gradient(ellipse atcenter, rgba(255,255,255,0.05) 0%, transparent 70%); display: block; } 
+#topBar { position: fixed; top: 0; left: 0; right: 0; height: 50px;background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: flex-end; padding: 0 20px; z-index: 100; border-bottom: 1px solid rgba(255,255,255,0.1); } 
+#menuToggle { width: 40px; height: 40px; background:linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; border-radius: 8px; color: white; font-size: 18px; cursor: pointer; z-index: 1000; box-shadow: 0 4px 15px rgba(0,0,0,0.3); transition: all 0.3s ease; display: flex; align-items: center; justify-content: center; } 
+#menuToggle:hover { transform: scale(1.1); box-shadow: 0 6px 20pxrgba(0,0,0,0.4); } 
+#menuToggle.active { background: linear-gradient(135deg, #f093fb0%, #f5576c 100%); } 
+#controlPanel { position: fixed; top: 60px; right: 20px; width: 350px;max-height: calc(100vh - 120px); background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(20px); border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); z-index: 999; transform: translateX(400px); transition: transform 0.3s ease; overflow: hidden; display: flex; flex-direction: column; } 
+#controlPanel.active { transform: translateX(0); } 
+.panel-header { padding: 15px; background: linear-gradient(135deg,#667eea 0%, #764ba2 100%); color: white; font-size: 16px; font-weight: bold; text-align: center; } 
+.panel-content { flex: 1; overflow-y: auto; padding: 15px; } 
+.category-section { margin-bottom: 20px; } 
+.category-title { font-size: 14px; font-weight: bold; color: #333;margin-bottom: 10px; padding: 6px 10px; background: linear-gradient(135deg,#f8f9fa 0%, #e9ecef 100%); border-radius: 8px; display: flex; align-items: center; gap: 6px; } 
+.category-title.good { background: linear-gradient(135deg, #d4edda0%, #c3e6cb 100%); color: #155724; } 
+.category-title.evil { background: linear-gradient(135deg, #f8d7da 0%,#f5c6cb 100%); color: #721c24; } 
+.char-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap:8px; } 
+.charBtn { aspect-ratio: 1; border: 2px solid #e1e5e9; border-radius:10px; font-size: 20px; background: white; cursor: pointer; transition: all 0.3s ease; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; overflow: hidden; font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif; } 
+.charBtn:hover { transform: translateY(-2px); box-shadow: 0 4px 12pxrgba(0,0,0,0.2); } 
+.charBtn.selected { background: linear-gradient(135deg, #ffd700 0%,#ffed4e 100%); border-color: #fff; animation: pulse 1s infinite; } 
+@keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(255,215,0,0.7); }70% { box-shadow: 0 0 0 8px rgba(255,215,0,0); } 100% { box-shadow: 0 0 0 0 rgba(255,215,0,0); } } 
+.charBtn span { font-size: 8px; margin-top: 1px; color: #666;font-weight: bold; } 
+.panel-footer { padding: 12px; background: #f8f9fa; border-top: 1pxsolid #e1e5e9; display: flex; gap: 8px; } 
+.panel-btn { flex: 1; padding: 8px; border: none; border-radius: 6px;font-size: 12px; font-weight: bold; cursor: pointer; transition: all 0.3s ease; } 
+.clear-btn { background: linear-gradient(135deg, #ff4444 0%, #cc0000100%); color: white; } 
+.help-btn { background: linear-gradient(135deg, #4CAF50 0%,#45a049 100%); color: white; } 
+.panel-btn:hover { transform: translateY(-2px); box-shadow: 0 4px12px rgba(0,0,0,0.2); } 
+#stats { position: fixed; top: 60px; left: 20px; background:rgba(0,0,0,0.7); color: #fff; padding: 12px; border-radius: 10px; font-size: 11px; z-index: 50; min-width: 140px; backdrop-filter: blur(10px); } 
+.stat-line { margin: 4px 0; display: flex; justify-content: space-between;align-items: center; } 
+.stat-value { font-weight: bold; color: #ffd700; } 
+#timeStopUI { position: fixed; top: 50%; left: 50%; transform:translate(-50%, -50%); font-size: 50px; color: #fff; display: none; pointer-events: none; z-index: 1000; text-shadow: 0 0 30px rgba(255,255,255,0.8); animation: timeStopPulse 0.5s infinite alternate; } 
+@keyframes timeStopPulse { from { opacity: 0.8; transform:translate(-50%, -50%) scale(1); } to { opacity: 1; transform: translate(-50%,-50%) scale(1.1); } } 
+#helpModal { position: fixed; top: 0; left: 0; right: 0; bottom: 0;background: rgba(0,0,0,0.8); z-index: 2000; display: none; align-items: center; justify-content: center; padding: 20px; } 
+#helpModal.active { display: flex; } 
+.help-content { background: white; border-radius: 20px; max-width:500px; max-height: 80vh; overflow-y: auto; padding: 25px; position: relative; } 
+.help-close { position: absolute; top: 12px; right: 12px; width: 35px;height: 35px; border: none; background: #f44336; color: white; border-radius: 50%; font-size: 18px; cursor: pointer; transition: all 0.3s ease; } 
+.help-close:hover { transform: scale(1.1); background: #d32f2f; } 
+.help-title { font-size: 20px; font-weight: bold; color: #333;margin-bottom: 15px; text-align: center; } 
+.help-section { margin-bottom: 15px; } 
+.help-section h3 { color: #667eea; margin-bottom: 8px; font-size:16px; } 
+.help-section p { color: #666; line-height: 1.5; margin-bottom: 8px;font-size: 14px; } 
+.help-section ul { margin-left: 15px; color: #666; font-size: 14px; } 
+.help-section li { margin-bottom: 4px; } 
+.bg-animation { position: fixed; top: 0; left: 0; width: 100%; height:100%; pointer-events: none; z-index: -1; } 
+.bg-particle { position: absolute; background: rgba(255, 255, 255, 0.1);border-radius: 50%; animation: float 20s infinite linear; } 
+@keyframes float { 0% { transform: translateY(100vh) rotate(0deg);opacity: 0; } 10% { opacity: 0.4; } 90% { opacity: 0.4; } 100% { transform: translateY(-100vh) rotate(360deg); opacity: 0; } } 
+#zoomControls { position: fixed; bottom: 20px; right: 20px; z-index:1001; display: flex; flex-direction: column; gap: 5px; } 
+.zoom-btn { width: 40px; height: 40px; background: rgba(0, 0, 0, 0.7);border: none; border-radius: 50%; color: white; font-size: 18px; cursor: pointer; transition: all 0.3s ease; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(10px); } 
+.zoom-btn:hover { background: rgba(0, 0, 0, 0.9); transform:scale(1.1); } 
+@media (max-width: 768px) { #controlPanel { width: 320px; right:10px; top: 60px; } #stats { top: 120px; left: 10px; padding: 10px; min-width: 120px; } .char-grid { grid-template-columns: repeat(4, 1fr); gap: 6px; } .charBtn { font-size: 18px; } .charBtn span { font-size: 7px; } #zoomControls { bottom: 10px; right: 10px; } .zoom-btn { width: 35px; height: 35px; font-size: 16px; } } 
+@media (max-width: 480px) { #controlPanel { width: calc(100% -20px); right: 10px; left: 10px; max-height: 70vh; } .char-grid { grid-template-columns: repeat(4, 1fr); gap: 5px; } .charBtn { font-size:16px; } .charBtn span { font-size: 6px; } .help-content { padding: 20px; } #topBar { padding: 0 15px; } } 
+</style> </head> <body><div class="bg-animation" id="bgAnimation"></div> <div id="gameContainer"><canvas id="canvas"></canvas> </div><div id="topBar"><button id="menuToggle">☰</button> </div><div id="controlPanel"><div class="panel-header">角色选择</div> <div class="panel-content"><div class="category-section"><div class="category-title good">🛡️好人阵营</div> <div class="char-grid"><button class="charBtn" data-char="🧑‍🔬">🧑‍🔬<span> 科学家1</span></button><button class="charBtn" data-char="🧑‍🔬">🧑‍🔬<span> 科学家2</span></button><button class="charBtn" data-char="🤠">🤠<span> 牛仔</span></button><button class="charBtn" data-char="🛡️">🛡️<span> 黄脸</span></button><button class="charBtn" data-char="🛢️">🛢️<span> 装甲者</span></button><button class="charBtn" data-char="🛣️">🛣️<span> 长枪哥</span></button><button class="charBtn" data-char="🤫">🤫<span> 低调黑客</span></button><button class="charBtn" data-char="🥷">🥷<span> 蕾忍</span></button><button class="charBtn" data-char="🛡️🌫️">🛡️🌫️<span> 超级装甲</span></button><button class="charBtn" data-char="🤴">🤴<span> 国王</span></button><button class="charBtn" data-char="😡">😡<span> 红温黄脸</span></button><button class="charBtn" data-char="⏸️">⏸️<span> 时间暂停</span></button></div></div> <div class="category-section"><div class="category-title evil">👿坏人阵营</div> <div class="char-grid"><button class="charBtn" data-char="🕶️">🕶️<span> 墨镜哥</span></button><button class="charBtn" data-char="🔫">🔫<span> 枪击者</span></button><button class="charBtn" data-char="🤡">🤡<span> 小丑</span></button><button class="charBtn" data-char="🧛️">🧛️<span>吸血鬼</span></button><button class="charBtn" data-char="👹">👹<span> 突变体</span></button><button class="charBtn" data-char="👾">👾<span>暗影突变体</span></button><button class="charBtn" data-char="👺">👺<span>精英突变体</span></button><button class="charBtn" data-char="🤪">🤪<span> 疯子</span></button></div></div> <div class="category-section"><div class="category-title">🏛️建筑</div> <div class="char-grid"><button class="charBtn" data-char="🌳">🌳<span> 大树</span></button><button class="charBtn" data-char="🌲">🌲<span> 松树</span></button><button class="charBtn" data-char="🌵">🌵<span> 仙人掌</span></button><button class="charBtn" data-char="🎍">🎍<span> 竹盆栽</span></button></div> </div></div> <div class="panel-footer"><button class="panel-btn clear-btn" id="clearBtn"> 清空战场</button><button class="panel-btn help-btn" id="helpBtn"> 游戏说明</button></div></div><div id="stats"><div class="stat-line"> 角色 总数: <span class="stat-value"id="charCount">0</span></div><div class="stat-line"> 好人 阵营: <span class="stat-value"id="goodCount">0</span></div><div class="stat-line"> 坏人 阵营: <span class="stat-value"id="evilCount">0</span></div><div class="stat-line"> 子 弹 数 : <span class="stat-value"id="bulletCount">0</span></div></div><div id="timeStopUI">⏸️时间暂停⏸️</div><div id="helpModal"><div class="help-content"><button class="help-close" id="helpClose">×</button> <h2 class="help-title">🎮游戏说明</h2> <div class="help-section"><h3>📖基本玩法</h3> <p>这是一个角色战场模拟器，你可以放置不同的角色在战场上，观看他们自动战斗！</p></div> <div class="help-section"><h3>🎯操作方法</h3> <ul><li>点击右上角菜单按钮打开控制面板</li> <li>选择想要放置的角色</li> <li>点击战场任意位置放置角色</li> <li>角色会自动寻找并攻击敌对阵营</li> </ul></div> <div class="help-section"><h3>⚔️阵营介绍</h3> <p><strong>好人阵营（绿色） ：</strong>正义的英雄们，会主动攻击坏人</p><p><strong>坏人阵营（红色） ：</strong>邪恶的反派们，会攻击所有好人</p></div> <div class="help-section"><h3>🌟特殊角色</h3> <ul><li><strong>⏸️时间暂停：</strong>每局只能使用一次，可以暂停时间10 秒</li><li><strong>🤪疯子：</strong>死亡时会对周围造成巨大伤害</li><li><strong>🕶️墨镜哥：</strong>造成百分比伤害</li> <li><strong>🤫低调黑客：</strong>远程代码攻击</li> <li><strong>🛡️黄脸：</strong>死亡时可能变成红温黄脸</li> </ul></div> <div class="help-section"><h3>💡小贴士</h3> <ul><li>合理布置角色位置，发挥最大战斗力</li> <li>观察角色技能，制定战术</li> <li>建筑可以阻挡部分角色的移动</li> <li>数据会自动保存，下次打开继续游戏</li> </ul> </div> </div> </div><div id="zoomControls"><button class="zoom-btn" id="zoomIn">+</button> <button class="zoom-btn" id="zoomOut">-</button> <button class="zoom-btn" id="zoomReset">⟲</button> 
+</script><script>// 游戏主逻辑 
+const canvas = document.getElementById('canvas'); 
+const ctx = canvas.getContext('2d'); 
+const gameContainer = document.getElementById('gameContainer');
+
+// 设置画布大小为屏幕的3倍 
+const baseWidth = window.innerWidth;
+const baseHeight = window.innerHeight; 
+canvas.width = baseWidth * 3; 
+canvas.height = baseHeight * 3;
+
+// 缩放控制 
+let currentZoom = 1; 
+const zoomStep = 0.1; 
+const minZoom = 0.5; 
+const maxZoom = 3;
+
+const SIZE = 40; 
+let selectedChar = ''; 
+const chars = []; 
+const bullets = []; 
+const particles = []; 
+const buildings = []; 
+const effects = []; 
+const swords = []; 
+const damageTexts = [];
+const invisibleBlocks = []; 
+let globalTimeStop = false; 
+let globalTimeStopTimer = 0; 
+const globalTimeStopDuration = 600;
+
+// 阵营定义 
+const evilChars = ['🤡', '🧛️', '👹', '👾', '👺', '🤪', '🕶️', '🔫']; 
+const goodChars = ['🧑‍🔬', '🧑‍🔬', '🤠', '🛡️', '🛢️', '🛣️', '🤫', '🥷', '🛡️🌫️', '🤴', '😡', '⏸️']; 
+const buildingChars = ['🌳', '🌲', '🌵', '🎍'];
+
+// UI 控制 
+const menuToggle = document.getElementById('menuToggle'); 
+const controlPanel = document.getElementById('controlPanel'); 
+const helpModal = document.getElementById('helpModal'); 
+const helpBtn = document.getElementById('helpBtn'); 
+const helpClose = document.getElementById('helpClose');
+
+// 缩放控制 
+const zoomInBtn = document.getElementById('zoomIn'); 
+const zoomOutBtn = document.getElementById('zoomOut'); 
+const zoomResetBtn = document.getElementById('zoomReset');
+
+menuToggle.addEventListener('click', () => {
+    controlPanel.classList.toggle('active'); 
+    menuToggle.classList.toggle('active');
+});
+
+helpBtn.addEventListener('click', () => {
+    helpModal.classList.add('active'); 
+});
+
+helpClose.addEventListener('click', () => {
+    helpModal.classList.remove('active'); 
+});
+
+helpModal.addEventListener('click', (e) => {
+    if (e.target === helpModal) {
+        helpModal.classList.remove('active');
+    }
+});
+
+// 缩放功能- 正确的画布缩放 
+zoomInBtn.addEventListener('click', () => {
+    if (currentZoom < maxZoom) {
+        currentZoom += zoomStep; 
+        updateCanvasZoom();
+    }
+});
+
+zoomOutBtn.addEventListener('click', () => {
+    if (currentZoom > minZoom) {
+        currentZoom -= zoomStep; 
+        updateCanvasZoom();
+    }
+});
+
+zoomResetBtn.addEventListener('click', () => {
+    currentZoom = 1; 
+    updateCanvasZoom(); 
+});
+
+function updateCanvasZoom() {
+    canvas.style.transform = `scale(${currentZoom})`; 
+    canvas.style.transformOrigin = 'top left';
+    // 调整容器滚动范围 
+    const scaledWidth = canvas.width * currentZoom; 
+    const scaledHeight = canvas.height * currentZoom;
+    if (scaledWidth > window.innerWidth || scaledHeight > (window.innerHeight - 50)) {
+        gameContainer.style.overflow = 'auto'; 
+    } else {
+        gameContainer.style.overflow = 'hidden';
+    }
+}
+
+// 角色选择 
+const btns = document.querySelectorAll('.charBtn'); 
+btns.forEach(btn => {
+    btn.onclick = () => {
+        selectedChar = btn.dataset.char; 
+        btns.forEach(b => b.classList.remove('selected')); 
+        btn.classList.add('selected'); 
+        controlPanel.classList.remove('active'); 
+        menuToggle.classList.remove('active'); 
+    }; 
+});
+
+// 清空战场 
+document.getElementById('clearBtn').onclick = () => {
+    chars.length = 0; 
+    bullets.length = 0; 
+    particles.length = 0; 
+    buildings.length = 0; 
+    effects.length = 0; 
+    swords.length = 0; 
+    damageTexts.length = 0;
+    invisibleBlocks.length = 0; 
+    globalTimeStop = false; 
+    globalTimeStopTimer = 0; 
+    document.getElementById('timeStopUI').style.display = 'none'; 
+    chars.forEach(char => {
+        if (char.e === '⏸️') {
+            char.timeStopUsed = false;
+        }
+    }); 
+    saveGameState(); 
+    updateStats(); 
+};
+
+// 点击画布放置角色 
+canvas.onclick = (e) => {
+    if (!selectedChar) return; 
+    const rect = canvas.getBoundingClientRect(); 
+    const x = (e.clientX - rect.left) / currentZoom; 
+    const y = (e.clientY - rect.top) / currentZoom;
+    let canPlace = true; 
+    for (let char of chars) {
+        if (Math.hypot(char.x - x, char.y - y) < SIZE * 1.5) {
+            canPlace = false; 
+            break;
+        }
+    }
+    if (canPlace) {
+        for (let building of buildings) {
+            if (Math.hypot(building.x - x, building.y - y) < building.size) {
+                canPlace = false; 
+                break;
+            }
+        }
+    }
+    if (canPlace) {
+        if (buildingChars.includes(selectedChar)) {
+            const building = new Building(selectedChar, x, y); 
+            buildings.push(building); 
+            if (building.blocks) {
+                invisibleBlocks.push(new InvisibleBlock(x - building.size/2, y - building.size/2, building.size, building.size));
+            }
+        } else {
+            const newChar = new Char(selectedChar, x, y); 
+            chars.push(newChar);
+        }
+        // 放置特效 
+        for (let i = 0; i < 10; i++) {
+            particles.push({
+                x, y, vx: (Math.random() - 0.5) * 5, vy: (Math.random() - 0.5) * 5, life: 20, color: evilChars.includes(selectedChar) ? '#f00' : '#0f0'
+            });
+        }
+        saveGameState();
+        updateStats();
+    }
+};
+
+// 隐形方块类 
+class InvisibleBlock {
+    constructor(x, y, w, h) {
+        this.x = x; 
+        this.y = y; 
+        this.w = w; 
+        this.h = h; 
+    } 
+    intersects(cx, cy, cr) {
+        const closestX = Math.max(this.x, Math.min(cx, this.x + this.w));
+        const closestY = Math.max(this.y, Math.min(cy, this.y + this.h));
+        const dx = cx - closestX; 
+        const dy = cy - closestY; 
+        return (dx * dx + dy * dy) < cr * cr;
+    }
+}
+
+// 保存游戏状态 
+async function saveGameState() {
+    const gameState = {
+        chars: chars.map(c => ({
+            e: c.e, x: c.x, y: c.y, health: c.health, maxHealth: c.maxHealth, timeStopUsed: c.timeStopUsed || false
+        })), 
+        buildings: buildings.map(b => ({ e: b.e, x: b.x, y: b.y })) 
+    }; 
+    await IDB.put('D_battleState', gameState, 'userdata'); 
+    console.log('游戏状态已保存');
+}
+
+// 加载游戏状态 
+async function loadGameState() {
+    const gameState = await IDB.get('D_battleState', 'userdata'); 
+    if (gameState) {
+        console.log('加载游戏状态...');
+        // 恢复建筑 
+        if (gameState.buildings) {
+            gameState.buildings.forEach(b => {
+                const building = new Building(b.e, b.x, b.y); 
+                buildings.push(building); 
+                if (building.blocks) {
+                    invisibleBlocks.push(new InvisibleBlock(b.x - building.size/2, b.y - building.size/2, building.size, building.size));
+                }
+            });
+        }
+        // 恢复角色 
+        if (gameState.chars) {
+            gameState.chars.forEach(c => {
+                const char = new Char(c.e, c.x, c.y); 
+                char.health = c.health; 
+                char.maxHealth = c.maxHealth; 
+                char.timeStopUsed = c.timeStopUsed || false; 
+                chars.push(char); 
+            });
+        }
+        updateStats(); 
+        return true; 
+    } 
+    return false;
+}
+
+// 更新统计 
+function updateStats() {
+    document.getElementById('charCount').textContent = chars.filter(c => !c.dead).length;
+    document.getElementById('goodCount').textContent = chars.filter(c => !c.dead && goodChars.includes(c.e)).length;
+    document.getElementById('evilCount').textContent = chars.filter(c => !c.dead && evilChars.includes(c.e)).length;
+    document.getElementById('bulletCount').textContent = bullets.length;
+}
+
+function dist(a, b) {
+    return Math.hypot(a.x - b.x, a.y - b.y);
+}
+
+function randAngle() {
+    return Math.random() * Math.PI * 2;
+}
+
+function addBlood(x, y, type = 'normal', count = 15) {
+    for (let i = 0; i < count; i++) {
+        particles.push({
+            x, y, vx: (Math.random() - 0.5) * 6, vy: (Math.random() - 0.5) * 6, life: 30 + Math.random() * 20, color: type === 'dark' ? '#111' : '#c00', size: Math.random() * 3 + 1
+        });
+    }
+}
+
+function addShock(x, y, radius, color) {
+    effects.push({ type: 'shock', x, y, radius, color, life: 25 });
+}
+
+function addSlash(x, y, r, angle) {
+    swords.push({ x, y, r, angle, life: 20, maxLife: 20 });
+}
+
+function addDamageText(x, y, damage, isPercent) {
+    damageTexts.push({
+        x, y, damage, isPercent, life: 40, vy: -3, size: isPercent ? 20 : 16
+    });
+}
+
+function getAllTargets(self) {
+    return chars.filter(c => c !== self && !c.dead);
+}
+
+function getEnemies(self) {
+    const isEvil = evilChars.includes(self.e); 
+    return chars.filter(c => c !== self && !c.dead && (isEvil ? goodChars.includes(c.e) : evilChars.includes(c.e)));
+}
+
+function getFriends(self) {
+    const isEvil = evilChars.includes(self.e); 
+    return chars.filter(c => c !== self && !c.dead && (isEvil ? evilChars.includes(c.e) : goodChars.includes(c.e)));
+}
+
+function randomBinary() {
+    const len = Math.floor(Math.random() * 5) + 3; 
+    let str = ''; 
+    for (let i = 0; i < len; i++) str += Math.random() < 0.5 ? '0' : '1'; 
+    return str;
+}
+
+function randomSymbols() {
+    const symbols = '!@.^&*()_+-=[]{}|;:,.<>?/~`'; 
+    const len = Math.floor(Math.random() * 5) + 3; 
+    let str = ''; 
+    for (let i = 0; i < len; i++) str += symbols[Math.floor(Math.random() * symbols.length)];
+    return str;
+}
+
+class Bullet {
+    constructor(x, y, target, power, isYellow, acc, isText, isRed = false) {
+        this.x = x; 
+        this.y = y; 
+        this.target = target; 
+        this.power = power;
+        this.speed = 10; 
+        this.isYellow = isYellow; 
+        this.acc = acc || 1; 
+        this.isText = isText || false;
+        this.text = isText ? (isRed ? randomSymbols() : randomBinary()) : ''; 
+        this.isRed = isRed; 
+        this.trail = [];
+    }
+    update() {
+        if (!this.target || this.target.dead) { 
+            this.dead = true; 
+            return; 
+        } 
+        this.trail.push({ x: this.x, y: this.y, life: 10 }); 
+        if (this.trail.length > 5) this.trail.shift(); 
+        let ang = Math.atan2(this.target.y - this.y, this.target.x - this.x); 
+        ang += (Math.random() - 0.5) * (1 - this.acc); 
+        this.x += Math.cos(ang) * this.speed; 
+        this.y += Math.sin(ang) * this.speed;
+        if (dist(this, this.target) < 20) {
+            const prevHealth = this.target.health;
+            this.target.takeDamage(this.power);
+            const dmg = prevHealth - this.target.health;
+            addDamageText(this.target.x, this.target.y, dmg, this.target.e === '🤪' || this.target.e === '🕶️');
+            this.dead = true;
+        }
+    }
+    draw() {
+        this.trail.forEach((t, i) => {
+            ctx.globalAlpha = i / this.trail.length * 0.5; 
+            ctx.fillStyle = this.isYellow ? '#ff0' : '#fff'; 
+            ctx.beginPath(); 
+            ctx.arc(t.x, t.y, 2, 0, Math.PI * 2); 
+            ctx.fill(); 
+        }); 
+        ctx.globalAlpha = 1; 
+        if (this.isText) {
+            ctx.font = 'bold 14px monospace'; 
+            ctx.fillStyle = this.isRed ? '#f00' : '#0f0';
+            ctx.textAlign = 'center'; 
+            ctx.textBaseline = 'middle';
+            ctx.fillText(this.text, this.x, this.y);
+        } else {
+            ctx.fillStyle = this.isYellow ? '#ff0' : '#fff'; 
+            ctx.shadowBlur = 10; 
+            ctx.shadowColor = this.isYellow ? '#ff0' : '#fff';
+            ctx.beginPath(); 
+            ctx.arc(this.x, this.y, 5, 0, Math.PI * 2);
+            ctx.fill(); 
+            ctx.shadowBlur = 0;
+        }
+    }
+}
+
+class Building {
+    constructor(emoji, x, y) {
+        this.e = emoji; 
+        this.x = x; 
+        this.y = y; 
+        this.size = SIZE * (this.e === '🌵' ? 1.5 : (this.e === '🎍' ? 3 : 2)); 
+        this.blocks = this.e === '🎍'; 
+    } 
+    draw() {
+        ctx.font = this.size + 'px Arial'; 
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle'; 
+        ctx.globalAlpha = 0.9;
+        ctx.fillText(this.e, this.x, this.y); 
+        ctx.globalAlpha = 1;
+    }
+}
+
+class Char {
+    constructor(emoji, x, y) {
+        this.e = emoji; 
+        this.x = x; 
+        this.y = y; 
+        this.vx = 0; 
+        this.vy = 0;
+        this.speed = 2; 
+        this.dir = randAngle();
+        this.moveTimer = 0; 
+        this.shootTimer = 0; 
+        this.attackTimer = 0;
+        this.setStats(); 
+        this.trail = [];
+        this.size = SIZE; 
+        this.killer = null; 
+        this.invincible = 0;
+        this.lastTarget = null;
+        this.teleportTimer = 0; 
+        this.comboStep = 0; 
+        this.comboTimer = 0;
+        this.timeStopCooldown = 0;
+        this.timeStopUsed = false; 
+    } 
+    setStats() {
+        switch(this.e) {
+            case '🕶️': this.health = 2500; this.power = 0.15; this.speed = 3; break;
+            case '🧑‍🔬': this.health = 3000; this.power = 800; this.speed = 2.5; break;
+            case '🤠': this.health = 1200; this.power = 600; this.speed = 3; break;
+            case '🛡️': this.health = 200; this.power = 50; this.speed = 1.5; break;
+            case '🔫': this.health = 300; this.power = 150; this.speed = 2; break;
+            case '🛢️': this.health = 800; this.power = 100; this.speed = 1; break;
+            case '🤡': this.health = 400; this.power = 200; this.speed = 2.5; break;
+            case '🧛️': this.health = 1000; this.power = 400; this.speed = 2; break;
+            case '👹': this.health = 1800; this.power = 500; this.speed = 2.5; break;
+            case '👾': this.health = 2500; this.power = 600; this.speed = 3; break;
+            case '🛣️': this.health = 2000; this.power = 400; this.speed = 2.5; break;
+            case '🤫': this.health = 600; this.power = 300; this.speed = 0; this.size = SIZE * 1.2; break;
+            case '👺': this.health = 5000; this.power = 800; this.speed = 2.5; this.size = SIZE * 1.5; break;
+            case '🤪': this.health = 1000; this.power = 0.15; this.speed = 3; break;
+            case '🥷': this.health = 1500; this.power = 150; this.speed = 4; break;
+            case '🛡️🌫️': this.health = 8000; this.power = 200; this.speed = 1; this.size = SIZE * 1.3; break;
+            case '🤴': this.health = 3000; this.power = 300; this.speed = 2; break;
+            case '😡': this.health = 1500; this.power = 250; this.speed = 2.5; break;
+            case '⏸️': this.health = 1200; this.power = 300; this.speed = 3; break;
+        } 
+        this.maxHealth = this.health; 
+    } 
+    takeDamage(dmg) {
+        if (this.invincible > 0) return; 
+        const prevHealth = this.health; 
+        this.health -= dmg; 
+        if (this.health < prevHealth && this.health > 0) {
+            addBlood(this.x, this.y, 'normal', 5); 
+            this.invincible = 10;
+        }
+    }
+    checkCollision(nx, ny) {
+        if (nx < this.size/2 || nx > canvas.width - this.size/2 || ny < this.size/2 || ny > canvas.height - this.size/2) return true;
+        for (let block of invisibleBlocks) {
+            if (block.intersects(nx, ny, this.size/2)) return true; 
+        } 
+        return false; 
+    } 
+    update() {
+        if (this.health <= 0 && this.health !== Infinity) {
+            if (this.e === '🛡️' && Math.random() < 0.3) {
+                const red = new Char('😡', this.x, this.y); 
+                red.killer = this.killer; 
+                chars.push(red);
+                addShock(this.x, this.y, 100, '#f80'); 
+                red.invincible = 30;
+            }
+            this.dead = true; 
+            addBlood(this.x, this.y, 'normal', 20); 
+            if (this.e === '🤪') {
+                addShock(this.x, this.y, 150, '#f0f'); 
+                chars.forEach(c => {
+                    if (c !== this && !c.dead && dist(this, c) < 150) {
+                        c.takeDamage(c.maxHealth * 0.5);
+                    }
+                });
+            } 
+            return;
+        }
+        if (this.invincible > 0) this.invincible--; 
+        if (this.timeStopCooldown > 0) this.timeStopCooldown--; 
+        const enemies = getEnemies(this); 
+        const friends = getFriends(this); 
+        const all = getAllTargets(this);
+        if (globalTimeStop && this.e !== '⏸️') return;
+        if (this.e === '⏸️') {
+            if (!this.timeStopUsed && this.timeStopCooldown <= 0 && enemies.length > 0) {
+                globalTimeStop = true; 
+                globalTimeStopTimer = globalTimeStopDuration;
+                this.timeStopCooldown = 999999; 
+                this.timeStopUsed = true;
+                document.getElementById('timeStopUI').style.display = 'block';
+            }
+        }
+        if (enemies.length > 0) {
+            let target = enemies[0], md = Infinity; 
+            enemies.forEach(e => { 
+                let d = dist(this, e); 
+                if (d < md) {
+                    md = d; 
+                    target = e; 
+                } 
+            });
+            this.dir = Math.atan2(target.y - this.y, target.x - this.x); 
+            const nx = this.x + Math.cos(this.dir) * this.speed; 
+            const ny = this.y + Math.sin(this.dir) * this.speed;
+            if (!this.checkCollision(nx, ny)) { 
+                this.x = nx; 
+                this.y = ny; 
+            } 
+            if (md < 40) {
+                if (++this.attackTimer > 15) {
+                    this.attackTimer = 0;
+                    target.takeDamage(this.power); 
+                    addSlash(this.x, this.y, 60, this.dir);
+                }
+            } else if (md < 200) {
+                if (++this.shootTimer > 30) {
+                    this.shootTimer = 0; 
+                    const b = new Bullet(this.x, this.y, target, this.power, false, 0.95); 
+                    bullets.push(b);
+                }
+            }
+        } else {
+            if (++this.moveTimer > 60) { 
+                this.moveTimer = 0; 
+                this.dir = randAngle(); 
+            } 
+            const nx = this.x + Math.cos(this.dir) * this.speed * 0.5; 
+            const ny = this.y + Math.sin(this.dir) * this.speed * 0.5;
+            if (!this.checkCollision(nx, ny)) { 
+                this.x = nx; 
+                this.y = ny; 
+            } 
+        }
+    } 
+    draw() {
+        this.trail.push({ x: this.x, y: this.y, life: 10 }); 
+        if (this.trail.length > 10) this.trail.shift(); 
+        this.trail.forEach((t, i) => {
+            ctx.globalAlpha = i / this.trail.length * 0.3; 
+            ctx.fillStyle = evilChars.includes(this.e) ? '#f00' : '#0f0'; 
+            ctx.beginPath(); 
+            ctx.arc(t.x, t.y, this.size * 0.3, 0, Math.PI * 2); 
+            ctx.fill();
+        }); 
+        ctx.globalAlpha = 1; 
+        ctx.save(); 
+        ctx.translate(this.x, this.y); 
+        if (this.invincible > 0 && this.invincible % 4 < 2) {
+            ctx.globalAlpha = 0.5;
+        }
+        if (this.e === '⏸️' && this.timeStopUsed) { 
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = '#888'; 
+        } else if (evilChars.includes(this.e)) { 
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = '#f00'; 
+        } else if (goodChars.includes(this.e)) { 
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = '#0f0'; 
+        }
+        ctx.font = this.size + 'px Arial'; 
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle'; 
+        ctx.fillText(this.e, 0, 0); 
+        ctx.restore(); 
+        if (this.health < this.maxHealth) {
+            const barWidth = this.size * 2; 
+            const barHeight = 4; 
+            const barY = this.y - this.size - 10;
+            ctx.fillStyle = '#000'; 
+            ctx.fillRect(this.x - barWidth/2, barY, barWidth, barHeight);
+            const healthPercent = this.health / this.maxHealth; 
+            ctx.fillStyle = healthPercent > 0.5 ? '#0f0' : healthPercent > 0.25 ? '#ff0' : '#f00';
+            ctx.fillRect(this.x - barWidth/2, barY, barWidth * healthPercent, barHeight);
+        }
+    }
+}
+
+// 游戏循环 
+function gameLoop() {
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.05)'; 
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    if (globalTimeStop) {
+        globalTimeStopTimer--; 
+        if (globalTimeStopTimer <= 0) { 
+            globalTimeStop = false;
+            document.getElementById('timeStopUI').style.display = 'none'; 
+        }
+        ctx.fillStyle = 'rgba(100, 100, 255, 0.1)'; 
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+    buildings.forEach(b => b.draw()); 
+    chars.forEach(char => { 
+        if (!char.dead) { 
+            char.update(); 
+            char.draw(); 
+        } 
+    });
+    bullets.forEach((bullet, i) => { 
+        bullet.update(); 
+        bullet.draw(); 
+        if (bullet.dead) bullets.splice(i, 1); 
+    });
+    particles.forEach((p, i) => {
+        p.x += p.vx; 
+        p.y += p.vy; 
+        p.vy += 0.2; 
+        p.life--; 
+        p.vx *= 0.98; 
+        ctx.globalAlpha = p.life / 30; 
+        ctx.fillStyle = p.color;
+        ctx.beginPath(); 
+        ctx.arc(p.x, p.y, p.size || 2, 0, Math.PI * 2); 
+        ctx.fill();
+        if (p.life <= 0) particles.splice(i, 1); 
+    }); 
+    ctx.globalAlpha = 1; 
+    effects.forEach((e, i) => {
+        e.life--; 
+        if (e.type === 'shock') {
+            ctx.strokeStyle = e.color; 
+            ctx.globalAlpha = e.life / 25;
+            ctx.lineWidth = 3;
+            ctx.beginPath(); 
+            ctx.arc(e.x, e.y, e.radius * (1 - e.life / 25), 0, Math.PI * 2); 
+            ctx.stroke();
+        } 
+        if (e.life <= 0) effects.splice(i, 1); 
+    }); 
+    ctx.globalAlpha = 1; 
+    swords.forEach((s, i) => {
+        s.life--; 
+        ctx.strokeStyle = '#fff'; 
+        ctx.globalAlpha = s.life / s.maxLife; 
+        ctx.lineWidth = 4;
+        ctx.beginPath(); 
+        ctx.moveTo(s.x, s.y); 
+        ctx.lineTo(s.x + Math.cos(s.angle) * s.r, s.y + Math.sin(s.angle) * s.r); 
+        ctx.stroke();
+        if (s.life <= 0) swords.splice(i, 1); 
+    }); 
+    ctx.globalAlpha = 1; 
+    damageTexts.forEach((t, i) => {
+        t.y += t.vy; 
+        t.vy += 0.1; 
+        t.life--; 
+        ctx.font = `bold ${t.size}px Arial`; 
+        ctx.fillStyle = t.isPercent ? '#ff0' : '#fff';
+        ctx.textAlign = 'center'; 
+        ctx.globalAlpha = t.life / 40; 
+        ctx.fillText(t.isPercent ? `-${(t.damage * 100).toFixed(0)}%` : `-${Math.floor(t.damage)}`, t.x, t.y);
+        if (t.life <= 0) damageTexts.splice(i, 1); 
+    }); 
+    ctx.globalAlpha = 1; 
+    for (let i = chars.length - 1; i >= 0; i--) {
+        if (chars[i].dead) chars.splice(i, 1); 
+    }
+    updateStats();
+    requestAnimationFrame(gameLoop);
+}
+
+// 初始化游戏 
+async function initGame() {
+    console.log('初始化游戏...');
+    // 尝试加载游戏状态 
+    const hasSavedState = await loadGameState(); 
+    if (!hasSavedState) {
+        console.log('没有保存的游戏状态，开始新游戏'); 
+    } else {
+        console.log('游戏状态加载完成'); 
+    }
+    // 启动游戏循环 
+    gameLoop();
+}
+
+// 启动 
+window.addEventListener('DOMContentLoaded', initGame);
+
+// 页面卸载时保存数据 
+window.addEventListener('beforeunload', async () => {
+    await saveGameState();
+});
+</script> </body> </html>

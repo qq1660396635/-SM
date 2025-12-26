@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>数据分析中心</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { 
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    min-height: 100vh; overflow-x: hidden; position: relative;
+    background: #0f0f1e;
+    color: #ffffff;
+}
+
+/* 动态背景 */
+.background { 
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0;
+    background: linear-gradient(135deg, #0f0f1e 0%, #1a1a3e 50%, #16213e 100%);
+}
+
+.liquid-bg {
+    position: absolute; width: 100%; height: 100%;
+    overflow: hidden;
+}
+
+.liquid-blob {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.4;
+    animation: liquidMove 20s infinite ease-in-out;
+}
+
+.blob1 {
+    width: 400px; height: 400px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    top: -200px; left: -200px;
+    animation-delay: 0s;
+}
+
+.blob2 {
+    width: 350px; height: 350px;
+    background: linear-gradient(135deg, #f093fb, #f5576c);
+    bottom: -150px; right: -150px;
+    animation-delay: 5s;
+}
+
+.blob3 {
+    width: 300px; height: 300px;
+    background: linear-gradient(135deg, #4facfe, #00f2fe);
+    top: 50%; left: 50%;
+    animation-delay: 10s;
+}
+
+@keyframes liquidMove {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    25% { transform: translate(100px, -50px) scale(1.1); }
+    50% { transform: translate(-50px, 100px) scale(0.9); }
+    75% { transform: translate(50px, 50px) scale(1.05); }
+}
+
+.container { 
+    position: relative; z-index: 1; max-width: 500px; margin: 0 auto; 
+    padding: 20px; min-height: 100vh; display: flex; flex-direction: column;
+}
+
+header { 
+    text-align: center; margin-bottom: 30px;
+    animation: slideDown 0.8s ease;
+}
+
+header h1 { 
+    font-size: 2rem; font-weight: 700; margin-bottom: 8px;
+    background: linear-gradient(135deg, #667eea, #764ba2, #f093fb);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: 1px;
+}
+
+header p { 
+    font-size: 0.95rem; color: rgba(255, 255, 255, 0.6);
+    letter-spacing: 0.5px;
+}
+
+.nav-grid { 
+    display: grid; 
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px; 
+    flex: 1; 
+    align-content: start; 
+    padding: 10px 0;
+    animation: fadeIn 0.8s ease 0.3s both;
+}
+
+.tool-tile {
+    position: relative;
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    overflow: hidden;
+    aspect-ratio: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 15px;
+}
+
+.tool-tile::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(135deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+    transform: translateX(-100%);
+    transition: transform 0.6s;
+}
+
+.tool-tile:hover::before {
+    transform: translateX(100%);
+}
+
+.tool-tile:hover {
+    transform: translateY(-5px) scale(1.05);
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 10px 40px rgba(102, 126, 234, 0.3);
+}
+
+.tool-icon-wrapper {
+    position: relative;
+    width: 50px; height: 50px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tool-icon {
+    font-size: 1.8rem;
+    z-index: 1;
+    transition: all 0.3s ease;
+}
+
+.icon-glow {
+    position: absolute;
+    width: 100%; height: 100%;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(102, 126, 234, 0.3), transparent);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.tool-tile:hover .icon-glow {
+    opacity: 1;
+    animation: pulse 2s infinite;
+}
+
+.tool-tile:hover .tool-icon {
+    transform: scale(1.1) rotate(5deg);
+}
+
+.tool-title { 
+    font-size: 0.75rem; font-weight: 500; color: rgba(255, 255, 255, 0.9);
+    text-align: center;
+    line-height: 1.2;
+    transition: all 0.3s ease;
+}
+
+.tool-tile:hover .tool-title {
+    color: #ffffff;
+    transform: translateY(-2px);
+}
+
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-30px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 0.5; }
+    50% { transform: scale(1.2); opacity: 0.8; }
+}
+
+/* 响应式设计 */
+@media (max-width: 400px) { 
+    header h1 { font-size: 1.7rem; } 
+    .nav-grid { gap: 12px; }
+    .tool-icon { font-size: 1.5rem; }
+    .tool-title { font-size: 0.7rem; }
+}
+
+/* 加载动画 */
+.loading-skeleton {
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.05) 25%, rgba(255, 255, 255, 0.1) 50%, rgba(255, 255, 255, 0.05) 75%);
+    background-size: 200% 100%;
+    animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+</style>
+</head>
+<body>
+<div class="background">
+    <div class="liquid-bg">
+        <div class="liquid-blob blob1"></div>
+        <div class="liquid-blob blob2"></div>
+        <div class="liquid-blob blob3"></div>
+    </div>
+</div>
+
+<div class="container">
+<header>
+<h1>✨ 数据分析中心</h1>
+<p>探索无限可能，开启智能体验</p>
+</header>
+
+<div class="nav-grid" id="navGrid">
+<!-- 工具卡片将在这里动态生成 -->
+</div>
+</div>
+
+<script src="数据报告-config.js"></script>
+<script>
+// 初始化应用
+class NavigationApp {
+    constructor() {
+        this.init();
+    }
+    
+    init() {
+        // 等待配置加载完成
+        if (typeof window.navConfig === 'undefined') {
+            setTimeout(() => this.init(), 100);
+            return;
+        }
+        
+        // 直接渲染所有工具
+        this.renderAllTools();
+    }
+    
+    renderAllTools() {
+        const navGrid = document.getElementById('navGrid');
+        const tools = window.navConfig.getAllTools();
+        
+        // 为每个工具添加随机延迟动画
+        navGrid.innerHTML = tools.map((tool, index) => `
+            <div class="tool-tile" 
+                 onclick="navigateTo('${tool.file}')" 
+                 style="animation: fadeIn 0.5s ease ${index * 0.05}s both;">
+                <div class="tool-icon-wrapper">
+                    <div class="icon-glow"></div>
+                    <div class="tool-icon">${tool.icon || '🔧'}</div>
+                </div>
+                <div class="tool-title">${tool.name}</div>
+            </div>
+        `).join('');
+    }
+}
+
+// 导航到指定页面
+function navigateTo(file) {
+    // 添加点击反馈
+    event.currentTarget.style.transform = 'scale(0.95)';
+    setTimeout(() => {
+        window.location.href = file;
+    }, 150);
+}
+
+// 启动应用
+document.addEventListener('DOMContentLoaded', () => {
+    new NavigationApp();
+});
+
+// 添加页面可见性变化监听，优化性能
+document.addEventListener('visibilitychange', () => {
+    const blobs = document.querySelectorAll('.liquid-blob');
+    blobs.forEach(blob => {
+        blob.style.animationPlayState = document.hidden ? 'paused' : 'running';
+    });
+});
+</script>
+</body>
+</html>

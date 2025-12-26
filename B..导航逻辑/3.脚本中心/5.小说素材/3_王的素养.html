@@ -1,0 +1,1215 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>👑 王的素养 - 治国理政百科全书</title>
+    <style>
+        :root {
+            --primary: #d4af37;
+            --secondary: #8b4513;
+            --accent: #ff6b35;
+            --bg-dark: #1a1a1a;
+            --bg-card: rgba(30, 30, 30, 0.95);
+            --text-primary: #f5f5dc;
+            --text-secondary: #d3d3d3;
+            --border: rgba(212, 175, 55, 0.3);
+            --zoom-level: 1;
+            --font-size-level: 1;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Source Han Serif SC', 'Noto Serif SC', 'SimSun', serif;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 50%, #1a1a1a 100%);
+            min-height: 100vh;
+            color: var(--text-primary);
+            position: relative;
+            overflow-x: hidden;
+            transform-origin: center center;
+            transform: scale(var(--zoom-level));
+            transition: transform 0.3s ease;
+        }
+
+        /* 古典纹理背景 */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(212, 175, 55, 0.03) 10px, transparent 20px),
+                repeating-linear-gradient(-45deg, transparent, transparent 10px, rgba(139, 69, 19, 0.02) 10px, transparent 20px);
+            z-index: -2;
+        }
+
+        /* 玉玺印章效果 */
+        body::after {
+            content: '👑';
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 300px;
+            opacity: 0.02;
+            color: var(--primary);
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 15px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* 头部区域 - 与控制面板在同一行 */
+        .header-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding: 10px 0;
+        }
+
+        header {
+            flex: 1;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 2rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 20px rgba(212, 175, 55, 0.3);
+            margin-bottom: 5px;
+            letter-spacing: 3px;
+            font-weight: 900;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+
+        .imperial-seal {
+            display: inline-flex;
+            gap: 15px;
+            padding: 8px 15px;
+            background: rgba(212, 175, 55, 0.1);
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            font-size: 0.75rem;
+        }
+
+        .seal-item {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+        }
+
+        .seal-indicator {
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: var(--primary);
+        }
+
+        /* 控制面板 - 美观设计 */
+        .control-panel {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 8px 12px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            position: relative;
+            z-index: 1100; /* 👈 加这句，确保它不被其他元素压住 */
+        }
+
+        .control-toggle {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border: none;
+            color: var(--bg-dark);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            transition: all 0.3s;
+            box-shadow: 0 3px 10px rgba(212, 175, 55, 0.3);
+        }
+
+        .control-toggle:hover {
+            transform: scale(1.1);
+            box-shadow: 0 5px 15px rgba(212, 175, 55, 0.5);
+        }
+
+        .control-content {
+            position: absolute;
+            top: 50px;
+            right: 0;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 15px;
+            padding: 20px;
+            min-width: 280px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            display: none;
+            backdrop-filter: blur(20px);
+            z-index: 1000;
+        }
+
+        .control-content.show {
+            display: block;
+            animation: slideDown 0.3s ease;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .control-section {
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(212, 175, 55, 0.1);
+        }
+
+        .control-section:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+
+        .control-label {
+            color: var(--primary);
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+            display: block;
+            font-weight: bold;
+        }
+
+        .control-info {
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            margin-bottom: 10px;
+        }
+
+        .control-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .control-input {
+            flex: 1;
+            padding: 8px 10px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.3);
+            color: var(--text-primary);
+            font-size: 0.85rem;
+            font-family: inherit;
+            transition: all 0.3s;
+        }
+
+        .control-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
+        }
+
+        .control-buttons {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .control-btn {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.3);
+            color: var(--text-primary);
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.3s;
+            font-family: inherit;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+        }
+
+        .control-btn:hover {
+            background: rgba(212, 175, 55, 0.1);
+            border-color: var(--primary);
+            transform: translateY(-1px);
+        }
+
+        .control-btn.primary {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: var(--bg-dark);
+            border: none;
+            font-weight: bold;
+        }
+
+        .control-btn.primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(212, 175, 55, 0.3);
+        }
+
+        .control-btn.danger {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .control-btn.danger:hover {
+            background: rgba(255, 107, 53, 0.1);
+        }
+
+        .control-btn-icon {
+            font-size: 0.9rem;
+        }
+
+        /* 搜索区域 */
+        .search-card {
+            background: var(--bg-card);
+            border-radius: 15px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border: 1px solid var(--border);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            position: relative;
+        }
+
+        .search-box {
+            flex: 1;
+            padding: 10px 15px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            transition: all 0.3s;
+            font-family: inherit;
+        }
+
+        .search-box:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
+        }
+
+        .add-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 10px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: var(--bg-dark);
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            white-space: nowrap;
+            font-size: 0.85rem;
+        }
+
+        .add-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(212, 175, 55, 0.4);
+        }
+
+        /* 词条网格 - 超紧凑布局 */
+        .terms-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 8px;
+            margin: 15px 0;
+        }
+
+        .term-card {
+            background: var(--bg-card);
+            border-radius: 10px;
+            padding: 10px;
+            border: 1px solid var(--border);
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+            min-height: 120px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .term-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            transform: scaleX(0);
+            transition: transform 0.3s;
+        }
+
+        .term-card:hover {
+            transform: translateY(-3px);
+            border-color: var(--primary);
+            box-shadow: 0 5px 15px rgba(212, 175, 55, 0.3);
+        }
+
+        .term-card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .term-number {
+            display: inline-block;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: var(--bg-dark);
+            padding: 2px 6px;
+            border-radius: 8px;
+            font-size: 0.65rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .term-text {
+            font-size: 0.85rem;
+            line-height: 1.4;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+            flex-grow: 1;
+        }
+
+        .term-categories {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 3px;
+        }
+
+        .category-tag {
+            background: rgba(212, 175, 55, 0.1);
+            color: var(--primary);
+            padding: 1px 5px;
+            border-radius: 6px;
+            font-size: 0.6rem;
+            border: 1px solid rgba(212, 175, 55, 0.2);
+        }
+
+        /* 分页 */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 5px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+
+        .pagination button {
+            padding: 5px 10px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--bg-card);
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.8rem;
+            font-family: inherit;
+        }
+
+        .pagination button:hover:not(:disabled) {
+            border-color: var(--primary);
+            background: rgba(212, 175, 55, 0.1);
+        }
+
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .pagination .active {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: var(--bg-dark);
+            border-color: transparent;
+        }
+
+        .page-info {
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            margin: 0 5px;
+        }
+
+        /* 统计信息 */
+        .stats {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: var(--bg-card);
+            padding: 10px 15px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            font-size: 0.8rem;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+        }
+
+        .stats-number {
+            color: var(--primary);
+            font-weight: bold;
+        }
+
+        /* 模态框 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 2000;
+        }
+
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--bg-card);
+            padding: 20px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .modal-title {
+            font-size: 1.2rem;
+            color: var(--primary);
+            font-weight: bold;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+            color: var(--text-secondary);
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: var(--primary);
+            font-size: 0.9rem;
+        }
+
+        .form-group input, .form-group textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.3);
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            font-family: inherit;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .submit-btn {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: var(--bg-dark);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: bold;
+            transition: all 0.3s;
+            width: 100%;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(212, 175, 55, 0.4);
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 76px) {
+            .header-container {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            h1 { font-size: 1.5rem; }
+            .terms-grid { grid-template-columns: 1fr; }
+            .stats { display: none; }
+            .search-card { flex-direction: column; }
+            .add-btn { width: 100%; }
+            .control-panel { 
+                position: static; 
+                margin-bottom: 10px;
+                justify-content: center;
+            }
+            .control-content { 
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                min-width: 250px;
+                max-width: 90%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 头部与控制面板在同一行 -->
+        <div class="header-container">
+            <header>
+                <h1>👑 王的素养</h1>
+                <p class="subtitle">治国理政百科全书 - 千年智慧的现代诠释</p>
+                <div class="imperial-seal">
+                    <div class="seal-item">
+                        <div class="seal-indicator"></div>
+                        <span>政治智慧</span>
+                    </div>
+                    <div class="seal-item">
+                        <div class="seal-indicator"></div>
+                        <span>经济谋略</span>
+                    </div>
+                    <div class="seal-item">
+                        <div class="seal-indicator"></div>
+                        <span>文化传承</span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- 控制面板 -->
+            <div class="control-panel">
+                <button class="control-toggle" id="controlToggle">⚙️</button>
+                <div class="control-content" id="controlContent">
+                    <!-- 页面跳转 -->
+                    <div class="control-section">
+                        <label class="control-label">📖 页面跳转</label>
+                        <div class="control-info">当前: <span id="currentPageDisplay">1</span> / <span id="totalPagesDisplay">1</span> 页</div>
+                        <div class="control-row">
+                            <input type="number" class="control-input" id="pageJumpInput" min="1" placeholder="页码">
+                            <button class="control-btn primary" id="jumpToPageBtn">
+                                <span class="control-btn-icon">🔗</span>
+                                跳转
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 缩放控制 -->
+                    <div class="control-section">
+                        <label class="control-label">🔍 页面缩放</label>
+                        <div class="control-info">当前: <span id="zoomDisplay">100%</span></div>
+                        <div class="control-buttons">
+                            <button class="control-btn" id="zoomOutBtn">
+                                <span class="control-btn-icon">➖</span>
+                                缩小
+                            </button>
+                            <button class="control-btn" id="zoomInBtn">
+                                <span class="control-btn-icon">➕</span>
+                                放大
+                            </button>
+                            <button class="control-btn" id="zoomResetBtn">
+                                <span class="control-btn-icon">⟲</span>
+                                重置
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 字体调整 -->
+                    <div class="control-section">
+                        <label class="control-label">📝 字体大小</label>
+                        <div class="control-info">当前: <span id="fontDisplay">100%</span></div>
+                        <div class="control-buttons">
+                            <button class="control-btn" id="fontDecreaseBtn">
+                                <span class="control-btn-icon">A-</span>
+                                减小
+                            </button>
+                            <button class="control-btn" id="fontIncreaseBtn">
+                                <span class="control-btn-icon">A+</span>
+                                增大
+                            </button>
+                            <button class="control-btn" id="fontResetBtn">
+                                <span class="control-btn-icon">A</span>
+                                重置
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 持久化管理 -->
+                    <div class="control-section">
+                        <label class="control-label">💾 阅读进度</label>
+                        <div class="control-info">自动保存当前页面</div>
+                        <div class="control-buttons">
+                            <button class="control-btn" id="saveProgressBtn">
+                                <span class="control-btn-icon">💾</span>
+                                保存进度
+                            </button>
+                            <button class="control-btn" id="loadProgressBtn">
+                                <span class="control-btn-icon">📂</span>
+                                加载进度
+                            </button>
+                            <button class="control-btn danger" id="clearProgressBtn">
+                                <span class="control-btn-icon">🗑️</span>
+                                清除记录
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <main>
+            <div class="search-card">
+                <input type="text" class="search-box" id="searchBox" placeholder="🔍 搜索治国理念、历史典故或管理智慧...">
+                <button class="add-btn" id="addTermBtn">+ 添加条目</button>
+            </div>
+
+            <div class="terms-grid" id="termsGrid"></div>
+            <div class="pagination" id="pagination"></div>
+        </main>
+    </div>
+
+    <div class="stats" id="stats">
+        共 <span class="stats-number" id="termCount">0</span> 条治国智慧
+    </div>
+
+    <!-- 添加词条模态框 -->
+    <div class="modal" id="addModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">📝 添加新条目</h2>
+                <button class="close-btn" id="closeModal">&times;</button>
+            </div>
+            <form id="addForm">
+                <div class="form-group">
+                    <label for="newText">条目内容：</label>
+                    <textarea id="newText" required placeholder="请输入治国理念或管理智慧..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="newCategories">分类标签（用逗号分隔）：</label>
+                    <input type="text" id="newCategories" placeholder="例如：政治,经济,文化">
+                </div>
+                <button type="submit" class="submit-btn">提交条目</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // 按需加载配置文件
+        (function() {
+            const configKey = '3_king_config.js';
+            if (window._allScripts && window._allScripts[configKey]) {
+                initApp();
+                return;
+            }
+
+            const script = document.createElement('script');
+            script.src = configKey;
+            script.onload = () => {
+                window._allScripts = window._allScripts || {};
+                window._allScripts[configKey] = true;
+                initApp();
+            };
+            document.head.appendChild(script);
+        })();
+
+        // 应用初始化
+        function initApp() {
+            if (!window.wangDeSuyangConfig) {
+                console.error('配置文件加载失败');
+                return;
+            }
+
+            let currentPage = 1;
+            const itemsPerPage = 20;
+            let allTerms = window.wangDeSuyangConfig.getAllTerms();
+            let filteredTerms = [...allTerms];
+
+            // 初始化页面
+            function init() {
+                updateStats();
+                renderTerms();
+                renderPagination();
+                updateControlPanel();
+                // 自动保存进度
+                autoSaveProgress();
+            }
+
+            // 更新控制面板显示
+            function updateControlPanel() {
+                const totalPages = Math.ceil(filteredTerms.length / itemsPerPage);
+                document.getElementById('currentPageDisplay').textContent = currentPage;
+                document.getElementById('totalPagesDisplay').textContent = totalPages;
+                document.getElementById('pageJumpInput').max = totalPages;
+                document.getElementById('zoomDisplay').textContent = Math.round(getCurrentZoom() * 100) + '%';
+                document.getElementById('fontDisplay').textContent = Math.round(getCurrentFontSize() * 100) + '%';
+            }
+
+            // 获取当前缩放级别
+            function getCurrentZoom() {
+                return parseFloat(document.documentElement.style.getPropertyValue('--zoom-level')) || 1;
+            }
+
+            // 获取当前字体级别
+            function getCurrentFontSize() {
+                return parseFloat(document.documentElement.style.getPropertyValue('--font-size-level')) || 1;
+            }
+
+            // 更新缩放
+            function updateZoom(zoom) {
+                const minZoom = 0.5;
+                const maxZoom = 2;
+                const clampedZoom = Math.max(minZoom, Math.min(maxZoom, zoom));
+                document.documentElement.style.setProperty('--zoom-level', clampedZoom);
+                document.getElementById('zoomDisplay').textContent = Math.round(clampedZoom * 100) + '%';
+            }
+
+            // 更新字体大小
+            function updateFontSize(fontSize) {
+                const minFont = 0.7;
+                const maxFont = 1.5;
+                const clampedFont = Math.max(minFont, Math.min(maxFont, fontSize));
+                document.documentElement.style.setProperty('--font-size-level', clampedFont);
+                document.getElementById('fontDisplay').textContent = Math.round(clampedFont * 100) + '%';
+                
+                // 应用字体大小到所有文本元素
+                const rootElement = document.documentElement;
+                const baseFontSize = 16; // 基础字体大小
+                rootElement.style.fontSize = (baseFontSize * clampedFont) + 'px';
+            }
+
+            // 保存进度到localStorage
+            function saveProgress() {
+                const progressData = {
+                    page: currentPage,
+                    zoom: getCurrentZoom(),
+                    fontSize: getCurrentFontSize(),
+                    timestamp: new Date().toISOString(),
+                    searchTerm: document.getElementById('searchBox').value
+                };
+                localStorage.setItem('wangDeSuyangProgress', JSON.stringify(progressData));
+                
+                // 显示保存成功提示
+                showNotification('✓ 进度已保存', 'success');
+            }
+
+            // 自动保存进度
+            function autoSaveProgress() {
+                saveProgress();
+            }
+
+            // 加载保存的进度
+            function loadSavedProgress() {
+                const savedData = localStorage.getItem('wangDeSuyangProgress');
+                if (savedData) {
+                    try {
+                        const progressData = JSON.parse(savedData);
+                        // 检查是否是今天的记录（24小时内）
+                        const savedTime = new Date(progressData.timestamp);
+                        const now = new Date();
+                        const hoursDiff = (now - savedTime) / (1000 * 60 * 60);
+                        
+                        if (hoursDiff < 24) {
+                            currentPage = progressData.page || 1;
+                            if (progressData.zoom) {
+                                updateZoom(progressData.zoom);
+                            }
+                            if (progressData.fontSize) {
+                                updateFontSize(progressData.fontSize);
+                            }
+                            if (progressData.searchTerm) {
+                                document.getElementById('searchBox').value = progressData.searchTerm;
+                                searchTerms(progressData.searchTerm);
+                            }
+                            showNotification('✓ 进度已加载', 'success');
+                        }
+                    } catch (e) {
+                        console.error('加载进度失败:', e);
+                    }
+                }
+            }
+
+            // 清除保存的进度
+            function clearProgress() {
+                if (confirm('确定要清除所有阅读进度记录吗？')) {
+                    localStorage.removeItem('wangDeSuyangProgress');
+                    currentPage = 1;
+                    updateZoom(1);
+                    updateFontSize(1);
+                    document.getElementById('searchBox').value = '';
+                    filteredTerms = [...allTerms];
+                    updateStats();
+                    renderTerms();
+                    renderPagination();
+                    updateControlPanel();
+                    
+                    showNotification('✓ 记录已清除', 'success');
+                }
+            }
+
+            // 显示通知
+            function showNotification(message, type = 'info') {
+                // 创建通知元素
+                const notification = document.createElement('div');
+                notification.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    background: ${type === 'success' ? 'linear-gradient(135deg, #00ff88, #00ccff)' : 'var(--bg-card)'};
+                    color: ${type === 'success' ? 'var(--bg-dark)' : 'var(--text-primary)'};
+                    padding: 12px 20px;
+                    border-radius: 10px;
+                    border: 1px solid var(--border);
+                    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+                    z-index: 3000;
+                    font-size: 0.9rem;
+                    animation: slideDown 0.3s ease;
+                `;
+                notification.textContent = message;
+                document.body.appendChild(notification);
+
+                // 3秒后自动移除
+                setTimeout(() => {
+                    notification.style.animation = 'slideDown 0.3s ease reverse';
+                    setTimeout(() => {
+                        document.body.removeChild(notification);
+                    }, 300);
+                }, 3000);
+            }
+
+            // 更新统计
+            function updateStats() {
+                document.getElementById('termCount').textContent = allTerms.length;
+            }
+
+            // 搜索功能
+            function searchTerms(query) {
+                if (!query.trim()) {
+                    filteredTerms = [...allTerms];
+                } else {
+                    const lowerQuery = query.toLowerCase();
+                    filteredTerms = allTerms.filter(term => 
+                        term.text.toLowerCase().includes(lowerQuery) ||
+                        term.category.some(cat => cat.toLowerCase().includes(lowerQuery))
+                    );
+                }
+                currentPage = 1;
+                renderTerms();
+                renderPagination();
+                updateControlPanel();
+            }
+
+            // 渲染词条
+            function renderTerms() {
+                const grid = document.getElementById('termsGrid');
+                const start = (currentPage - 1) * itemsPerPage;
+                const end = start + itemsPerPage;
+                const pageTerms = filteredTerms.slice(start, end);
+
+                if (pageTerms.length === 0) {
+                    grid.innerHTML = '<div style="text-align: center; padding: 50px; grid-column: 1/-1; color: var(--text-secondary);">没有找到匹配的条目</div>';
+                    return;
+                }
+
+                grid.innerHTML = pageTerms.map((term, index) => {
+                    const globalIndex = start + index;
+                    return `
+                        <div class="term-card">
+                            <span class="term-number">#${globalIndex + 1}</span>
+                            <div class="term-text">${term.text}</div>
+                            <div class="term-categories">
+                                ${term.category.map(cat => `<span class="category-tag">${cat}</span>`).join('')}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            // 渲染分页
+            function renderPagination() {
+                const pagination = document.getElementById('pagination');
+                const totalPages = Math.ceil(filteredTerms.length / itemsPerPage);
+
+                if (totalPages <= 1) {
+                    pagination.innerHTML = '';
+                    return;
+                }
+
+                let html = `
+                    <button ${currentPage === 1 ? 'disabled' : ''} onclick="goToPage(${currentPage - 1})">上一页</button>
+                `;
+
+                // 页码按钮
+                const maxVisible = 7;
+                let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+                let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+
+                if (startPage > 1) {
+                    html += `<button onclick="goToPage(1)">1</button>`;
+                    if (startPage > 2) html += `<span class="page-info">...</span>`;
+                }
+
+                for (let i = startPage; i <= endPage; i++) {
+                    html += `<button class="${i === currentPage ? 'active' : ''}" onclick="goToPage(${i})">${i}</button>`;
+                }
+
+                if (endPage < totalPages) {
+                    if (endPage < totalPages - 1) html += `<span class="page-info">...</span>`;
+                    html += `<button onclick="goToPage(${totalPages})">${totalPages}</button>`;
+                }
+
+                html += `
+                    <button ${currentPage === totalPages ? 'disabled' : ''} onclick="goToPage(${currentPage + 1})">下一页</button>
+                    <span class="page-info">第 ${currentPage} / ${totalPages} 页</span>
+                `;
+
+                pagination.innerHTML = html;
+            }
+
+            // 跳转页面
+            window.goToPage = function(page) {
+                currentPage = page;
+                renderTerms();
+                renderPagination();
+                updateControlPanel();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                // 自动保存新页面
+                autoSaveProgress();
+            };
+
+            // 添加词条
+            function addTerm(e) {
+                e.preventDefault();
+                const text = document.getElementById('newText').value.trim();
+                const categoriesText = document.getElementById('newCategories').value.trim();
+                const categories = categoriesText ? 
+                    categoriesText.split(',').map(cat => cat.trim()).filter(cat => cat) : 
+                    ['用户贡献'];
+
+                const newTerm = {
+                    text: text,
+                    category: categories,
+                    isUserAdded: true
+                };
+
+                window.wangDeSuyangConfig.addTerm(newTerm);
+                closeModal();
+                allTerms = window.wangDeSuyangConfig.getAllTerms();
+                filteredTerms = [...allTerms];
+                init();
+            }
+
+            // 模态框控制
+            function showModal() {
+                document.getElementById('addModal').style.display = 'block';
+            }
+
+            function closeModal() {
+                document.getElementById('addModal').style.display = 'none';
+                document.getElementById('addForm').reset();
+            }
+
+            // 控制面板切换
+            function toggleControlPanel() {
+                const content = document.getElementById('controlContent');
+                content.classList.toggle('show');
+            }
+
+            // 快速跳转
+            function quickJump() {
+                const input = document.getElementById('pageJumpInput');
+                const targetPage = parseInt(input.value);
+                const totalPages = Math.ceil(filteredTerms.length / itemsPerPage);
+                
+                if (targetPage >= 1 && targetPage <= totalPages) {
+                    goToPage(targetPage);
+                    input.value = '';
+                    // 关闭控制面板
+                    document.getElementById('controlContent').classList.remove('show');
+                } else {
+                    input.style.borderColor = 'var(--accent)';
+                    showNotification('⚠️ 页码超出范围', 'error');
+                    setTimeout(() => {
+                        input.style.borderColor = '';
+                    }, 1000);
+                }
+            }
+
+            // 缩放功能
+            function zoomIn() {
+                const currentZoom = getCurrentZoom();
+                updateZoom(currentZoom + 0.1);
+            }
+
+            function zoomOut() {
+                const currentZoom = getCurrentZoom();
+                updateZoom(currentZoom - 0.1);
+            }
+
+            function zoomReset() {
+                updateZoom(1);
+            }
+
+            // 字体调整功能
+            function fontIncrease() {
+                const currentFont = getCurrentFontSize();
+                updateFontSize(currentFont + 0.1);
+            }
+
+            function fontDecrease() {
+                const currentFont = getCurrentFontSize();
+                updateFontSize(currentFont - 0.1);
+            }
+
+            function fontReset() {
+                updateFontSize(1);
+            }
+
+            // 事件绑定
+            document.getElementById('searchBox').addEventListener('input', (e) => searchTerms(e.target.value));
+            document.getElementById('addTermBtn').addEventListener('click', showModal);
+            document.getElementById('closeModal').addEventListener('click', closeModal);
+            document.getElementById('addForm').addEventListener('submit', addTerm);
+            document.getElementById('addModal').addEventListener('click', (e) => {
+                if (e.target.id === 'addModal') closeModal();
+            });
+
+            // 控制面板事件
+            document.getElementById('controlToggle').addEventListener('click', toggleControlPanel);
+            document.getElementById('jumpToPageBtn').addEventListener('click', quickJump);
+            document.getElementById('saveProgressBtn').addEventListener('click', saveProgress);
+            document.getElementById('loadProgressBtn').addEventListener('click', () => {
+                loadSavedProgress();
+                updateStats();
+                renderTerms();
+                renderPagination();
+                updateControlPanel();
+            });
+            document.getElementById('clearProgressBtn').addEventListener('click', clearProgress);
+
+            // 缩放控制事件
+            document.getElementById('zoomInBtn').addEventListener('click', zoomIn);
+            document.getElementById('zoomOutBtn').addEventListener('click', zoomOut);
+            document.getElementById('zoomResetBtn').addEventListener('click', zoomReset);
+
+            // 字体控制事件
+            document.getElementById('fontIncreaseBtn').addEventListener('click', fontIncrease);
+            document.getElementById('fontDecreaseBtn').addEventListener('click', fontDecrease);
+            document.getElementById('fontResetBtn').addEventListener('click', fontReset);
+
+            // 页面跳转输入框回车事件
+            document.getElementById('pageJumpInput').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    quickJump();
+                }
+            });
+
+            // 键盘快捷键
+            document.addEventListener('keydown', (e) => {
+                if (e.ctrlKey && e.key === 'f') {
+                    e.preventDefault();
+                    document.getElementById('searchBox').focus();
+                }
+                if (e.key === 'Escape') {
+                    closeModal();
+                    document.getElementById('controlContent').classList.remove('show');
+                }
+                // Ctrl + Plus 放大
+                if (e.ctrlKey && (e.key === '+' || e.key === '=')) {
+                    e.preventDefault();
+                    zoomIn();
+                }
+                // Ctrl + Minus 缩小
+                if (e.ctrlKey && e.key === '-') {
+                    e.preventDefault();
+                    zoomOut();
+                }
+                // Ctrl + 0 重置缩放
+                if (e.ctrlKey && e.key === '0') {
+                    e.preventDefault();
+                    zoomReset();
+                }
+            });
+
+            // 鼠标滚轮缩放（按住Ctrl）
+            document.addEventListener('wheel', (e) => {
+                if (e.ctrlKey) {
+                    e.preventDefault();
+                    if (e.deltaY < 0) {
+                        zoomIn();
+                    } else {
+                        zoomOut();
+                    }
+                }
+            });
+
+            // 点击页面其他地方关闭控制面板
+            document.addEventListener('click', (e) => {
+                const controlPanel = document.querySelector('.control-panel');
+                if (!controlPanel.contains(e.target)) {
+                    document.getElementById('controlContent').classList.remove('show');
+                }
+            });
+
+            // 初始化
+            init();
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>国际跳棋- 对战凉安</title>
+</head>
+
+        <!-- 引入数据库管理器 -->
+    <script src="/db.js"></script>
+    
+        <!-- 引入插件工具箱 🏄-->
+    <script src="/A2_全局中心/B_插件工具/toolbox.js"></script>      
+    
+<body>
+    <div class="header">
+        <h1>♟️国际跳棋</h1>
+        <div class="stats">
+            <div class="stat-item">🏆胜利: <span id="wins">0</span></div>
+            <div class="stat-item">💔失败: <span id="losses">0</span></div>
+            <div class="stat-item">🤝平局: <span id="draws">0</span></div>
+        </div>
+    </div>
+    <div class="game-container">
+        <div class="board" id="board"></div>
+        <div class="controls">
+            <button class="btn btn-primary" onclick="newGame()">新游戏</button>
+            <button class="btn btn-secondary" onclick="resetStats()">重置统计</button>
+        </div>
+        <div class="status" id="status">你的回合- 蓝色棋子</div>
+    </div>
+
+    <script src="13_styles.js"></script>
+    <script>
+        class CheckersGame {
+            constructor() {
+                this.board = [];
+                this.currentPlayer = 'player';
+                this.selectedPiece = null;
+                this.validMoves = [];
+                this.mustCapture = false;
+                this.captureChain = false;
+                this.gameOver = false;
+                this.stats = this.loadStats();
+                this.initBoard();
+                this.renderBoard();
+                this.updateStats();
+                this.loadGameState();
+            }
+
+            initBoard() {
+                // 初始化8x8 棋盘
+                this.board = Array(8).fill(null).map(() => Array(8).fill(null));
+                
+                // 放置玩家棋子（蓝色，底部）
+                for (let row = 5; row < 8; row++) {
+                    for (let col = 0; col < 8; col++) {
+                        if ((row + col) % 2 === 1) {
+                            this.board[row][col] = { type: 'player', king: false };
+                        }
+                    }
+                }
+                
+                // 放置凉安棋子（橙色，顶部）
+                for (let row = 0; row < 3; row++) {
+                    for (let col = 0; col < 8; col++) {
+                        if ((row + col) % 2 === 1) {
+                            this.board[row][col] = { type: 'ai', king: false };
+                        }
+                    }
+                }
+            }
+
+            renderBoard() {
+                const boardElement = document.getElementById('board');
+                boardElement.innerHTML = '';
+                
+                for (let row = 0; row < 8; row++) {
+                    for (let col = 0; col < 8; col++) {
+                        const square = document.createElement('div');
+                        square.className = `square ${(row + col) % 2 === 0 ? 'light' : 'dark'}`;
+                        square.dataset.row = row;
+                        square.dataset.col = col;
+                        
+                        if (this.selectedPiece && this.selectedPiece.row === row && this.selectedPiece.col === col) {
+                            square.classList.add('selected');
+                        }
+                        
+                        if (this.validMoves.some(move => move.row === row && move.col === col)) {
+                            square.classList.add('valid-move');
+                        }
+                        
+                        const piece = this.board[row][col];
+                        if (piece) {
+                            const pieceElement = document.createElement('div');
+                            pieceElement.className = `piece ${piece.type}`;
+                            if (piece.king) {
+                                pieceElement.classList.add('king');
+                            }
+                            square.appendChild(pieceElement);
+                        }
+                        
+                        square.addEventListener('click', () => this.handleSquareClick(row, col));
+                        boardElement.appendChild(square);
+                    }
+                }
+            }
+
+            handleSquareClick(row, col) {
+                if (this.gameOver || this.currentPlayer !== 'player') return;
+                
+                const piece = this.board[row][col];
+                
+                if (this.selectedPiece) {
+                    // 尝试移动到点击的位置
+                    const move = this.validMoves.find(m => m.row === row && m.col === col);
+                    if (move) {
+                        this.makeMove(this.selectedPiece, move);
+                    } else if (piece && piece.type === 'player') {
+                        // 选择新的棋子
+                        this.selectPiece(row, col);
+                    } else {
+                        // 取消选择
+                        this.selectedPiece = null;
+                        this.validMoves = [];
+                        this.renderBoard();
+                    }
+                } else if (piece && piece.type === 'player') {
+                    // 选择棋子
+                    this.selectPiece(row, col);
+                }
+            }
+
+            selectPiece(row, col) {
+                this.selectedPiece = { row, col };
+                this.validMoves = this.getValidMoves(row, col);
+                
+                // 检查是否必须吃子
+                const allCaptures = this.getAllCaptureMoves('player');
+                if (allCaptures.length > 0) {
+                    this.validMoves = this.validMoves.filter(move => move.capture);
+                }
+                
+                this.renderBoard();
+            }
+
+            getValidMoves(row, col) {
+                const piece = this.board[row][col];
+                if (!piece) return [];
+                
+                const moves = [];
+                
+                if (piece.king) {
+                    // 王棋可以沿着四个对角线方向移动任意距离
+                    const directions = [[-1, -1], [-1, 1], [1, -1], [1, 1]];
+                    
+                    for (const [dr, dc] of directions) {
+                        // 检查普通移动（沿着对角线移动任意距离）
+                        for (let dist = 1; dist < 8; dist++) {
+                            const newRow = row + dr * dist;
+                            const newCol = col + dc * dist;
+                            
+                            if (!this.isValidPosition(newRow, newCol)) break;
+                            
+                            if (this.board[newRow][newCol]) {
+                                // 遇到棋子，检查是否可以吃子
+                                if (this.board[newRow][newCol].type !== piece.type) {
+                                    // 检查跳过后的位置
+                                    for (let jumpDist = dist + 1; jumpDist < 8; jumpDist++) {
+                                        const jumpRow = row + dr * jumpDist;
+                                        const jumpCol = col + dc * jumpDist;
+                                        
+                                        if (!this.isValidPosition(jumpRow, jumpCol)) break;
+                                        
+                                        if (!this.board[jumpRow][jumpCol]) {
+                                            // 可以跳到这里
+                                            moves.push({ 
+                                                row: jumpRow, 
+                                                col: jumpCol, 
+                                                capture: true, 
+                                                capturedRow: newRow, 
+                                                capturedCol: newCol 
+                                            });
+                                            break; // 王棋只能跳过一个棋子
+                                        } else {
+                                            break; // 跳过路径上有其他棋子阻挡
+                                        }
+                                    }
+                                }
+                                break; // 遇到棋子后停止继续检查该方向
+                            } else {
+                                // 空位，可以移动到这里
+                                moves.push({ row: newRow, col: newCol, capture: false });
+                            }
+                        }
+                    }
+                } else {
+                    // 普通棋子的移动逻辑
+                    const directions = piece.type === 'player' ? 
+                        [[-1, -1], [-1, 1]] : [[1, -1], [1, 1]];
+                    
+                    for (const [dr, dc] of directions) {
+                        const newRow = row + dr;
+                        const newCol = col + dc;
+                        
+                        if (this.isValidPosition(newRow, newCol)) {
+                            if (!this.board[newRow][newCol]) {
+                                moves.push({ row: newRow, col: newCol, capture: false });
+                            } else if (this.board[newRow][newCol].type !== piece.type) {
+                                // 检查是否可以跳过
+                                const jumpRow = newRow + dr;
+                                const jumpCol = newCol + dc;
+                                
+                                if (this.isValidPosition(jumpRow, jumpCol) && !this.board[jumpRow][jumpCol]) {
+                                    moves.push({ 
+                                        row: jumpRow, 
+                                        col: jumpCol, 
+                                        capture: true, 
+                                        capturedRow: newRow, 
+                                        capturedCol: newCol 
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                return moves;
+            }
+
+            getAllCaptureMoves(playerType) {
+                const captures = [];
+                
+                for (let row = 0; row < 8; row++) {
+                    for (let col = 0; col < 8; col++) {
+                        const piece = this.board[row][col];
+                        if (piece && piece.type === playerType) {
+                            const moves = this.getValidMoves(row, col);
+                            const captureMoves = moves.filter(move => move.capture);
+                            
+                            if (captureMoves.length > 0) {
+                                captures.push({ row, col, moves: captureMoves });
+                            }
+                        }
+                    }
+                }
+                
+                return captures;
+            }
+
+            isValidPosition(row, col) {
+                return row >= 0 && row < 8 && col >= 0 && col < 8;
+            }
+
+            makeMove(from, to) {
+                const piece = this.board[from.row][from.col];
+                this.board[to.row][to.col] = piece;
+                this.board[from.row][from.col] = null;
+                
+                // 处理吃子
+                if (to.capture) {
+                    this.board[to.capturedRow][to.capturedCol] = null;
+                }
+                
+                // 检查连续吃子
+                if (to.capture) {
+                    const moreCaptures = this.getValidMoves(to.row, to.col).filter(move => move.capture);
+                    if (moreCaptures.length > 0) {
+                        this.selectedPiece = { row: to.row, col: to.col };
+                        this.validMoves = moreCaptures;
+                        this.captureChain = true;
+                        this.renderBoard();
+                        
+                        // 如果是凉安的连续吃子，直接继续吃，不思考
+                        if (this.currentPlayer === 'ai') {
+                            setTimeout(() => {
+                                // 凉安选择最优的连续吃子路径
+                                const bestMove = this.selectBestCaptureMove(moreCaptures);
+                                this.makeMove(this.selectedPiece, bestMove);
+                            }, 200);
+                        }
+                        return;
+                    }
+                }
+                
+                // 只有到达对方底线才能升级为王棋
+                // 玩家棋子（蓝色）到达顶部（第0行）升级
+                // 凉安棋子（橙色）到达底部（第7行）升级
+                if ((piece.type === 'player' && to.row === 0) || 
+                    (piece.type === 'ai' && to.row === 7)) {
+                    piece.king = true;
+                }
+                
+                this.selectedPiece = null;
+                this.validMoves = [];
+                this.captureChain = false;
+                
+                // 检查游戏结束
+                if (this.checkGameOver()) {
+                    return;
+                }
+                
+                // 切换玩家
+                this.currentPlayer = this.currentPlayer === 'player' ? 'ai' : 'player';
+                this.updateStatus();
+                this.saveGameState();
+                
+                // 凉安移动
+                if (this.currentPlayer === 'ai') {
+                    setTimeout(() => this.aiMove(), 500);
+                }
+                
+                this.renderBoard();
+            }
+
+            // 凉安选择最优的连续吃子路径
+            selectBestCaptureMove(captureMoves) {
+                // 简单策略：优先选择能继续吃子的移动
+                // 对于王棋，优先选择能吃更多子的路径
+                let bestMove = captureMoves[0];
+                let maxCaptures = 0;
+                
+                for (const move of captureMoves) {
+                    // 模拟这次移动
+                    const backup = this.quickMove({ from: {r: this.selectedPiece.row, c: this.selectedPiece.col}, to: move });
+                    
+                    // 检查这次移动后还能吃多少子
+                    const furtherCaptures = this.getValidMoves(move.row, move.col).filter(m => m.capture);
+                    const totalCaptures = furtherCaptures.length;
+                    
+                    this.quickUndo(backup);
+                    
+                    if (totalCaptures > maxCaptures) {
+                        maxCaptures = totalCaptures;
+                        bestMove = move;
+                    }
+                }
+                
+                return bestMove;
+            }
+
+            aiMove() {
+                if (this.gameOver) return;
+                
+                // 首先检查是否有强制吃子
+                const allCaptures = this.getAllCaptureMoves('ai');
+                if (allCaptures.length > 0) {
+                    // 有吃子必须吃，直接执行，不思考
+                    const captureMove = allCaptures[0];
+                    const move = captureMove.moves[0]; // 选择第一个可吃子的移动
+                    
+                    document.getElementById('status').innerHTML = '<span class="thinking">凉安连续吃子中...</span>';
+                    this.selectedPiece = { row: captureMove.row, col: captureMove.col };
+                    this.validMoves = [move];
+                    this.renderBoard();
+                    
+                    setTimeout(() => {
+                        this.makeMove(this.selectedPiece, move);
+                    }, 300);
+                    
+                    return;
+                }
+                
+                // 没有吃子才需要思考
+                document.getElementById('status').innerHTML = '<span class="thinking">凉安思考中...</span>';
+                
+                setTimeout(() => {
+                    const move = this.getBestMove();
+                    if (move) {
+                        this.selectedPiece = { row: move.from.row, col: move.from.col };
+                        this.validMoves = [move.to];
+                        this.renderBoard();
+                        
+                        setTimeout(() => {
+                            this.makeMove(move.from, move.to);
+                        }, 300);
+                    }
+                }, 800);
+            }
+
+            // 加强版凉安- 使用极小化搜索算法
+            getBestMove() {
+                const MAX_DEPTH = 3;
+                const NEG_INF = -1e6, POS_INF = 1e6;
+                
+                // 静态评价函数
+                const evaluate = () => {
+                    let score = 0;
+                    for (let r = 0; r < 8; r++) {
+                        for (let c = 0; c < 8; c++) {
+                            const p = this.board[r][c];
+                            if (!p) continue;
+                            
+                            let v = p.king ? 5 : 3; // 王5分，兵3分
+                            if (p.type === 'ai') score += v;
+                            else score -= v;
+                        }
+                    }
+                    return score;
+                };
+                
+                // 递归Negamax（带α-β剪枝）
+                const negamax = (depth, α, β, color) => {
+                    if (depth === 0) return color * evaluate();
+                    
+                    const moves = [];
+                    for (let r = 0; r < 8; r++) {
+                        for (let c = 0; c < 8; c++) {
+                            const piece = this.board[r][c];
+                            if (!piece || piece.type !== (color === 1 ? 'ai' : 'player')) continue;
+                            
+                            for (const m of this.getValidMoves(r, c)) {
+                                moves.push({from:{r,c}, to:m});
+                            }
+                        }
+                    }
+                    
+                    // 强制吃子：只保留吃子招
+                    const caps = moves.filter(m => m.to.capture);
+                    const pool = caps.length ? caps : moves;
+                    
+                    if (!pool.length) return color * evaluate();
+                    
+                    let value = NEG_INF;
+                    for (const mv of pool) {
+                        // 快速"落子-回滚"
+                        const backup = this.quickMove(mv);
+                        value = Math.max(value, -negamax(depth - 1, -β, -α, -color));
+                        this.quickUndo(backup);
+                        
+                        α = Math.max(α, value);
+                        if (α >= β) break; // β剪枝
+                    }
+                    
+                    return value;
+                };
+                
+                // 根节点：找出最佳招
+                const rootMoves = [];
+                for (let r = 0; r < 8; r++) {
+                    for (let c = 0; c < 8; c++) {
+                        const piece = this.board[r][c];
+                        if (!piece || piece.type !== 'ai') continue;
+                        
+                        for (const m of this.getValidMoves(r, c)) {
+                            rootMoves.push({from:{r,c}, to:m});
+                        }
+                    }
+                }
+                
+                const caps = rootMoves.filter(m => m.to.capture);
+                const pool = caps.length ? caps : rootMoves;
+                
+                if (!pool.length) return null;
+                
+                let best = NEG_INF, bestMove = pool[0];
+                for (const mv of pool) {
+                    const backup = this.quickMove(mv);
+                    const v = -negamax(MAX_DEPTH - 1, NEG_INF, POS_INF, -1);
+                    this.quickUndo(backup);
+                    
+                    if (v > best) {
+                        best = v;
+                        bestMove = mv;
+                    }
+                }
+                
+                // 格式对齐
+                return { from: {row:bestMove.from.r, col:bestMove.from.c}, to: bestMove.to };
+            }
+
+            // 辅助函数：快速移动
+            quickMove(mv) {
+                const {from, to} = mv;
+                const backup = { board: this.board.map(row => row.slice()), captured: null };
+                
+                const piece = this.board[from.r][from.c];
+                this.board[to.row][to.col] = piece;
+                this.board[from.r][from.c] = null;
+                
+                if (to.capture) {
+                    backup.captured = this.board[to.capturedRow][to.capturedCol];
+                    this.board[to.capturedRow][to.capturedCol] = null;
+                }
+                
+                // 注意：这里不处理升级，因为是在makeMove中处理的
+                return backup;
+            }
+
+            // 辅助函数：快速撤销
+            quickUndo(backup) {
+                this.board = backup.board;
+            }
+
+            checkGameOver() {
+                const playerPieces = this.countPieces('player');
+                const aiPieces = this.countPieces('ai');
+                
+                if (playerPieces === 0) {
+                    this.endGame('ai');
+                    return true;
+                }
+                
+                if (aiPieces === 0) {
+                    this.endGame('player');
+                    return true;
+                }
+                
+                // 检查是否有可移动的棋子
+                const currentPlayerMoves = this.currentPlayer === 'player' ? 
+                    this.getAllValidMoves('player') : this.getAllValidMoves('ai');
+                
+                if (currentPlayerMoves.length === 0) {
+                    this.endGame(this.currentPlayer === 'player' ? 'ai' : 'player');
+                    return true;
+                }
+                
+                return false;
+            }
+
+            getAllValidMoves(playerType) {
+                const moves = [];
+                
+                for (let row = 0; row < 8; row++) {
+                    for (let col = 0; col < 8; col++) {
+                        const piece = this.board[row][col];
+                        if (piece && piece.type === playerType) {
+                            moves.push(...this.getValidMoves(row, col));
+                        }
+                    }
+                }
+                
+                return moves;
+            }
+
+            countPieces(playerType) {
+                let count = 0;
+                
+                for (let row = 0; row < 8; row++) {
+                    for (let col = 0; col < 8; col++) {
+                        const piece = this.board[row][col];
+                        if (piece && piece.type === playerType) {
+                            count++;
+                        }
+                    }
+                }
+                
+                return count;
+            }
+
+            endGame(winner) {
+                this.gameOver = true;
+                
+                if (winner === 'player') {
+                    this.stats.wins++;
+                    this.updateStatus('🎉恭喜你赢了！');
+                } else if (winner === 'ai') {
+                    this.stats.losses++;
+                    this.updateStatus('🤖凉安赢了，再接再厉！');
+                } else {
+                    this.stats.draws++;
+                    this.updateStatus('🤝平局！');
+                }
+                
+                this.saveStats();
+                this.updateStats();
+                localStorage.removeItem('checkersGameState');
+            }
+
+            updateStatus(message) {
+                const statusElement = document.getElementById('status');
+                if (message) {
+                    statusElement.textContent = message;
+                } else if (this.currentPlayer === 'player') {
+                    statusElement.textContent = '你的回合- 蓝色棋子';
+                } else {
+                    statusElement.textContent = '凉安的回合- 橙色棋子';
+                }
+            }
+
+            updateStats() {
+                document.getElementById('wins').textContent = this.stats.wins;
+                document.getElementById('losses').textContent = this.stats.losses;
+                document.getElementById('draws').textContent = this.stats.draws;
+            }
+
+            saveStats() {
+                localStorage.setItem('checkersStats', JSON.stringify(this.stats));
+            }
+
+            loadStats() {
+                const saved = localStorage.getItem('checkersStats');
+                return saved ? JSON.parse(saved) : { wins: 0, losses: 0, draws: 0 };
+            }
+
+            saveGameState() {
+                if (!this.gameOver) {
+                    const gameState = {
+                        board: this.board,
+                        currentPlayer: this.currentPlayer,
+                        gameOver: this.gameOver
+                    };
+                    localStorage.setItem('checkersGameState', JSON.stringify(gameState));
+                }
+            }
+
+            loadGameState() {
+                const saved = localStorage.getItem('checkersGameState');
+                if (saved) {
+                    try {
+                        const gameState = JSON.parse(saved);
+                        this.board = gameState.board;
+                        this.currentPlayer = gameState.currentPlayer;
+                        this.gameOver = gameState.gameOver;
+                        this.renderBoard();
+                        this.updateStatus();
+                        
+                        if (this.currentPlayer === 'ai' && !this.gameOver) {
+                            setTimeout(() => this.aiMove(), 1000);
+                        }
+                    } catch (e) {
+                        console.error('Failed to load game state:', e);
+                    }
+                }
+            }
+
+            reset() {
+                this.board = [];
+                this.currentPlayer = 'player';
+                this.selectedPiece = null;
+                this.validMoves = [];
+                this.mustCapture = false;
+                this.captureChain = false;
+                this.gameOver = false;
+                this.initBoard();
+                this.renderBoard();
+                this.updateStatus();
+                localStorage.removeItem('checkersGameState');
+            }
+        }
+
+        let game;
+
+        function newGame() {
+            if (game) {
+                game.reset();
+            } else {
+                game = new CheckersGame();
+            }
+        }
+
+        function resetStats() {
+            if (confirm('确定要重置所有统计数据吗？')) {
+                localStorage.removeItem('checkersStats');
+                if (game) {
+                    game.stats = { wins: 0, losses: 0, draws: 0 };
+                    game.updateStats();
+                }
+            }
+        }
+
+        // 初始化游戏
+        window.addEventListener('DOMContentLoaded', () => {
+            game = new CheckersGame();
+        });
+
+        // 防止页面刷新时丢失游戏状态
+        window.addEventListener('beforeunload', () => {
+            if (game && !game.gameOver) {
+                game.saveGameState();
+            }
+        });
+    </script>
+</body>
+</html>

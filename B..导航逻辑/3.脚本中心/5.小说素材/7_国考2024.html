@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2024国考真题练习系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 15px;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 15px;
+        }
+        .module-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .module-tab {
+            padding: 10px 20px;
+            background: white;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .module-tab.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            transform: scale(1.05);
+        }
+        .question-card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+        }
+        .question-card:hover {
+            transform: translateY(-3px);
+        }
+        .question-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        .question-type {
+            background: #667eea;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+        }
+        .options {
+            margin: 15px 0;
+        }
+        .option {
+            padding: 12px;
+            margin: 8px 0;
+            background: #f8f9fa;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+        }
+        .option:hover {
+            background: #e9ecef;
+            border-color: #667eea;
+        }
+        .option.selected {
+            background: #e7f3ff;
+            border-color: #667eea;
+        }
+        .option.correct {
+            background: #d4edda;
+            border-color: #28a745;
+        }
+        .option.wrong {
+            background: #f8d7da;
+            border-color: #dc3545;
+        }
+        .analysis {
+            background: #fff3cd;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+            border-left: 4px solid #ffc107;
+        }
+        .fill-answer {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+        .btn {
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin: 5px;
+        }
+        .btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        .score-board {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .score-display {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #667eea;
+            margin: 10px 0;
+        }
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 300px;
+            color: white;
+        }
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255,255,255,0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 15px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📚 2024国考真题练习系统</h1>
+            <p>权威真题 · 智能评分 · 详细解析</p>
+        </div>
+
+        <div class="score-board">
+            <div>当前得分：<span class="score-display" id="scoreDisplay">0</span></div>
+            <div>已完成：<span id="completedCount">0</span> / <span id="totalCount">0</span></div>
+            <button class="btn" onclick="resetProgress()">重置进度</button>
+        </div>
+
+        <div class="module-tabs" id="moduleTabs"></div>
+        <div id="contentContainer">
+            <div class="loading">
+                <div class="loading-spinner"></div>
+                正在加载真题数据...
+            </div>
+        </div>
+    </div>
+
+    <!-- 引入数据库管理器 -->
+    <script src="/db.js"></script>
+    <!-- 引入真题数据 -->
+    <script src="7_国考2024.js"></script>
+
+    <script>
+        let currentModule = null;
+        let userAnswers = {};
+        let score = 0;
+
+        // 初始化系统
+        async function initSystem() {
+            try {
+                // 1. 检查数据库缓存
+                const cachedData = await IDB.get('E_guokao2024_data', 'userdata');
+                
+                if (!cachedData) {
+                    // 2. 缓存配置数据
+                    await IDB.put('E_guokao2024_data', guokao2024Data, 'userdata');
+                    console.log('真题数据已缓存到数据库');
+                } else {
+                    console.log('从数据库加载缓存数据');
+                }
+
+                // 3. 加载用户进度
+                const progress = await IDB.get('E_guokao2024_progress', 'userdata') || {};
+                userAnswers = progress.answers || {};
+                score = progress.score || 0;
+
+                // 4. 初始化界面
+                renderModuleTabs();
+                if (guokao2024Data.modules.length > 0) {
+                    selectModule(guokao2024Data.modules[0].id);
+                }
+
+                updateScoreDisplay();
+            } catch (error) {
+                console.error('系统初始化失败:', error);
+                showError('系统初始化失败，请刷新页面重试');
+            }
+        }
+
+        // 渲染模块标签
+        function renderModuleTabs() {
+            const container = document.getElementById('moduleTabs');
+            container.innerHTML = guokao2024Data.modules.map(module => `
+                <div class="module-tab" onclick="selectModule('${module.id}')" id="tab_${module.id}">
+                    ${module.name}
+                </div>
+            `).join('');
+        }
+
+        // 选择模块
+        async function selectModule(moduleId) {
+            currentModule = guokao2024Data.modules.find(m => m.id === moduleId);
+            
+            // 更新标签状态
+            document.querySelectorAll('.module-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.getElementById(`tab_${moduleId}`).classList.add('active');
+
+            // 渲染题目
+            renderQuestions();
+        }
+
+        // 渲染题目
+        function renderQuestions() {
+            const container = document.getElementById('contentContainer');
+            container.innerHTML = currentModule.questions.map(q => {
+                const userAnswer = userAnswers[q.id];
+                
+                if (q.type === 'single') {
+                    return `
+                        <div class="question-card">
+                            <div class="question-header">
+                                <span>${q.question}</span>
+                                <span class="question-type">单选题</span>
+                            </div>
+                            <div class="options">
+                                ${q.options.map(opt => {
+                                    const optValue = opt.charAt(0);
+                                    const isSelected = userAnswer === optValue;
+                                    const isCorrect = optValue === q.answer;
+                                    let className = 'option';
+                                    
+                                    if (userAnswer) {
+                                        if (isSelected && isCorrect) className += ' correct';
+                                        else if (isSelected && !isCorrect) className += ' wrong';
+                                        else if (!isSelected && isCorrect) className += ' correct';
+                                    }
+                                    
+                                    return `<div class="${className}" onclick="selectAnswer('${q.id}', '${optValue}')">${opt}</div>`;
+                                }).join('')}
+                            </div>
+                            ${userAnswer ? `
+                                <div class="analysis">
+                                    <strong>解析：</strong>${q.analysis}<br>
+                                    <strong>正确答案：</strong>${q.answer}
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+                } else if (q.type === 'fill') {
+                    return `
+                        <div class="question-card">
+                            <div class="question-header">
+                                <span>${q.question}</span>
+                                <span class="question-type">填空题</span>
+                            </div>
+                            <input type="text" class="fill-answer" id="fill_${q.id}" 
+                                   placeholder="请输入答案" 
+                                   value="${userAnswer || ''}"
+                                   onblur="saveFillAnswer('${q.id}')">
+                            ${userAnswer ? `
+                                <div class="analysis">
+                                    <strong>解析：</strong>${q.analysis}<br>
+                                    <strong>正确答案：</strong>${q.answer}
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+                } else if (q.type === 'essay') {
+                    return `
+                        <div class="question-card">
+                            <div class="question-header">
+                                <span>${q.question}</span>
+                                <span class="question-type">申论大作文</span>
+                            </div>
+                            <div class="analysis">
+                                <strong>要求：</strong><br>
+                                ${q.requirements.map(req => `• ${req}`).join('<br>')}
+                            </div>
+                            <div class="analysis">
+                                <strong>参考答案：</strong>${q.answer}<br>
+                                <strong>解析：</strong>${q.analysis}
+                            </div>
+                        </div>
+                    `;
+                } else if (q.type === 'application') {
+                    return `
+                        <div class="question-card">
+                            <div class="question-header">
+                                <span>${q.question}</span>
+                                <span class="question-type">申论应用题</span>
+                            </div>
+                            <div class="analysis">
+                                <strong>要求：</strong><br>
+                                ${q.requirements.map(req => `• ${req}`).join('<br>')}
+                            </div>
+                            <div class="analysis">
+                                <strong>参考答案：</strong>${q.answer}<br>
+                                <strong>解析：</strong>${q.analysis}
+                            </div>
+                        </div>
+                    `;
+                }
+            }).join('');
+
+            updateScoreDisplay();
+        }
+
+        // 选择单选题答案
+        async function selectAnswer(questionId, answer) {
+            userAnswers[questionId] = answer;
+            await saveProgress();
+            renderQuestions();
+        }
+
+        // 保存填空题答案
+        async function saveFillAnswer(questionId) {
+            const input = document.getElementById(`fill_${questionId}`);
+            userAnswers[questionId] = input.value.trim();
+            await saveProgress();
+        }
+
+        // 保存进度
+        async function saveProgress() {
+            // 计算得分
+            let totalScore = 0;
+            guokao2024Data.modules.forEach(module => {
+                module.questions.forEach(q => {
+                    if (userAnswers[q.id] === q.answer) {
+                        totalScore++;
+                    }
+                });
+            });
+            score = totalScore;
+
+            // 保存到数据库
+            await IDB.put('E_guokao2024_progress', {
+                answers: userAnswers,
+                score: score,
+                lastUpdate: new Date().toISOString()
+            }, 'userdata');
+        }
+
+        // 更新分数显示
+        function updateScoreDisplay() {
+            document.getElementById('scoreDisplay').textContent = score;
+            
+            let totalQuestions = 0;
+            let completedQuestions = 0;
+            
+            guokao2024Data.modules.forEach(module => {
+                module.questions.forEach(q => {
+                    totalQuestions++;
+                    if (userAnswers[q.id]) {
+                        completedQuestions++;
+                    }
+                });
+            });
+            
+            document.getElementById('completedCount').textContent = completedQuestions;
+            document.getElementById('totalCount').textContent = totalQuestions;
+        }
+
+        // 重置进度
+        async function resetProgress() {
+            if (confirm('确定要重置所有答题进度吗？')) {
+                userAnswers = {};
+                score = 0;
+                await IDB.put('E_guokao2024_progress', {
+                    answers: userAnswers,
+                    score: score,
+                    lastUpdate: new Date().toISOString()
+                }, 'userdata');
+                renderQuestions();
+            }
+        }
+
+        // 显示错误信息
+        function showError(message) {
+            document.getElementById('contentContainer').innerHTML = `
+                <div class="loading" style="flex-direction: column; gap: 15px;">
+                    <div style="color: #ff6b6b; font-size: 1.1rem;">⚠️ ${message}</div>
+                    <button onclick="location.reload()" style="
+                        padding: 8px 16px; 
+                        background: rgba(255,255,255,0.2); 
+                        border: 1px solid white; 
+                        color: white; 
+                        border-radius: 20px; 
+                        cursor: pointer; 
+                        margin-top: 10px; 
+                        font-size: 0.8rem;
+                    ">重新加载</button>
+                </div>
+            `;
+        }
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            // 初始化数据库
+            IDB.init().then(() => {
+                console.log('数据库初始化完成');
+                // 加载配置文件
+                initSystem();
+            }).catch(error => {
+                console.error('数据库初始化失败:', error);
+                showError('数据库初始化失败，请检查浏览器是否支持IndexedDB');
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>客户端导航中心</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { 
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    min-height: 100vh; overflow-x: hidden; position: relative;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+    color: #ffffff;
+}
+
+.background { 
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+}
+
+.bg-pattern { 
+    position: absolute; width: 100%; height: 100%;
+    background-image: 
+        radial-gradient(circle at 20% 50%, rgba(120, 119, 198, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(255, 119, 198, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 40% 20%, rgba(120, 219, 255, 0.1) 0%, transparent 50%);
+    animation: bgFloat 20s ease-in-out infinite;
+}
+
+@keyframes bgFloat {
+    0%, 100% { transform: translate(0, 0) rotate(0deg); }
+    33% { transform: translate(-20px, -20px) rotate(1deg); }
+    66% { transform: translate(20px, -10px) rotate(-1deg); }
+}
+
+.container { 
+    position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; 
+    padding: 20px 20px 60px; min-height: 100vh; display: flex; flex-direction: column;
+}
+
+header { 
+    text-align: center; margin-bottom: 30px;
+    animation: fadeInDown 0.8s ease;
+}
+
+header h1 { 
+    font-size: 2.5rem; font-weight: 700; margin-bottom: 5px;
+    background: linear-gradient(135deg, #60a5fa, #a78bfa, #f472b6);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text; letter-spacing: 1px;
+}
+
+header p { 
+    font-size: 1rem; color: rgba(255, 255, 255, 0.7); font-weight: 400;
+}
+
+.nav-grid { 
+    display: grid; 
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px; 
+    flex: 1; 
+    align-content: start; 
+    padding: 10px 0;
+    animation: fadeInUp 0.8s ease 0.2s both;
+}
+
+.tool-card { 
+    background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px;
+    padding: 20px; cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative; overflow: hidden; display: flex;
+    flex-direction: column; align-items: center; text-align: center;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+.tool-card::before { 
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, #60a5fa, #a78bfa, #f472b6);
+    transform: scaleX(0); transition: transform 0.3s ease;
+}
+
+.tool-card:hover { 
+    transform: translateY(-3px); background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+}
+
+.tool-card:hover::before { transform: scaleX(1); }
+
+.tool-icon { 
+    width: 48px; height: 48px; display: flex; align-items: center;
+    justify-content: center; background: linear-gradient(135deg, rgba(96, 165, 250, 0.2), rgba(167, 139, 250, 0.2));
+    border-radius: 12px; margin-bottom: 10px; font-size: 1.5rem;
+    transition: all 0.3s ease;
+}
+
+.tool-card:hover .tool-icon { 
+    transform: scale(1.1);
+    background: linear-gradient(135deg, rgba(96, 165, 250, 0.3), rgba(167, 139, 250, 0.3));
+}
+
+.tool-title { 
+    font-size: 0.95rem; font-weight: 600; color: #ffffff;
+}
+
+.pagination { 
+    display: flex; justify-content: center; align-items: center;
+    gap: 10px; margin-top: 30px; padding: 20px 0;
+}
+
+.pagination button { 
+    background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px;
+    padding: 8px 16px; cursor: pointer; font-size: 14px; color: #ffffff;
+    transition: all 0.3s ease;
+}
+
+.pagination button:hover { 
+    background: rgba(255, 255, 255, 0.2); transform: translateY(-2px);
+}
+
+.pagination button:disabled { 
+    opacity: 0.5; cursor: not-allowed;
+}
+
+.pagination .page-info { 
+    color: #ffffff; font-size: 14px; 
+    background: rgba(0, 0, 0, 0.3); padding: 8px 16px; border-radius: 8px;
+}
+
+.empty-state { 
+    text-align: center; padding: 60px 20px;
+    background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px);
+    border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.empty-state h2 { 
+    font-size: 1.5rem; margin-bottom: 10px; color: #ffffff;
+}
+
+.empty-state p { 
+    font-size: 0.9rem; color: rgba(255, 255, 255, 0.7);
+}
+
+@keyframes fadeInDown {
+    from { opacity: 0; transform: translateY(-30px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 768px) { 
+    header h1 { font-size: 2rem; } 
+    .nav-grid { 
+        grid-template-columns: repeat(2, 1fr); 
+        gap: 15px; 
+    } 
+    .tool-card { padding: 15px; } 
+    .tool-icon { width: 40px; height: 40px; font-size: 1.3rem; } 
+    .tool-title { font-size: 0.85rem; } 
+}
+
+@media (max-width: 480px) { 
+    header h1 { font-size: 1.8rem; } 
+    .nav-grid { 
+        grid-template-columns: repeat(2, 1fr); 
+        gap: 10px; 
+    } 
+    .tool-card { padding: 12px; } 
+    .tool-icon { width: 36px; height: 36px; font-size: 1.2rem; } 
+    .tool-title { font-size: 0.8rem; } 
+}
+</style>
+</head>
+<body>
+<div class="background">
+    <div class="bg-pattern"></div>
+</div>
+
+<div class="container">
+<header>
+<h1 data-text="✨客户端导航中心">客户端导航中心</h1>
+<p>精选实用工具，一键直达</p>
+</header>
+
+<!-- 导航网格 -->
+<div class="nav-grid" id="navGrid" style="display: none;">
+<!-- 工具卡片将在这里动态生成 -->
+</div>
+
+<!-- 分页控件 -->
+<div class="pagination" id="pagination" style="display: none;">
+<button id="prevBtn" onclick="changePage(-1)">上一页</button>
+<span class="page-info" id="pageInfo">1 / 1</span>
+<button id="nextBtn" onclick="changePage(1)">下一页</button>
+</div>
+
+<!-- 空状态 -->
+<div class="empty-state" id="emptyState" style="display: none;">
+<h2>暂无可用工具</h2>
+<p>请确保工具文件在同一目录下</p>
+</div>
+</div>
+
+<!-- 引入配置文件 -->
+<script src="客户端_nav-config.js"></script>
+<script>
+// 分页相关变量
+let currentPage = 1;
+let itemsPerPage = 8;
+let allTools = [];
+
+// 初始化应用
+class NavigationApp {
+    constructor() {
+        this.init();
+    }
+    
+    async init() {
+        // 等待配置加载完成
+        if (typeof window.navConfig === 'undefined') {
+            setTimeout(() => this.init(), 100);
+            return;
+        }
+        
+        // 加载存在的工具
+        await this.loadExistingTools();
+    }
+    
+    async loadExistingTools() {
+        try {
+            // 获取存在的工具列表
+            const existingTools = await window.navConfig.getExistingTools();
+            
+            if (existingTools.length === 0) {
+                // 显示空状态
+                document.getElementById('emptyState').style.display = 'block';
+            } else {
+                // 保存所有工具
+                allTools = existingTools;
+                // 显示导航网格和分页
+                document.getElementById('navGrid').style.display = 'grid';
+                document.getElementById('pagination').style.display = 'flex';
+                this.renderNavigation();
+            }
+        } catch (error) {
+            console.error('加载工具失败:', error);
+            document.getElementById('emptyState').style.display = 'block';
+        }
+    }
+    
+    renderNavigation() {
+        const navGrid = document.getElementById('navGrid');
+        
+        // 计算分页
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        const endIndex = startIndex + itemsPerPage;
+        const currentTools = allTools.slice(startIndex, endIndex);
+        
+        // 直接渲染每个工具为独立卡片
+        navGrid.innerHTML = currentTools.map(tool => `
+            <div class="tool-card" onclick="navigateTo('${tool.file}')">
+                <div class="tool-icon">${tool.icon || '🔧'}</div>
+                <h3 class="tool-title">${tool.name}</h3>
+            </div>
+        `).join('');
+        
+        // 更新分页信息
+        this.updatePagination();
+    }
+    
+    updatePagination() {
+        const totalPages = Math.ceil(allTools.length / itemsPerPage);
+        const pageInfo = document.getElementById('pageInfo');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        
+        pageInfo.textContent = `${currentPage} / ${totalPages}`;
+        prevBtn.disabled = currentPage === 1;
+        nextBtn.disabled = currentPage === totalPages;
+    }
+}
+
+// 切换页面
+function changePage(direction) {
+    const totalPages = Math.ceil(allTools.length / itemsPerPage);
+    const newPage = currentPage + direction;
+    
+    if (newPage >= 1 && newPage <= totalPages) {
+        currentPage = newPage;
+        app.renderNavigation();
+    }
+}
+
+// 导航到指定页面
+function navigateTo(file) {
+    window.location.href = file;
+}
+
+// 启动应用
+let app;
+document.addEventListener('DOMContentLoaded', () => {
+    app = new NavigationApp();
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no"/>
+<title>格斗王者 - 职业格斗</title>
+
+    <!-- 引入数据库管理器 -->
+    <script src="/db.js"></script>
+    
+    <!-- 引入在线时长插件（只需要这一行！） -->
+    <script src="/A2_全局中心/B_插件工具/2.插件_在线时长.js"></script>
+    
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:Arial,sans-serif;}
+html,body{height:100%;overflow:hidden;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);}
+
+/* 横屏提示 */
+#orientationPrompt{position:fixed;top:0;left:0;width:100%;height:100%;background:linear-gradient(135deg,#1e3c72 0%,#2a5298 100%);display:flex;flex-direction:column;justify-content:center;align-items:center;z-index:9999;color:#fff;}
+#orientationPrompt svg{width:120px;height:120px;margin-bottom:20px;animation:rotate 2s linear infinite;}
+@keyframes rotate{from{transform:rotate(0deg);}to{transform:rotate(90deg);}}
+
+/* 职业选择界面 */
+#characterSelect{position:fixed;top:0;left:0;width:100%;height:100%;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);display:flex;flex-direction:column;z-index:100;}
+#selectTitle{font-size:8vmin;color:#fff;text-align:center;margin-top:5vmin;text-shadow:2px 2px 4px rgba(0,0,0,0.3);animation:titleGlow 2s ease-in-out infinite;}
+@keyframes titleGlow{0%,100%{text-shadow:2px 2px 4px rgba(0,0,0,0.3),0 0 20px rgba(255,255,255,0.3);}50%{text-shadow:2px 2px 4px rgba(0,0,0,0.3),0 0 30px rgba(255,255,255,0.5);}}
+#characterGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:3vmin;padding:5vmin;flex:1;overflow-y:auto;}
+.character-card{background:rgba(255,255,255,0.95);border-radius:2vmin;padding:3vmin;text-align:center;cursor:pointer;transition:all 0.3s;box-shadow:0 4px 15px rgba(0,0,0,0.2);position:relative;overflow:hidden;}
+.character-card::before{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:linear-gradient(45deg,transparent,rgba(255,255,255,0.3),transparent);transform:rotate(45deg);transition:all 0.5s;opacity:0;}
+.character-card:hover::before{animation:shimmer 0.5s;}
+@keyframes shimmer{0%{transform:translateX(-100%) translateY(-100%) rotate(45deg);}100%{transform:translateX(100%) translateY(100%) rotate(45deg);}}
+.character-card:hover{transform:scale(1.05) translateY(-5px);box-shadow:0 8px 25px rgba(0,0,0,0.3);}
+.character-emoji{font-size:12vmin;margin-bottom:1vmin;animation:float 3s ease-in-out infinite;}
+@keyframes float{0%,100%{transform:translateY(0);}50%{transform:translateY(-10px);}}
+.character-name{font-size:3.5vmin;color:#333;font-weight:bold;}
+.character-desc{font-size:2.5vmin;color:#666;margin-top:0.5vmin;}
+.selected{background:linear-gradient(135deg,#f093fb 0%,#f5576c 100%);color:#fff;transform:scale(1.08);}
+.selected .character-name,.selected .character-desc{color:#fff;}
+#startBattle{position:fixed;bottom:5vmin;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#fa709a 0%,#fee140 100%);color:#fff;font-size:4vmin;padding:2.5vmin 8vmin;border-radius:3vmin;border:none;cursor:pointer;box-shadow:0 4px 15px rgba(0,0,0,0.3);transition:all 0.3s;}
+#startBattle:hover{transform:translateX(-50%) scale(1.1);box-shadow:0 6px 20px rgba(0,0,0,0.4);}
+#startBattle:disabled{opacity:0.5;cursor:not-allowed;}
+
+/* 游戏界面 */
+#gameScreen{position:fixed;top:0;left:0;width:100%;height:100%;display:none;flex-direction:column;}
+#gameArea{flex:1;position:relative;background:linear-gradient(to bottom,#87ceeb 0%,#87ceeb 60%,#98d982 60%,#228b22 100%);overflow:hidden;}
+
+/* 顶部信息栏 */
+#topBar{position:absolute;top:0;left:0;right:0;height:12vmin;background:rgba(0,0,0,0.7);display:flex;justify-content:space-between;align-items:center;padding:0 5vmin;z-index:10;}
+.playerInfo{display:flex;align-items:center;gap:2vmin;}
+.playerAvatar{width:8vmin;height:8vmin;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:5vmin;background:rgba(255,255,255,0.2);box-shadow:0 2px 10px rgba(0,0,0,0.3);}
+.playerStats{color:#fff;}
+.playerName{font-size:3vmin;font-weight:bold;}
+.score{font-size:2.5vmin;color:#ffd700;}
+.hpBar{width:30vmin;height:2.5vmin;background:#333;border-radius:1.25vmin;overflow:hidden;margin-top:0.5vmin;box-shadow:inset 0 2px 4px rgba(0,0,0,0.3);}
+.hpFill{height:100%;background:linear-gradient(90deg,#ff6b6b,#ff8787);transition:width 0.3s;}
+.ultBar{width:30vmin;height:2vmin;background:#444;border-radius:1vmin;overflow:hidden;margin-top:0.5vmin;box-shadow:inset 0 1px 3px rgba(0,0,0,0.3);}
+.ultFill{height:100%;background:linear-gradient(90deg,#4ecdc4,#44a3aa);width:0%;transition:width 0.3s;}
+#matchScore{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:4vmin;color:#fff;font-weight:bold;text-shadow:2px 2px 4px rgba(0,0,0,0.5);}
+
+/* 角色 */
+.role{position:absolute;width:12vmin;height:24vmin;bottom:0;transition:left 0.05s linear;}
+#p1{left:20vmin;}
+#p2{right:20vmin;}
+.role-body{width:100%;height:100%;position:relative;filter:drop-shadow(0 4px 8px rgba(0,0,0,0.3));}
+.role-emoji{position:absolute;top:2vmin;left:50%;transform:translateX(-50%);font-size:8vmin;z-index:2;}
+.role-head{position:absolute;top:0;left:50%;transform:translateX(-50%);width:10vmin;height:10vmin;background:linear-gradient(135deg,#fdbcb4 0%,#f4a460 100%);border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,0.2);}
+.role-body-main{position:absolute;top:9vmin;left:50%;transform:translateX(-50%);width:8vmin;height:10vmin;border-radius:2vmin;box-shadow:0 2px 6px rgba(0,0,0,0.2);}
+.role-arms{position:absolute;top:10vmin;width:100%;display:flex;justify-content:space-between;padding:0 1vmin;}
+.arm{width:2.5vmin;height:8vmin;border-radius:1.25vmin;box-shadow:0 2px 4px rgba(0,0,0,0.2);}
+.role-legs{position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:10vmin;height:8vmin;display:flex;justify-content:space-between;}
+.leg{width:3.5vmin;height:100%;border-radius:1.75vmin;box-shadow:0 2px 4px rgba(0,0,0,0.2);}
+
+/* 特效 */
+.fx{position:absolute;width:20vmin;height:20vmin;pointer-events:none;opacity:0;}
+.fx-punch{background:radial-gradient(circle,rgba(255,255,0,0.8),transparent);border-radius:50%;animation:punchFx 0.4s;}
+@keyframes punchFx{0%{transform:scale(0);opacity:1;}100%{transform:scale(1.5);opacity:0;}}
+.fx-kick{background:conic-gradient(from 0deg,orange,yellow,orange);border-radius:50%;animation:kickFx 0.5s;}
+@keyframes kickFx{0%{transform:scale(0) rotate(0deg);opacity:1;}100%{transform:scale(1.5) rotate(180deg);opacity:0;}}
+.fx-block{background:radial-gradient(circle,rgba(0,255,255,0.8),transparent);border-radius:50%;animation:blockFx 0.3s;}
+@keyframes blockFx{0%{transform:scale(0);opacity:1;}100%{transform:scale(1.2);opacity:0;}}
+.fx-ult{background:radial-gradient(circle,rgba(255,0,255,0.9),transparent);border-radius:50%;animation:ultPulse 0.8s;}
+@keyframes ultPulse{0%{transform:scale(0);opacity:1;}50%{transform:scale(2);opacity:0.8;}100%{transform:scale(3);opacity:0;}}
+
+/* 控制按钮 - 增大尺寸 */
+#controls{position:absolute;bottom:0;left:0;right:0;height:35vmin;background:rgba(0,0,0,0.3);display:flex;justify-content:space-between;padding:3vmin;}
+#dpad{position:relative;width:28vmin;height:28vmin;}
+.dpad-btn{position:absolute;background:rgba(255,255,255,0.4);border:3px solid rgba(255,255,255,0.6);border-radius:3vmin;cursor:pointer;transition:all 0.2s;font-size:4vmin;font-weight:bold;color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 10px rgba(0,0,0,0.3);}
+.dpad-btn:active{background:rgba(255,255,255,0.7);transform:scale(0.95);box-shadow:0 2px 5px rgba(0,0,0,0.3);}
+#dpadUp{top:0;left:50%;transform:translateX(-50%);width:12vmin;height:12vmin;}
+#dpadDown{bottom:0;left:50%;transform:translateX(-50%);width:12vmin;height:12vmin;}
+#dpadLeft{left:0;top:50%;transform:translateY(-50%);width:12vmin;height:12vmin;}
+#dpadRight{right:0;top:50%;transform:translateY(-50%);width:12vmin;height:12vmin;}
+#dpadCenter{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:8vmin;height:8vmin;background:rgba(255,255,255,0.3);border-radius:50%;border:2px solid rgba(255,255,255,0.5);}
+
+#actionButtons{display:flex;gap:3vmin;align-items:center;}
+.action-btn{width:16vmin;height:16vmin;border-radius:50%;color:#fff;font-size:5vmin;font-weight:bold;cursor:pointer;transition:all 0.2s;box-shadow:0 6px 15px rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;border:3px solid rgba(255,255,255,0.5);}
+.action-btn:active{transform:scale(0.9);box-shadow:0 3px 8px rgba(0,0,0,0.4);}
+#jumpBtn{background:linear-gradient(135deg,#4facfe 0%,#00f2fe 100%);}
+#attackBtn{background:linear-gradient(135deg,#f093fb 0%,#f5576c 100%);}
+#blockBtn{background:linear-gradient(135deg,#4ecdc4 0%,#44a3aa 100%);}
+#ultBtn{background:linear-gradient(135deg,#fa709a 0%,#fee140 100%);position:relative;}
+#ultBtn.ready{animation:ultGlow 1s infinite;}
+@keyframes ultGlow{0%,100%{box-shadow:0 0 25px rgba(255,215,0,0.8),0 6px 15px rgba(0,0,0,0.4);}50%{box-shadow:0 0 40px rgba(255,215,0,1),0 6px 15px rgba(0,0,0,0.4);}}
+
+/* 消息提示 */
+#msg{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.9);color:#fff;font-size:6vmin;padding:2vmin 4vmin;border-radius:2vmin;display:none;z-index:100;text-align:center;}
+#msg.win{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);animation:winPulse 0.5s;}
+@keyframes winPulse{0%{transform:translate(-50%,-50%) scale(0);}50%{transform:translate(-50%,-50%) scale(1.2);}100%{transform:translate(-50%,-50%) scale(1);}}
+
+/* 回到选人按钮 */
+#backToSelect{position:absolute;top:2vmin;right:2vmin;background:rgba(255,255,255,0.3);border:2px solid rgba(255,255,255,0.5);color:#fff;padding:1.5vmin 3vmin;border-radius:1.5vmin;font-size:3vmin;cursor:pointer;z-index:20;transition:all 0.3s;}
+#backToSelect:hover{background:rgba(255,255,255,0.5);}
+</style>
+</head>
+<body>
+<!-- 横屏提示 -->
+<div id="orientationPrompt">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
+        <line x1="12" y1="18" x2="12" y2="18"/>
+    </svg>
+    <h2 style="font-size:5vmin;">请横屏游戏</h2>
+    <p style="font-size:3vmin;margin-top:2vmin;">为了更好的游戏体验，请将设备横屏</p>
+</div>
+
+<!-- 职业选择界面 -->
+<div id="characterSelect">
+    <h1 id="selectTitle">选择你的战士</h1>
+    <div id="characterGrid"></div>
+    <button id="startBattle" disabled>开始战斗</button>
+</div>
+
+<!-- 游戏界面 -->
+<div id="gameScreen">
+    <div id="gameArea">
+        <!-- 顶部信息栏 -->
+        <div id="topBar">
+            <div class="playerInfo">
+                <div class="playerAvatar" id="p1Avatar"></div>
+                <div class="playerStats">
+                    <div class="playerName">玩家</div>
+                    <div class="hpBar"><div class="hpFill" id="hp1"></div></div>
+                    <div class="ultBar"><div class="ultFill" id="ult1"></div></div>
+                </div>
+                <div class="score">胜利: <span id="score1">0</span></div>
+            </div>
+            <div id="matchScore">0 - 0</div>
+            <div class="playerInfo">
+                <div class="score">胜利: <span id="score2">0</span></div>
+                <div class="playerStats">
+                    <div class="playerName">AI</div>
+                    <div class="hpBar"><div class="hpFill" id="hp2"></div></div>
+                    <div class="ultBar"><div class="ultFill" id="ult2"></div></div>
+                </div>
+                <div class="playerAvatar" id="p2Avatar"></div>
+            </div>
+        </div>
+
+        <!-- 角色 -->
+        <div class="role" id="p1">
+            <div class="role-body">
+                <div class="role-head"></div>
+                <div class="role-emoji"></div>
+                <div class="role-body-main"></div>
+                <div class="role-arms">
+                    <div class="arm"></div>
+                    <div class="arm"></div>
+                </div>
+                <div class="role-legs">
+                    <div class="leg"></div>
+                    <div class="leg"></div>
+                </div>
+            </div>
+        </div>
+        <div class="role" id="p2">
+            <div class="role-body">
+                <div class="role-head"></div>
+                <div class="role-emoji"></div>
+                <div class="role-body-main"></div>
+                <div class="role-arms">
+                    <div class="arm"></div>
+                    <div class="arm"></div>
+                </div>
+                <div class="role-legs">
+                    <div class="leg"></div>
+                    <div class="leg"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 特效 -->
+        <div class="fx" id="fx1"></div>
+        <div class="fx" id="fx2"></div>
+
+        <!-- 消息 -->
+        <div id="msg"></div>
+
+        <!-- 控制按钮 -->
+        <div id="controls">
+            <div id="dpad">
+                <div class="dpad-btn" id="dpadUp">↑</div>
+                <div class="dpad-btn" id="dpadLeft">←</div>
+                <div class="dpad-btn" id="dpadRight">→</div>
+                <div class="dpad-btn" id="dpadDown">↓</div>
+                <div id="dpadCenter"></div>
+            </div>
+            <div id="actionButtons">
+                <button class="action-btn" id="jumpBtn">跳</button>
+                <button class="action-btn" id="attackBtn">拳</button>
+                <button class="action-btn" id="blockBtn">挡</button>
+                <button class="action-btn" id="ultBtn">必杀</button>
+            </div>
+        </div>
+    </div>
+    <button id="backToSelect">返回选人</button>
+</div>
+
+<script>
+// 职业数据
+const characters = [
+    {emoji: '⚔️', name: '剑士', desc: '平衡型战士', color: '#ff6b6b'},
+    {emoji: '🗡️', name: '刺客', desc: '高攻击低防御', color: '#4ecdc4'},
+    {emoji: '🛡️', name: '骑士', desc: '高防御型', color: '#45b7d1'},
+    {emoji: '🏹', name: '弓箭手', desc: '远程攻击', color: '#96ceb4'},
+    {emoji: '🔨', name: '战士', desc: '力量型', color: '#feca57'},
+    {emoji: '🔥', name: '火法师', desc: '魔法攻击', color: '#ff9ff3'},
+    {emoji: '❄️', name: '冰法师', desc: '控制型', color: '#54a0ff'},
+    {emoji: '⚡', name: '雷法师', desc: '爆发型', color: '#ffd93d'},
+    {emoji: '👊', name: '格斗家', desc: '近战专家', color: '#6bcf7f'},
+    {emoji: '🦾', name: '机械师', desc: '科技战士', color: '#a29bfe'},
+    {emoji: '🐉', name: '龙骑士', desc: '终极战士', color: '#fd79a8'},
+    {emoji: '👻', name: '暗影', desc: '神秘刺客', color: '#636e72'}
+];
+
+let selectedChar = null;
+let gameScores = {p1: 0, p2: 0};
+let currentMatch = 0;
+let gameActive = false;
+
+// 横屏检测
+function checkOrientation() {
+    const prompt = document.getElementById('orientationPrompt');
+    if (window.innerHeight > window.innerWidth) {
+        prompt.style.display = 'flex';
+        return false;
+    } else {
+        prompt.style.display = 'none';
+        return true;
+    }
+}
+
+window.addEventListener('resize', checkOrientation);
+checkOrientation();
+
+// 初始化职业选择
+function initCharacterSelect() {
+    const grid = document.getElementById('characterGrid');
+    grid.innerHTML = '';
+    
+    characters.forEach((char, index) => {
+        const card = document.createElement('div');
+        card.className = 'character-card';
+        card.innerHTML = `
+            <div class="character-emoji">${char.emoji}</div>
+            <div class="character-name">${char.name}</div>
+            <div class="character-desc">${char.desc}</div>
+        `;
+        card.addEventListener('click', () => selectCharacter(char, card));
+        grid.appendChild(card);
+    });
+}
+
+// 选择职业
+function selectCharacter(char, element) {
+    // 移除之前的选中
+    document.querySelectorAll('.character-card').forEach(card => {
+        card.classList.remove('selected');
+    });
+    
+    selectedChar = char;
+    element.classList.add('selected');
+    document.getElementById('startBattle').disabled = false;
+}
+
+// 开始游戏
+document.getElementById('startBattle').addEventListener('click', () => {
+    if (selectedChar) {
+        document.getElementById('characterSelect').style.display = 'none';
+        document.getElementById('gameScreen').style.display = 'flex';
+        initGame();
+    }
+});
+
+// 游戏状态
+let gameState = {
+    p1: {hp: 100, ult: 0, x: 20, y: 0, vy: 0, onGround: true, stunned: 0, blocking: 0},
+    p2: {hp: 100, ult: 0, x: 70, y: 0, vy: 0, onGround: true, stunned: 0, blocking: 0}
+};
+
+let moveTimers = {p1: null, p2: null};
+let keys = {};
+
+// 初始化游戏
+function initGame() {
+    // 随机选择AI角色
+    const aiChar = characters[Math.floor(Math.random() * characters.length)];
+    
+    // 设置角色外观
+    const p1Body = document.querySelector('#p1 .role-emoji');
+    const p2Body = document.querySelector('#p2 .role-emoji');
+    p1Body.textContent = selectedChar.emoji;
+    p2Body.textContent = aiChar.emoji;
+    
+    // 设置角色颜色
+    document.querySelector('#p1 .role-head').style.background = 'linear-gradient(135deg,#fdbcb4 0%,#f4a460 100%)';
+    document.querySelector('#p2 .role-head').style.background = 'linear-gradient(135deg,#d4a574 0%,#8b7355 100%)';
+    document.querySelector('#p1 .role-body-main').style.background = selectedChar.color;
+    document.querySelector('#p2 .role-body-main').style.background = aiChar.color;
+    
+    document.querySelectorAll('#p1 .arm, #p1 .leg').forEach(el => {
+        el.style.background = selectedChar.color;
+    });
+    document.querySelectorAll('#p2 .arm, #p2 .leg').forEach(el => {
+        el.style.background = aiChar.color;
+    });
+    
+    document.getElementById('p1Avatar').textContent = selectedChar.emoji;
+    document.getElementById('p2Avatar').textContent = aiChar.emoji;
+    
+    resetRound();
+    gameActive = true;
+    gameLoop();
+}
+
+// 重置回合
+function resetRound() {
+    gameState.p1 = {hp: 100, ult: 0, x: 20, y: 0, vy: 0, onGround: true, stunned: 0, blocking: 0};
+    gameState.p2 = {hp: 100, ult: 0, x: 70, y: 0, vy: 0, onGround: true, stunned: 0, blocking: 0};
+    
+    updateDisplay();
+    showMsg('第 ' + (currentMatch + 1) + ' 回合', 1500);
+}
+
+// 更新显示
+function updateDisplay() {
+    // 更新位置
+    document.getElementById('p1').style.left = gameState.p1.x + 'vmin';
+    document.getElementById('p1').style.bottom = gameState.p1.y + 'vmin';
+    document.getElementById('p2').style.left = gameState.p2.x + 'vmin';
+    document.getElementById('p2').style.bottom = gameState.p2.y + 'vmin';
+    
+    // 更新血量和能量
+    document.getElementById('hp1').style.width = gameState.p1.hp + '%';
+    document.getElementById('hp2').style.width = gameState.p2.hp + '%';
+    document.getElementById('ult1').style.width = gameState.p1.ult + '%';
+    document.getElementById('ult2').style.width = gameState.p2.ult + '%';
+    
+    // 更新比分
+    document.getElementById('score1').textContent = gameScores.p1;
+    document.getElementById('score2').textContent = gameScores.p2;
+    document.getElementById('matchScore').textContent = `${gameScores.p1} - ${gameScores.p2}`;
+    
+    // 更新必杀按钮状态
+    document.getElementById('ultBtn').classList.toggle('ready', gameState.p1.ult >= 100);
+}
+
+// 游戏循环
+function gameLoop() {
+    if (!gameActive) return;
+    
+    const now = Date.now();
+    
+    // 处理移动
+    if (keys['ArrowLeft']) movePlayer('p1', -1);
+    if (keys['ArrowRight']) movePlayer('p1', 1);
+    
+    // 处理重力
+    if (!gameState.p1.onGround && now > gameState.p1.stunned) {
+        gameState.p1.vy -= 0.5;
+        gameState.p1.y += gameState.p1.vy;
+        if (gameState.p1.y <= 0) {
+            gameState.p1.y = 0;
+            gameState.p1.vy = 0;
+            gameState.p1.onGround = true;
+        }
+    }
+    
+    if (!gameState.p2.onGround && now > gameState.p2.stunned) {
+        gameState.p2.vy -= 0.5;
+        gameState.p2.y += gameState.p2.vy;
+        if (gameState.p2.y <= 0) {
+            gameState.p2.y = 0;
+            gameState.p2.vy = 0;
+            gameState.p2.onGround = true;
+        }
+    }
+    
+    updateDisplay();
+    requestAnimationFrame(gameLoop);
+}
+
+// 移动玩家
+function movePlayer(player, dir) {
+    const state = gameState[player];
+    const now = Date.now();
+    
+    if (now > state.stunned && now > state.blocking) {
+        state.x = Math.max(0, Math.min(85, state.x + dir * 0.5));
+    }
+}
+
+// 跳跃
+function jump(player) {
+    const state = gameState[player];
+    const now = Date.now();
+    
+    if (state.onGround && now > state.stunned && now > state.blocking) {
+        state.vy = 8;
+        state.onGround = false;
+    }
+}
+
+// 攻击
+function attack(player) {
+    const state = gameState[player];
+    const target = player === 'p1' ? 'p2' : 'p1';
+    const targetState = gameState[target];
+    const now = Date.now();
+    
+    if (now > state.stunned && now > state.blocking) {
+        // 检查是否命中
+        if (Math.abs(state.x - targetState.x) < 15) {
+            // 检查格挡
+            if (now < targetState.blocking) {
+                // 格挡成功
+                targetState.ult = Math.min(100, targetState.ult + 20);
+                showEffect(target, 'block');
+                state.stunned = now + 500;
+            } else {
+                // 命中
+                targetState.hp = Math.max(0, targetState.hp - 10);
+                targetState.vy = 4;
+                targetState.onGround = false;
+                targetState.stunned = now + 300;
+                state.ult = Math.min(100, state.ult + 15);
+                showEffect(target, 'punch');
+                
+                // 检查回合结束
+                if (targetState.hp <= 0) {
+                    endRound(player);
+                }
+            }
+        }
+    }
+}
+
+// 格挡
+function block(player) {
+    const state = gameState[player];
+    state.blocking = Date.now() + 400;
+}
+
+// 必杀技
+function ultimate(player) {
+    const state = gameState[player];
+    const target = player === 'p1' ? 'p2' : 'p1';
+    const targetState = gameState[target];
+    
+    if (state.ult >= 100) {
+        state.ult = 0;
+        state.vy = 12;
+        state.onGround = false;
+        
+        setTimeout(() => {
+            if (Math.abs(state.x - targetState.x) < 20) {
+                targetState.hp = Math.max(0, targetState.hp - 30);
+                targetState.vy = 8;
+                targetState.onGround = false;
+                targetState.stunned = Date.now() + 800;
+                showEffect(target, 'ult');
+                
+                if (targetState.hp <= 0) {
+                    endRound(player);
+                }
+            }
+        }, 500);
+    }
+}
+
+// 显示特效
+function showEffect(target, type) {
+    const fx = document.getElementById(target === 'p1' ? 'fx1' : 'fx2');
+    const state = gameState[target];
+    
+    fx.className = 'fx fx-' + type;
+    fx.style.left = state.x + 'vmin';
+    fx.style.bottom = (state.y + 5) + 'vmin';
+    fx.style.opacity = 1;
+    
+    setTimeout(() => {
+        fx.style.opacity = 0;
+    }, 500);
+}
+
+// 结束回合
+function endRound(winner) {
+    gameActive = false;
+    gameScores[winner]++;
+    currentMatch++;
+    
+    showMsg((winner === 'p1' ? '玩家' : 'AI') + ' 获胜！', 2000);
+    
+    setTimeout(() => {
+        if (gameScores.p1 >= 2 || gameScores.p2 >= 2) {
+            endGame();
+        } else {
+            resetRound();
+            gameActive = true;
+        }
+    }, 2000);
+}
+
+// 结束游戏
+function endGame() {
+    const winner = gameScores.p1 >= 2 ? '玩家' : 'AI';
+    showMsg(winner + ' 获得最终胜利！', 3000);
+    
+    setTimeout(() => {
+        gameScores = {p1: 0, p2: 0};
+        currentMatch = 0;
+        document.getElementById('gameScreen').style.display = 'none';
+        document.getElementById('characterSelect').style.display = 'flex';
+        selectedChar = null;
+        initCharacterSelect();
+    }, 3000);
+}
+
+// 显示消息
+function showMsg(text, duration) {
+    const msg = document.getElementById('msg');
+    msg.textContent = text;
+    msg.style.display = 'block';
+    msg.classList.add('win');
+    
+    setTimeout(() => {
+        msg.style.display = 'none';
+        msg.classList.remove('win');
+    }, duration);
+}
+
+// 控制事件
+document.getElementById('dpadUp').addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    keys['ArrowUp'] = true;
+    jump('p1');
+});
+document.getElementById('dpadUp').addEventListener('touchend', (e) => {
+    e.preventDefault();
+    keys['ArrowUp'] = false;
+});
+
+document.getElementById('dpadLeft').addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    keys['ArrowLeft'] = true;
+});
+document.getElementById('dpadLeft').addEventListener('touchend', (e) => {
+    e.preventDefault();
+    keys['ArrowLeft'] = false;
+});
+
+document.getElementById('dpadRight').addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    keys['ArrowRight'] = true;
+});
+document.getElementById('dpadRight').addEventListener('touchend', (e) => {
+    e.preventDefault();
+    keys['ArrowRight'] = false;
+});
+
+document.getElementById('jumpBtn').addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    jump('p1');
+});
+
+document.getElementById('attackBtn').addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    attack('p1');
+});
+
+document.getElementById('blockBtn').addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    block('p1');
+});
+
+document.getElementById('ultBtn').addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    ultimate('p1');
+});
+
+// 键盘控制
+document.addEventListener('keydown', (e) => {
+    keys[e.key] = true;
+    
+    switch(e.key) {
+        case 'w': case 'W': jump('p1'); break;
+        case ' ': attack('p1'); break;
+        case 's': case 'S': block('p1'); break;
+        case 'e': case 'E': ultimate('p1'); break;
+    }
+});
+
+document.addEventListener('keyup', (e) => {
+    keys[e.key] = false;
+});
+
+// AI控制
+function aiControl() {
+    if (!gameActive) return;
+    
+    const now = Date.now();
+    const p1State = gameState.p1;
+    const p2State = gameState.p2;
+    
+    if (now > p2State.stunned && now > p2State.blocking) {
+        const dist = Math.abs(p1State.x - p2State.x);
+        const dir = p1State.x > p2State.x ? 1 : -1;
+        
+        // AI策略
+        if (dist > 20) {
+            // 移动靠近
+            p2State.x = Math.max(0, Math.min(85, p2State.x + dir * 0.4));
+        } else if (dist < 8) {
+            // 稍微远离
+            p2State.x = Math.max(0, Math.min(85, p2State.x - dir * 0.3));
+        }
+        
+        // 随机动作
+        const rand = Math.random();
+        if (rand < 0.02) {
+            if (p2State.onGround && rand < 0.3) {
+                jump('p2');
+            } else if (rand < 0.5) {
+                attack('p2');
+            } else if (rand < 0.3) {
+                block('p2');
+            } else if (p2State.ult >= 100 && rand < 0.5) {
+                ultimate('p2');
+            }
+        }
+    }
+}
+
+// AI循环
+setInterval(aiControl, 50);
+
+// 返回选人
+document.getElementById('backToSelect').addEventListener('click', () => {
+    gameActive = false;
+    gameScores = {p1: 0, p2: 0};
+    currentMatch = 0;
+    document.getElementById('gameScreen').style.display = 'none';
+    document.getElementById('characterSelect').style.display = 'flex';
+    selectedChar = null;
+    initCharacterSelect();
+});
+
+// 初始化
+initCharacterSelect();
+</script>
+</body>
+</html>

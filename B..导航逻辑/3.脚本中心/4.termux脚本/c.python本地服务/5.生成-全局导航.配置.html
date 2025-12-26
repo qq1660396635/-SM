@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>导航配置生成工具 - Python 脚本</title>
+    <!-- prism.js 语法高亮 -->
+    <script src="/A2_全局中心/B_插件缓存-CDN/1.prism代码高亮/1.prism-css-白色主题.js"></script>
+    <script src="/A2_全局中心/B_插件缓存-CDN/1.prism代码高亮/prism-core.min.js"></script>
+    <script src="/A2_全局中心/B_插件缓存-CDN/1.prism代码高亮/prism-python.min.js"></script>
+    <!-- 引入缩放插件 -->
+    <script src="/A2_全局中心/B_插件工具/3.插件_字体缩放.js"></script>
+    <style>
+        /* 全局重置和基础样式 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont,
+                'Segoe UI', Roboto, sans-serif;
+            font-size: 0.9rem;
+            background: linear-gradient(135deg, #5a1aba 0%, #7f1bf9 100%);
+            min-height: 100vh;
+            padding: 10px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* 头部样式 */
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 12px 20px;
+            border-radius: 10px;
+            margin: 0 10px 15px 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            position: sticky;
+            top: 10px;
+            z-index: 100;
+        }
+
+        h1 {
+            font-size: 1.2rem;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* 复制按钮 */
+        .copy-all-btn {
+            background: linear-gradient(135deg, #7e3fba 0%, #370d77 100%);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .copy-all-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(126, 63, 186, 0.3);
+        }
+
+        /* 代码块容器 - 主要区域 */
+        .code-block {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 10px;
+            margin: 0 10px 20px 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 70vh;
+        }
+
+        /* 模块标题栏 */
+        .module-title {
+            background: linear-gradient(135deg, #7e3fba 0%, #370d77 100%);
+            color: white;
+            padding: 12px 15px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        /* 代码区域 - 扩大显示区域 */
+        .module-code {
+            padding: 0;
+            flex: 1;
+            overflow: auto;
+            min-height: 60vh;
+        }
+
+        pre {
+            margin: 0;
+            padding: 20px;
+            overflow-x: auto;
+            background: #2d2d2d;
+            height: 100%;
+            box-sizing: border-box;
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        code {
+            font-family: 'SF Mono', 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        /* 说明区域 - 移除固定高度 */
+        .info {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 10px;
+            margin: 0 10px 20px 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        /* 分页按钮 */
+        .tab-buttons {
+            display: flex;
+            background: rgba(0, 0, 0, 0.05);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            background: transparent;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .tab-btn.active {
+            background: rgba(255, 255, 255, 0.8);
+            font-weight: 600;
+            color: #7e3fba;
+        }
+
+        .tab-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: #7e3fba;
+        }
+
+        /* 分页内容 - 移除高度限制 */
+        .tab-content {
+            padding: 20px;
+        }
+
+        .tab-pane {
+            display: none;
+        }
+
+        .tab-pane.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .info h2 {
+            color: #333;
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #7e3fba;
+        }
+
+        .info p {
+            color: #555;
+            font-size: 0.9rem;
+            line-height: 1.8;
+            margin-bottom: 12px;
+        }
+
+        .info ul {
+            margin-left: 20px;
+            margin-bottom: 15px;
+        }
+
+        .info li {
+            color: #555;
+            font-size: 0.9rem;
+            line-height: 1.8;
+            margin-bottom: 8px;
+        }
+
+        .info code {
+            background: #f0f0f0;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'SF Mono', monospace;
+            color: #7e3fba;
+        }
+
+        .info pre {
+            background: #f8f8f8;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+
+        .info pre code {
+            background: none;
+            padding: 0;
+            color: #333;
+        }
+
+        /* 提示框样式 */
+        .toast {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        .toast.show {
+            opacity: 1;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            body {
+                padding: 5px;
+            }
+
+            h1 {
+                font-size: 1rem;
+            }
+
+            .copy-all-btn {
+                padding: 6px 12px;
+                font-size: 0.8rem;
+            }
+
+            pre {
+                font-size: 0.8rem;
+                padding: 15px;
+            }
+
+            code {
+                font-size: 0.8rem;
+            }
+
+            .header, .code-block, .info {
+                margin-left: 5px;
+                margin-right: 5px;
+            }
+
+            .tab-btn {
+                font-size: 0.8rem;
+                padding: 10px 5px;
+            }
+
+            .info h2 {
+                font-size: 1rem;
+            }
+
+            .info p, .info li {
+                font-size: 0.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 头部区域 -->
+        <div class="header">
+            <h1>🧭 导航配置生成工具</h1>
+            <button class="copy-all-btn" onclick="copyAll()">📋 复制全部</button>
+        </div>
+
+        <!-- 代码展示区 - 主要内容 -->
+        <div class="code-block">
+            <div class="module-title">
+                <span>Python 脚本：nav_generator.py</span>
+            </div>
+            <div class="module-code">
+                <pre><code class="language-python" id="code-content">#!/data/data/com.termux/files/usr/bin/python3
+# -*- coding: utf-8 -*-
+"""
+Termux 专用：完全递归，目录即分类，文件进对应分类，描述无空格
+300 图标库随机分配，前300 不重复，后续可重复
+仅扫描HTML 文件（.html, .htm），忽略JS 文件
+"""
+from pathlib import Path
+import json
+import random
+
+ROOT_DIR = Path("/storage/emulated/0/Download/OnePlus Share/05_APP/苏沫V/B..导航逻辑")
+CONFIG_FILE = ROOT_DIR / "1_nav.config.js"
+
+# 1. 创建300 个图标库（包含各种主题：动物、植物、物品、符号等）
+ICON_LIBRARY = [
+    # 动物类(1-50)
+    "🦕", "🦖", "🐉", "🦎", "🐍", "🦕", "🦖", "🐊", "🦎", "🐍", "🦅", "🦆", "🦢", "🦉", "🦤", "🪶", "🦩", "🦚", "🦜", "🦃", "🐔", "🐓", "🐣", "🐤", "🐥", "🐦", "🐧", "🕊️", "🦇", "🦋", "🐌", "🐛", "🐜", "🐝", "🪲", "🐞", "🦗", "🪳", "🦟", "🦗", "🕷️", "🕸️", "🦂", "🦀", "🦞", "🦐", "🦑", "🐙", "🦪", "🐚",
+    # 植物类(51-100)
+    "🌳", "🌲", "🌴", "🌵", "🌾", "🌿", "☘️", "🍀", "🍁", "🍂", "🍃", "🌱", "🌼", "🌻", "🌺", "🌸", "🌷", "🌹", "🥀", "🌾", "🌵", "🎄", "🌲", "🌳", "🌴", "🌿", "🍀", "🌺", "🌻", "🌹", "🌸", "🌷", "🌼", "🌱", "🌾", "🍃", "🍁", "🍂", "🌵", "🎋",
+    "🎍", "🪴", "🪹", "🪺", "🌾", "🌿", "☘️", "🍀", "🌿", "🌱",
+    # 食物类(101-150)
+    "🍎", "🍊", "🍋", "🍌", "🍉", "🍇", "🍓", "🫐", "🍈", "🍒", "🍑", "🥭", "🍍", "🥥", "🥝", "🍅", "🍆", "🥑", "🥦", "🥬", "🥒", "🌶️", "🫑", "🌽", "🥕", "🫒", "🧄", "🧅", "🥔", "🍠", "🥐", "🥯", "🍞", "🥖", "🥨", "🧀", "🥚", "🍳", "🧈", "🥞", "🧇", "🥓", "🥩", "🍗", "🍖", "🦴", "🌭", "🍔", "🍟", "🍕",
+    # 物品类(151-200)
+    "📎", "📌", "📱", "📻", "⌨️", "🖥️", "🖨️", "🖱️", "🎮", "🕹️", "📷", "📸", "📹", "🎥", "📼", "📞", "☎️", "📟", "📠", "📺", "📻", "🎚️", "🎛️", "🧭", "⏱️", "⏲️", "⏰", "🕰️", "⌚", "⏳", "⌛", "🧳", "🔓", "🔒", "🔏", "🔐", "🔑", "🗝️", "🔨", "⛏️", "⚒️", "🛠️", "🗡️", "⚔️", "🪓", "🔫", "🏹", "🪓", "🔧", "🔩", "⚙️", "🗜️",
+    # 符号类(201-250)
+    "💡", "🔦", "🕯️", "🪔", "💫", "⭐", "🌟", "✨", "💥", "💢", "🌙", "🌛", "🌜", "🌚", "🌝", "🌞", "🪐", "☄️", "💥", "🔥", "❄️", "💧", "🌊", "🌫️", "🌪️", "🌈", "☀️", "🌤️", "⛅", "🌥️", "☁️", "🌦️", "🌧️", "⛈️", "🌩️", "🌨️", "❄️", "☃️", "⛄", "🎄", "🎃", "🎆", "🎇", "🧨", "✨", "🎈", "🎉", "🎊", "🎋", "🎍", "🎎", "🎏", "🎐", "🎑", "🧧", "🎗️", "🎟️", "🎫", "🎖️", "🏆", "🏅", "🥇", "🥈", "🥉", "⚽", "⚾", "🥎", "🏀", "🏐", "🏈", "🏉", "🎾", "🥏", "🎳", "🏏", "🪃", "🥅", "⛳", "🪁", "🏹", "🎣", "🤿", "🥊", "🥋", "🎽", "🛹", "🛷", "⛸️", "🥌", "🎿", "⛷️", "🏂", "🪂", "🏋️", "🤼", "🤸", "🤺", "🤾", "🏌️", "🏇", "🧘", "🏄", "🏊", "🤽", "🚣", "🧗", "🚴", "🚵", "🎯", "🪀", "🪁", "🎱", "🔮", "🪄", "🧿", "🎭", "🎪", "🎨", "🎬", "🎤", "🎧", "🎼", "🎹", "🥁", "🪘", "🎷", "🎺", "🎸", "🪕", "🎻", "🪕", "🎲", "♟️", "🃏", "🀄", "🎴", "🎰", "🧩", "🪬", "🪩", "🪪", "🔰", "🚸", "⚠️", "🚳", "🚯", "🚱", "🚷", "📵", "🚭", "❌", "⭕", "✅", "☑️", "✔️", "❎", "➕", "➖", "➗", "✖️", "♾️", "💠", "🔷", "🔶", "🔺", "🔻", "🔸", "🔹", "🔳", "🔲", "▪️", "▫️", "◾", "◽", "◼️", "◻️", "⬛", "⬜", "🔈", "🔇", "🔉", "🔊", "🔔", "🔕", "📣", "📢", "💬", "💭", "🗯️",
+    # 特殊类(251-300)
+    "🎯", "🪀", "🪁", "🎱", "🔮", "🪄", "🧿", "🎭", "🎪", "🎨", "🎬", "🎤", "🎧", "🎼", "🎹", "🥁", "🪘", "🎷", "🎺", "🎸", "🪕", "🎻", "🎲", "♟️", "ᛅ", "❤️", "🎴", "🎰", "🧩", "🪬", "🪩", "🪪", "🔰", "🚸", "⚠️", "❌", "⭕", "✅", "☑️", "✔️", "❎", "➕", "➖", "➗", "✖️", "♾️", "💠", "🔷", "🔶", "🔺", "🔻", "🔸", "🔹", "🔳", "🔲", "▪️", "▫️", "◾", "◽", "◼️", "◻️", "⬛", "⬜", "🔈", "🔇", "🔉", "🔊", "🔔", "🔕", "📣", "📢", "💬", "💭", "🗯️"
+]
+
+def scan(root: Path):
+    """2. 返回{分类名: 文件对象, ..., ...} 与总文件数"""
+    cats = {}
+    total = 0
+    icon_index = 0  # 用于追踪图标分配
+
+    def dfs(base: Path):
+        nonlocal total, icon_index
+        rel = str(base.relative_to(root)).replace('\\', '/')
+        key = '' if rel == '.' else rel  # 根目录文件用空字符串当key
+        files = []
+
+        for p in sorted(base.iterdir()):
+            if p.is_file():
+                # 添加文件扩展名过滤：只处理HTML 文件
+                if p.suffix.lower() in ['.html', '.htm']:
+                    # 3. 图标分配逻辑：前300 个不重复，之后可重复
+                    if icon_index < len(ICON_LIBRARY):
+                        icon = ICON_LIBRARY[icon_index]
+                    else:
+                        icon = random.choice(ICON_LIBRARY)
+
+                    files.append({
+                        "name": p.stem,
+                        "file": f"/B..导航逻辑/{rel}/{p.name}" if rel else f"/B..导航逻辑/{p.name}",
+                        "icon": icon,
+                        "description": f"{p.stem}页面"  # ←无空格
+                    })
+                    total += 1
+                    icon_index += 1
+                # 忽略非HTML 文件（包括JS 文件）
+            else:
+                dfs(p)  # 递归子目录
+
+        if files:
+            cats[key] = files
+
+    dfs(root)
+    return cats, total
+
+def generate_js(cats, total):
+    """4. 生成JavaScript 配置文件"""
+    lines = ['(function(){']
+    lines.append('console.log("正在加载导航配置...");')
+    lines.append(f'window.__fileCount = {total};')
+    lines.append('window.navConfig = {')
+
+    for cat, arr in cats.items():
+        k = cat or '根目录'  # 根目录文件给个中文key
+        lines.append(f' "{k}": [')
+        for i, obj in enumerate(arr):
+            comma = ',' if i < len(arr) - 1 else ''
+            lines.append(f'  {json.dumps(obj, ensure_ascii=False)}{comma}')
+        lines.append(' ],')
+
+    # 移除最后一个逗号
+    if lines[-1].endswith(','):
+        lines[-1] = lines[-1][:-1]
+
+    lines.append('};')
+    lines.append('})();')
+    return '\n'.join(lines)
+
+def main():
+    """5. 主函数：扫描目录并生成配置"""
+    if not ROOT_DIR.exists():
+        print("目录不存在：", ROOT_DIR)
+        exit(1)
+
+    cats, total = scan(ROOT_DIR)
+    js_content = generate_js(cats, total)
+    CONFIG_FILE.write_text(js_content, encoding='utf-8')
+    print('配置已生成：', CONFIG_FILE)
+    print('📁总HTML 文件数：', total)
+    print('🎨图标库大小：', len(ICON_LIBRARY))
+    if total > len(ICON_LIBRARY):
+        print('⚠️ 文件数超过图标库，部分图标将重复使用')
+
+if __name__ == '__main__':
+    main()
+</code></pre>
+            </div>
+        </div>
+
+        <!-- 说明区域 -->
+        <div class="info">
+            <div class="tab-buttons">
+                <button class="tab-btn active" data-tab="design">设计思路</button>
+                <button class="tab-btn" data-tab="usage">使用说明</button>
+            </div>
+            <div class="tab-content">
+                <!-- 设计思路 -->
+                <div class="tab-pane active" id="design">
+                    <h2>🎯设计思路</h2>
+                    <p>这个工具的核心目标是<strong>为HTML 文件生成导航配置</strong>，适用于 Termux 环境下的自动化配置生成。以下是关键设计点：</p>
+                    <ul>
+                        <li><strong>目录即分类</strong>：目录结构直接映射为导航分类，实现直观的组织方式</li>
+                        <li><strong>图标分配策略</strong>：前300 个文件分配不重复图标，超出后随机重复使用</li>
+                        <li><strong>文件过滤</strong>：仅扫描HTML 文件（.html, .htm），忽略JS 等其他文件</li>
+                        <li><strong>递归扫描</strong>：完全递归遍历所有子目录，不遗漏任何HTML 文件</li>
+                        <li><strong>配置生成</strong>：生成可直接使用的JavaScript 配置文件</li>
+                    </ul>
+                    <p>最终生成的JS 配置文件包含<strong>完整的导航数据</strong>，前端可直接使用<code>window.navConfig</code>访问配置。</p>
+                </div>
+                <!-- 使用说明 -->
+                <div class="tab-pane" id="usage">
+                    <h2>📖使用说明</h2>
+                    <p>使用此工具非常简单，只需按照以下步骤操作：</p>
+                    <ul>
+                        <li>1. 将脚本放置在 Termux 环境中</li>
+                        <li>2. 确保<code>ROOT_DIR</code>路径正确指向你的HTML 文件目录</li>
+                        <li>3. 运行脚本：<code>python nav_generator.py</code></li>
+                        <li>4. 脚本会自动生成<code>1_nav.config.js</code>配置文件</li>
+                    </ul>
+                    <p><strong>配置文件使用示例：</strong></p>
+                    <pre><code>// 获取根目录文件列表
+const rootFiles = window.navConfig['根目录'];
+
+// 获取某个分类的文件
+const categoryFiles = window.navConfig['分类名'];
+
+// 获取文件总数
+const totalFiles = window.__fileCount;
+
+// 遍历所有文件
+Object.keys(window.navConfig).forEach(category => {
+    const files = window.navConfig[category];
+    files.forEach(file => {
+        console.log(`${category}: ${file.name}`);
+    });
+});</code></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 提示框 -->
+    <div class="toast" id="toast">已复制</div>
+
+    <script>
+        // 1. 初始化代码高亮
+        document.addEventListener('DOMContentLoaded', function() {
+            Prism.highlightAll();
+        });
+
+        // 2. 分页切换功能
+        const tabBtns = document.querySelectorAll('.tab-btn');
+        const tabPanes = document.querySelectorAll('.tab-pane');
+
+        tabBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                const targetTab = this.getAttribute('data-tab');
+                
+                // 更新按钮状态
+                tabBtns.forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                
+                // 更新内容显示
+                tabPanes.forEach(pane => {
+                    pane.classList.remove('active');
+                    if (pane.id === targetTab) {
+                        pane.classList.add('active');
+                    }
+                });
+            });
+        });
+
+        // 3. 复制全部代码
+        function copyAll() {
+            const codeContent = document.getElementById('code-content').textContent;
+            navigator.clipboard.writeText(codeContent).then(() => {
+                showToast();
+            }).catch(err => {
+                console.error('复制失败:', err);
+            });
+        }
+
+        // 4. 显示提示框
+        function showToast() {
+            const toast = document.getElementById('toast');
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 1500);
+        }
+    </script>
+</body>
+</html>

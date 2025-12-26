@@ -1,0 +1,668 @@
+<!DOCTYPE html> <html lang="zh-CN"> <head>
+<meta charset="UTF-8"> <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>汇编指令系统化分类</title>
+     
+     <script src="A.插件_字体缩放.js"></script>
+     
+<style>
+:root {
+    --primary-color: #10b981; /* 绿色主色调*/
+    --secondary-color: #06b6d4; /* 青色辅助色*/
+    --accent-color: #8b5cf6; /* 紫色强调色*/
+    --text-color: #1e293b;
+    --text-secondary: #64748b;
+    --bg-color: #f0fdf4; /* 浅绿色背景*/
+    --border-color: #d1fae5;
+    --hover-bg: #dcfce7;
+    --code-bg: #ffffff;
+    --tree-line: #86efac;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    color: #334155;
+    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 50%, #d1fae5 100%);
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+    display: flex;
+    flex-direction: column;
+}
+
+.container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background-color: rgba(255, 255, 255, 0.95);
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+header {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: #fff;
+    padding: 12px 16px;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+    flex-shrink: 0;
+    z-index: 10;
+}
+
+header h1 {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+header p {
+    opacity: 0.9;
+    font-size: 12px;
+}
+
+.controls {
+    padding: 10px 16px;
+    background-color: var(--code-bg);
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.controls button {
+    background: linear-gradient(135deg, var(--accent-color), var(--secondary-color));
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-size: 12px;
+    font-family: inherit;
+}
+
+.controls button:hover {
+    background: linear-gradient(135deg, var(--secondary-color), var(--primary-color));
+    transform: translateY(-1px);
+}
+
+#searchInput {
+    padding: 6px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background-color: rgba(240, 253, 244, 0.8);
+    color: #334155;
+    font-size: 12px;
+    font-family: inherit;
+    width: 180px;
+}
+
+#searchInput:focus {
+    outline: none;
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2);
+}
+
+.tree-container {
+    flex: 1;
+    padding: 12px;
+    overflow: auto;
+    background-color: rgba(240, 253, 244, 0.5);
+}
+
+.tree ul {
+    list-style-type: none;
+    padding-left: 16px;
+    margin: 0;
+}
+
+.tree li {
+    position: relative;
+    padding: 1px 0;
+    white-space: nowrap;
+}
+
+.tree li::before {
+    content: "";
+    position: absolute;
+    left: -10px;
+    top: 8px;
+    width: 10px;
+    height: 1px;
+    background-color: var(--tree-line);
+}
+
+.tree li::after {
+    content: "";
+    position: absolute;
+    left: -10px;
+    top: -2px;
+    width: 1px;
+    height: 100%;
+    background-color: var(--tree-line);
+}
+
+.tree li:last-child::after {
+    height: 10px;
+}
+
+.tree > ul > li::before,
+.tree > ul > li::after {
+    display: none;
+}
+
+.tree-node {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.tree-node:hover {
+    background-color: var(--hover-bg);
+}
+
+.tree-node i {
+    margin-right: 6px;
+    color: var(--text-color);
+    width: 12px;
+    text-align: center;
+    font-size: 10px;
+}
+
+.tree-node .folder {
+    color: #10b981;
+}
+
+.tree-node .file {
+    color: var(--text-secondary);
+}
+
+.tree-node .toggle {
+    color: #94a3b8;
+    margin-right: 3px;
+    font-size: 9px;
+}
+
+.tree-content {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    min-width: 0;
+}
+
+.tree-name {
+    font-weight: 500;
+    font-size: 13px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: #1e293b;
+}
+
+.tree-desc {
+    color: #64748b;
+    font-size: 10px;
+    margin-left: 8px;
+    font-style: italic;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 180px;
+}
+
+.collapsed > ul {
+    display: none;
+}
+
+.collapsed .toggle.fa-chevron-down::before {
+    content: "\f054";
+}
+
+.highlight {
+    background: linear-gradient(135deg, var(--accent-color), var(--secondary-color));
+    padding: 0 3px;
+    border-radius: 3px;
+    color: #fff;
+}
+
+footer {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: white;
+    padding: 8px 16px;
+    text-align: center;
+    font-size: 10px;
+    border-top: 1px solid var(--border-color);
+    flex-shrink: 0;
+    z-index: 10;
+}
+
+/* 移动端优化*/
+@media (max-width: 768px) {
+    body {
+        font-size: 12px;
+    }
+    
+    header h1 {
+        font-size: 16px;
+    }
+    
+    header p {
+        font-size: 11px;
+    }
+    
+    .tree ul {
+        padding-left: 14px;
+    }
+    
+    .tree li {
+        padding: 0.5px 0;
+    }
+    
+    .tree-name {
+        font-size: 12px;
+    }
+    
+    .tree-desc {
+        font-size: 9px;
+        margin-left: 6px;
+        max-width: 120px;
+    }
+    
+    #searchInput {
+        width: 140px;
+        font-size: 11px;
+    }
+    
+    .controls button {
+        font-size: 11px;
+        padding: 5px 10px;
+    }
+}
+
+/* 超小屏幕优化*/
+@media (max-width: 480px) {
+    body {
+        font-size: 13px;
+    }
+    
+    header h1 {
+        font-size: 14px;
+    }
+    
+    header p {
+        font-size: 10px;
+    }
+    
+    .tree ul {
+        padding-left: 12px;
+    }
+    
+    .tree li {
+        padding: 0;
+    }
+    
+    .tree-node {
+        padding: 1px 3px;
+    }
+    
+    .tree-node i {
+        margin-right: 4px;
+        width: 10px;
+        font-size: 9px;
+    }
+    
+    .tree-name {
+        font-size: 11px;
+    }
+    
+    .tree-desc {
+        font-size: 8px;
+        margin-left: 4px;
+        max-width: 90px;
+    }
+    
+    .tree-container {
+        padding: 8px;
+    }
+    
+    .controls {
+        padding: 8px 12px;
+    }
+    
+    #searchInput {
+        width: 120px;
+        font-size: 10px;
+        padding: 4px 8px;
+    }
+    
+    .controls button {
+        font-size: 10px;
+        padding: 4px 8px;
+    }
+}
+
+/* 让描述文字不斜、不断行、显示完整*/
+.tree-desc {
+    font-style: normal !important; /* 去掉斜体*/
+    white-space: normal !important; /* 允许换行*/
+    max-width: none !important; /* 不限制宽度*/
+    overflow: visible !important; /* 不隐藏溢出*/
+    text-overflow: unset !important; /* 不显示省略号*/
+    display: inline-block !important; /* 让换行生效*/
+    line-height: 1.4 !important; /* 行高稍微大一点*/
+    margin-left: 6px !important;
+    font-size: 11px !important; /* 稍微大一点*/
+}
+</style>
+</head> 
+<body> 
+<div class="container"> 
+<header>
+<h1>汇编指令系统化分类</h1> 
+<p>Assembly Instructions Systematic Classification</p> 
+</header> 
+<div class="controls">
+<div>
+<button id="expandAll"><i class="fas fa-plus-square"></i>展开</button>
+<button id="collapseAll"><i class="fas fa-minus-square"></i> 折叠</button>
+</div> 
+<div>
+<input type="text" id="searchInput" placeholder="搜索...">
+</div>
+</div> 
+<div class="tree-container">
+<div class="tree" id="treeContainer"></div> 
+</div>
+<footer>
+<p>© 2025 汇编指令系统化分类| Generated by 凉安</p> 
+</footer> 
+</div>
+<script>
+// 汇编指令树形数据
+const assemblyTreeData = [
+    {
+        name: "1️⃣主流指令集架构",
+        type: "folder",
+        children: [
+            {
+                name: "1.1 x86 家族",
+                type: "folder",
+                children: [
+                    {
+                        name: "1.1.1 x86 通用指令",
+                        type: "folder",
+                        children: [
+                            { name: "数据传送", desc: "MOV, PUSH, POP, LEA, XCHG", type: "file" },
+                            { name: "算术运算", desc: "ADD, ADC, SUB, SBB, MUL, IMUL, DIV, IDIV", type: "file" },
+                            { name: "逻辑与位操作", desc: "AND, OR, XOR, NOT, NEG, SHL, SHR, SAR, ROL, ROR", type: "file" },
+                            { name: "控制转移", desc: "CMP, TEST, JMP, JE, JNE, JL, JG, CALL, RET, LOOP", type: "file" },
+                            { name: "字符串操作", desc: "MOVS, LODS, STOS, CMPS, SCAS, REP, REPZ, REPNZ", type: "file" }
+                        ]
+                    },
+                    {
+                        name: "1.1.2 x86 系统/特权指令",
+                        type: "folder",
+                        children: [
+                            { name: "中断与系统调用", desc: "INT n, IRET, SYSCALL, SYSENTER, SYSEXIT", type: "file" },
+                            { name: "处理器控制与状态", desc: "CLI, STI, HLT, NOP", type: "file" },
+                            { name: "模型特定寄存器", desc: "RDMSR, WRMSR, CPUID", type: "file" },
+                            { name: "内存管理", desc: "INVLPG, LGDT, SGDT, LLDT, SLDT, LTR, STR", type: "file" }
+                        ]
+                    }
+                ]
+            },
+            {
+                name: "1.2 ARM 家族",
+                type: "folder",
+                children: [
+                    {
+                        name: "1.2.1 ARM32 通用指令",
+                        type: "folder",
+                        children: [
+                            { name: "数据处理", desc: "MOV, MVN, ADD, SUB, RSB, ADC, SBC, RSC, MUL, MLA, UMULL, UMLAL, SMULL, SMLAL, AND, ORR, EOR, BIC, LSL, LSR, ASR, ROR, RRX", type: "file" },
+                            { name: "内存访问", desc: "LDR, STR, LDM, STM, PUSH, POP", type: "file" },
+                            { name: "控制转移", desc: "B, BL, BX, BLX, SWI", type: "file" }
+                        ]
+                    },
+                    {
+                        name: "1.2.2 ARM64 通用指令",
+                        type: "folder",
+                        children: [
+                            { name: "数据处理", desc: "ADD, SUB, ADC, SBC, NEG, MUL, SMULH, UMULH, SDIV, UDIV, AND, ORR, EOR, BIC, MVN, LSL, LSR, ASR, ROR", type: "file" },
+                            { name: "内存访问", desc: "LDR, STR, LDUR, STUR, LDP, STP, LDNP, STNP, LDXR, STXR, LDAXR, STLXR, LDADD, SWP", type: "file" },
+                            { name: "控制转移", desc: "B, BL, BR, BLR, RET, CBZ, CBNZ, TBZ, TBNZ", type: "file" }
+                        ]
+                    },
+                    { name: "1.2.3 ARM 系统/特权指令", desc: "SWI(ARM32), SVC, HVC, SMC (ARM64)", type: "file" }
+                ]
+            },
+            {
+                name: "1.3 RISC-V 家族",
+                type: "folder",
+                children: [
+                    {
+                        name: "1.3.1 RISC-V 通用指令",
+                        type: "folder",
+                        children: [
+                            { name: "内存访问", desc: "LW, SW, LD, SD, LB, SB, LH, SH", type: "file" },
+                            { name: "算术与逻辑", desc: "ADD, SUB, ADDI, LUI, AUIPC, AND, OR, XOR, ANDI, ORI, XORI, SLL, SRL, SRA, SLLI, SRLI, SRAI", type: "file" },
+                            { name: "控制转移", desc: "BEQ, BNE, BLT, BGE, BLTU, BGEU, JAL, JALR", type: "file" }
+                        ]
+                    },
+                    { name: "1.3.2 RISC-V 系统/特权指令", desc: "ECALL, EBREAK, CSRRW, CSRRS, CSRRC", type: "file" }
+                ]
+            },
+            { name: "1.4 8/16 位微控制器架构", desc: "8051 内核, AVR 内核, PIC 内核", type: "file" },
+            { name: "1.5 历史/小众架构", desc: "Motorola 68k, MIPS32/64, PowerPC, SPARC", type: "file" }
+        ]
+    },
+    {
+        name: "2️⃣按功能交叉索引",
+        type: "folder",
+        children: [
+            { name: "2.1 数据传送", desc: "寄存器↔寄存器, 寄存器↔内存, 立即数→目标, 堆栈操作, 地址加载", type: "file" },
+            { name: "2.2 算术运算", desc: "加法/带进位加, 减法/带借位减, 乘法, 除法, 增量/减量", type: "file" },
+            { name: "2.3 逻辑与位操作", desc: "与/或/异或, 非/取反, 移位/循环", type: "file" },
+            { name: "2.4 比较与测试", desc: "比较, 测试位, 位扫描/置位", type: "file" },
+            { name: "2.5 控制转移", desc: "无条件跳转, 条件跳转, 调用/返回, 循环", type: "file" },
+            { name: "2.6 字符串/向量(SIMD)", desc: "字符串操作, SIMD 算术, SIMD 洗牌/移位", type: "file" },
+            { name: "2.7 系统/特权", desc: "中断/异常, 系统调用, 读写控制寄存器, 缓存/TLB 维护", type: "file" }
+        ]
+    },
+    {
+        name: "3️⃣汇编器伪指令与宏",
+        type: "folder",
+        children: [
+            { name: "3.1 段定义", desc: ".text, .data, .bss", type: "file" },
+            { name: "3.2 符号与常量定义", desc: ".equ, .set", type: "file" },
+            { name: "3.3 宏定义与条件汇编", desc: ".macro, .if, .endif", type: "file" }
+        ]
+    },
+    {
+        name: "4️⃣学习资源与工具",
+        type: "folder",
+        children: [
+            { name: "4.1 官方文档与手册", desc: "Intel/AMD官方手册, ARM 架构参考手册, RISC-V 非特权/特权规范", type: "file" },
+            { name: "4.2 社区资源与速查表", desc: "社区速查仓库, 在线指令集查询工具", type: "file" },
+            { name: "4.3 开发与调试工具", desc: "汇编器, 反汇编工具, 调试器", type: "file" }
+        ]
+    }
+];
+
+// 创建树节点的函数
+function createTreeNode(data) {
+    const li = document.createElement('li');
+    const nodeDiv = document.createElement('div');
+    nodeDiv.className = 'tree-node';
+
+    // 添加折叠图标（仅文件夹）
+    if (data.type === 'folder') {
+        const toggleIcon = document.createElement('i');
+        toggleIcon.className = 'fas fa-chevron-down toggle';
+        nodeDiv.appendChild(toggleIcon);
+    }
+
+    // 添加文件夹/文件图标
+    const icon = document.createElement('i');
+    icon.className = data.type === 'folder' ? 'fas fa-folder folder' : 'fas fa-file file';
+    nodeDiv.appendChild(icon);
+
+    // 添加内容区域
+    const contentDiv = document.createElement('div');
+    contentDiv.className = 'tree-content';
+
+    const nameSpan = document.createElement('span');
+    nameSpan.className = 'tree-name';
+    nameSpan.textContent = data.name;
+    contentDiv.appendChild(nameSpan);
+
+    if (data.desc) {
+        const descSpan = document.createElement('span');
+        descSpan.className = 'tree-desc';
+        descSpan.textContent = data.desc;
+        contentDiv.appendChild(descSpan);
+    }
+
+    nodeDiv.appendChild(contentDiv);
+    li.appendChild(nodeDiv);
+
+    // 递归创建子节点
+    if (data.children && data.children.length > 0) {
+        const ul = document.createElement('ul');
+        data.children.forEach(child => {
+            ul.appendChild(createTreeNode(child));
+        });
+        li.appendChild(ul);
+    }
+
+    return li;
+}
+
+// 初始化树形结构
+function initTree() {
+    const treeContainer = document.getElementById('treeContainer');
+    const ul = document.createElement('ul');
+
+    assemblyTreeData.forEach(item => {
+        ul.appendChild(createTreeNode(item));
+    });
+
+    treeContainer.appendChild(ul);
+}
+
+// 页面加载完成后初始化
+document.addEventListener('DOMContentLoaded', function() {
+    // 初始化树形结构
+    initTree();
+
+    // 使用事件委托处理折叠/展开
+    document.getElementById('treeContainer').addEventListener('click', function(e) {
+        const treeNode = e.target.closest('.tree-node');
+        if (!treeNode) return;
+
+        const folder = treeNode.querySelector('.folder');
+        if (!folder) return;
+
+        const li = treeNode.parentElement;
+        li.classList.toggle('collapsed');
+    });
+
+    // 展开全部按钮
+    document.getElementById('expandAll').addEventListener('click', function() {
+        document.querySelectorAll('.tree li.collapsed').forEach(li => {
+            li.classList.remove('collapsed');
+        });
+    });
+
+    // 折叠全部按钮
+    document.getElementById('collapseAll').addEventListener('click', function() {
+        document.querySelectorAll('.tree li:has(.folder)').forEach(li => {
+            if (!li.parentElement.classList.contains('tree')) {
+                li.classList.add('collapsed');
+            }
+        });
+    });
+
+    // 搜索功能
+    document.getElementById('searchInput').addEventListener('input', function(e) {
+        const searchTerm = e.target.value.toLowerCase();
+
+        // 清除之前的高亮
+        document.querySelectorAll('.highlight').forEach(el => {
+            el.classList.remove('highlight');
+        });
+
+        if (searchTerm === '') return;
+
+        // 搜索并高亮匹配项
+        document.querySelectorAll('.tree-node').forEach(node => {
+            const text = node.textContent.toLowerCase();
+            if (text.includes(searchTerm)) {
+                node.querySelector('.tree-name').classList.add('highlight');
+
+                // 展开父节点
+                let parent = node.closest('li');
+                while (parent && !parent.classList.contains('tree')) {
+                    parent.classList.remove('collapsed');
+                    parent = parent.parentElement.closest('li');
+                }
+            }
+        });
+    });
+});
+</script>
+<script>
+(function() {
+    // 创建SVG 图标定义
+    const svgIcons = {
+        'fa-plus-square': '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path fill="currentColor" d="M208 344c-13.3 0-24-10.7-24-24v-48H136c-13.3 0-24-10.7-24-24s10.7-24 24-24h48v-48c0-13.3 10.7-24 24-24s24 10.7 24 24v48h48c13.3 0 24 10.7 24 24s-10.7 24-24 24h-48v48c0 13.3-10.7 24-24 24zm240-128c0 52.5-42.5 95-95 95H395c-52.5 0-95-42.5-95-95V395c0-52.5 42.5-95 95-95h58c52.5 0 95 42.5 95 95v58zm-48 0c0-26.5-21.5-48-48-48h-58c-26.5 0-48 21.5-48 48v58c0 26.5 21.5 48 48 48h58c26.5 0 48-21.5 48-48v-58z"/></svg>',
+        'fa-minus-square': '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path fill="currentColor" d="M392 256H56c-13.3 0-24-10.7-24-24s10.7-24 24-24h336c13.3 0 24 10.7 24 24s-10.7 24-24 24zm48-160c0 52.5-42.5 95-95 95H395c-52.5 0-95-42.5-95-95V395c0-52.5 42.5-95 95-95h58c52.5 0 95 42.5 95 95v58zm-48 0c0-26.5-21.5-48-48-48h-58c-26.5 0-48 21.5-48 48v58c0 26.5 21.5 48 48 48h58c26.5 0 48-21.5 48-48v-58z"/></svg>',
+        'fa-chevron-down': '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path fill="currentColor" d="M224.8 414c-6.7 0-13.5-2.8-18.4-7.8l-172-172c-9.9-9.9-9.9-26 0-36.2s26.1-9.9 36.2 0l154.1 154.1 154.1-154.1c9.9-9.9 26.1-9.9 36.2 0s9.9 26.1 0 36.2l-172 172c-4.9 5-11.7 7.8-18.4 7.8z"/></svg>',
+        'fa-folder': '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M464 128H272l-64-64H48C21.5 64 0 85.5 0 112v288c0 26.5 21.5 48 48 48h416c26.5 0 48-21.5 48-48V176c0-26.5-21.5-48-48-48zm0 32v288H48V112h169.1l64.4 64.4H464z"/></svg>',
+        'fa-file': '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><path fill="currentColor" d="M369.9 97.9L86.04 3.57C81.5 1.82 76.56 0 71.69 0H64C28.65 0 0 28.65 0 64v384c0 35.35 28.65 64 64 64h320c35.35 0 64-28.65 64-64V133.9c0-8.8-3.6-17.3-9.9-23.9zM256 51.9V128H64V51.9h192zm128 448.1H164v35.9h209.9v-35.9zm64-48.1H164v35.9h273.9v-35.9zm-0.1-240.1 H164v240.1h280z"/></svg>'
+    };
+
+    // 创建样式规则
+    const style = document.createElement('style');
+    let css = `
+    .fas {
+        display: inline-block;
+        width: 1em;
+        height: 1em;
+        fill: currentColor;
+        vertical-align: middle;
+    }`;
+
+    // 为每个图标生成CSS 规则
+    for (const className in svgIcons) {
+        css += `
+    .${className}::before {
+        content: '';
+        display: inline-block;
+        width: 1em;
+        height: 1em;
+        background-image: url("data:image/svg+xml,${encodeURIComponent(svgIcons[className])}");
+        background-repeat: no-repeat;
+        background-position: center;
+        background-size: contain;
+    }`;
+    }
+
+    style.textContent = css;
+    document.head.appendChild(style);
+})();
+</script>
+</body> 
+</html>

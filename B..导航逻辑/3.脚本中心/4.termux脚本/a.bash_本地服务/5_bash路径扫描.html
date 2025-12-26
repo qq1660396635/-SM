@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bash 代码查看器</title>
+    
+        <!-- prism.js 语法高亮   -->
+      <script src="/A2_全局中心/B_插件缓存-CDN/1.prism代码高亮/1.prism-css-白色主题.js"></script>   
+      <script src="/A2_全局中心/B_插件缓存-CDN/1.prism代码高亮/prism-core.min.js"></script>    <!-- 核心文件 -->
+      <script src="/A2_全局中心/B_插件缓存-CDN/1.prism代码高亮/prism-bash.min.js"></script>   <!-- Bash语言支持 -->
+    
+    <style>
+        /* 1. 基础样式重置 */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        /* 2. 页面主体样式 */
+        body { 
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace; 
+            background: #ffffff; 
+            color: #2c3e50; 
+            line-height: 1.6; 
+            padding: 0;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        /* 3. 代码容器 */
+        .code-container { 
+            height: 100vh; 
+            display: flex; 
+            flex-direction: column; 
+        }
+        
+        /* 4. 代码头部 - 减少padding */
+        .code-header { 
+            background: linear-gradient(90deg, #f8f9fa 0%, #e9ecef 100%); 
+            padding: 8px 12px; 
+            border-bottom: 1px solid #dee2e6; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            flex-shrink: 0;
+        }
+        
+        /* 5. 代码标题 - 减小字体 */
+        .code-title { 
+            color: #6c757d; 
+            font-size: 12px; 
+            font-weight: 600; 
+            letter-spacing: 0.5px; 
+        }
+        
+        /* 6. 按钮组 */
+        .button-group {
+            display: flex;
+            gap: 6px;
+        }
+        
+        /* 7. 复制按钮 - 减小padding */
+        .copy-btn { 
+            color: white; 
+            border: none; 
+            padding: 4px 10px; 
+            border-radius: 4px; 
+            cursor: pointer; 
+            font-size: 11px; 
+            font-weight: 600; 
+            transition: all 0.3s ease; 
+            display: flex; 
+            align-items: center; 
+            gap: 4px; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            box-shadow: 0 2px 4px rgba(118, 75, 162, 0.3); 
+        }
+        
+        /* 8. 复制按钮悬停效果 */
+        .copy-btn:hover { 
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%); 
+            transform: scale(1.05); 
+        }
+        
+        /* 9. 代码内容区域 - 减少padding */
+        .code-content { 
+            flex: 1; 
+            overflow: auto; 
+            background: #f8f9fa; 
+            padding: 10px; 
+        }
+        
+        /* 10. 代码块样式 - 减小字体 */
+        pre { 
+            margin: 0; 
+            padding: 0; 
+            background: transparent; 
+            font-size: 12px; 
+            line-height: 1.4; 
+        }
+        
+        /* 11. 代码样式 */
+        code { 
+            font-family: inherit; 
+            white-space: pre; 
+        }
+    </style>
+</head>
+<body>
+    <div class="code-container">
+        <div class="code-header">
+            <span class="code-title">scan.sh</span>
+            <div class="button-group">
+                <button class="copy-btn" onclick="copyCode()">
+                    <span>📋</span>
+                    <span>复制</span>
+                </button>
+            </div>
+        </div>
+        <div class="code-content">
+            <pre><code class="language-bash">#!/data/data/com.termux/files/usr/bin/bash
+# 1. 脚本名称：scan.sh —— Termux 交互式目录层级扫描器
+# 2. 依赖：tree（如未安装请先 pkg install tree）
+
+# 3. 设置 Bash 严格模式：遇到错误立即退出、使用未定义变量时报错、管道出错也整体失败
+set -euo pipefail
+
+# 4. 定义颜色函数，让输出更醒目
+red()    { printf '\033[31m%b\033[0m\n' "$1"; }
+green()  { printf '\033[32m%b\033[0m\n' "$1"; }
+yellow() { printf '\033[33m%b\033[0m\n' "$1"; }
+
+# 5. 检查 tree 是否已安装
+if ! command -v tree >/dev/null 2>&1; then
+  red "错误：未检测到 tree 命令，请先执行 pkg install tree"
+  exit 1
+fi
+
+# 6. 主逻辑封装成函数，方便后续复用
+main() {
+  # 7. 友好提示：让用户输入待扫描目录
+  echo
+  yellow "=== Termux 目录扫描器 ==="
+  read -rp "请输入想要扫描的目录（绝对或相对路径）: " target_dir
+
+  # 8. 把用户输入的路径转换成绝对路径，并检查是否存在
+  target_dir=$(realpath -m "$target_dir" 2>/dev/null || readlink -f "$target_dir" 2>/dev/null || echo "$target_dir")
+  if [[ ! -d $target_dir ]]; then
+    red "错误：目录不存在 → $target_dir"
+    exit 1
+  fi
+
+  # 9. 让用户选择扫描层级（空回车默认全部层级）
+  read -rp "请选择扫描层级（数字，直接回车=全部层级）: " depth
+  if [[ -z $depth ]]; then
+    depth_flag=""
+  elif [[ $depth =~ ^[0-9]+$ ]]; then
+    depth_flag="-L $depth"
+  else
+    red "错误：层级必须是数字"
+    exit 1
+  fi
+
+  # 10. 执行 tree 并高亮输出
+  green "扫描结果："
+  echo "----------------------------------------"
+  tree -C $depth_flag "$target_dir"
+  echo "----------------------------------------"
+}
+
+# 11. 调用主函数
+main</code></pre>
+        </div>
+    </div>
+
+    <script>
+        // 1. 页面加载完成后应用语法高亮
+        document.addEventListener('DOMContentLoaded', function() {
+            Prism.highlightAll();
+        });
+        
+        // 2. 复制代码（只复制脚本内容）
+        function copyCode() {
+            // 精确选择代码内容，排除HTML标签
+            const codeElement = document.querySelector('code.language-bash');
+            if (!codeElement) {
+                console.error('未找到代码元素');
+                return;
+            }
+            
+            // 获取纯文本内容，去除可能的HTML实体
+            let codeContent = codeElement.textContent || codeElement.innerText;
+            
+            // 清理内容：去除前后空白，但保留内部格式
+            codeContent = codeContent.trim();
+            
+            // 调试信息
+            console.log('复制的代码长度:', codeContent.length);
+            console.log('复制的前50个字符:', codeContent.substring(0, 50));
+            
+            // 直接在当前页面复制，不通过父页面
+            navigator.clipboard.writeText(codeContent).then(() => {
+                // 显示成功提示
+                showCopySuccess();
+                
+                // 同时通知父页面（可选）
+                window.parent.postMessage({
+                    type: 'copySuccess',
+                    content: '代码已复制到剪贴板'
+                }, '*');
+            }).catch(err => {
+                console.error('复制失败:', err);
+                // 降级方案：创建临时文本区域
+                fallbackCopy(codeContent);
+            });
+        }
+        
+        // 3. 降级复制方案
+        function fallbackCopy(text) {
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-999999px';
+            textArea.style.top = '-999999px';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    showCopySuccess();
+                }
+            } catch (err) {
+                console.error('降级复制失败:', err);
+            }
+            
+            document.body.removeChild(textArea);
+        }
+        
+        // 4. 显示复制成功提示
+        function showCopySuccess() {
+            // 创建提示元素
+            const toast = document.createElement('div');
+            toast.textContent = '✅ 代码已复制到剪贴板';
+            toast.style.cssText = `
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: rgba(40, 167, 69, 0.9);
+                color: white;
+                padding: 8px 16px;
+                border-radius: 4px;
+                font-size: 12px;
+                z-index: 1000;
+                pointer-events: none;
+            `;
+            
+            document.body.appendChild(toast);
+            
+            // 1.5秒后移除提示
+            setTimeout(() => {
+                if (toast.parentNode) {
+                    toast.parentNode.removeChild(toast);
+                }
+            }, 1500);
+        }
+        
+        // 5. 监听来自主页面的缩放消息
+        window.addEventListener('message', function(event) {
+            if (event.data.type === 'zoom') {
+                // 应用缩放到iframe内部
+                applyIframeZoom(event.data.zoomLevel);
+            }
+        });
+
+        // 6. 应用iframe内部缩放
+        function applyIframeZoom(zoomLevel) {
+            const root = document.documentElement;
+            root.style.fontSize = `${zoomLevel / 100}rem`;
+            
+            // 特殊处理代码块
+            const codeElements = document.querySelectorAll('pre, code');
+            codeElements.forEach(element => {
+                element.style.fontSize = `${zoomLevel / 100}rem`;
+            });
+            
+            console.log(`iframe缩放已应用到: ${zoomLevel}%`);
+        }
+
+        // 7. 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 应用语法高亮
+            Prism.highlightAll();
+            
+            // 通知主页面iframe已准备好接收缩放消息
+            window.parent.postMessage({
+                type: 'iframeReady'
+            }, '*');
+        });
+    </script>
+</body>
+</html>

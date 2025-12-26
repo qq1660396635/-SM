@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>彩色萌球挤压游戏</title>
+    <style>
+        body { margin: 0; padding: 0; overflow: hidden; background: linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 50%, #e17055 100%); font-family: Arial, sans-serif; transition: background 1s ease; }
+        canvas { display: block; cursor: none; }
+        .info { position: absolute; top: 20px; left: 20px; color: white; font-size: 18px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); z-index: 10; }
+        .stats { position: absolute; top: 20px; right: 20px; color: white; font-size: 16px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); z-index: 10; text-align: right; }
+        .level-up { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-size: 48px; font-weight: bold; text-shadow: 3px 3px 6px rgba(0,0,0,0.8); z-index: 1000; opacity: 0; transition: opacity 0.5s ease; pointer-events: none; }
+        .level-up.show { opacity: 1; animation: levelUpPulse 2s ease; }
+        @keyframes levelUpPulse {
+            0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+            50% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="info">移动鼠标或触摸屏幕，看彩色小球们的反应！</div>
+    <div class="stats" id="stats">
+        <div>在线时长: <span id="onlineTime">00:00</span></div>
+        <div>分数: <span id="score">0</span></div>
+        <div>关卡: <span id="level">1</span></div>
+    </div>
+    <div class="level-up" id="levelUp">关卡升级！</div>
+    <canvas id="gameCanvas"></canvas>
+    
+    <!-- 数据库公共库 -->
+    <script src="/db.js"></script>
+    
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // 游戏统计
+        let startTime = Date.now();
+        let score = 0;
+        let level = 1;
+        let onlineTimeElement = document.getElementById('onlineTime');
+        let scoreElement = document.getElementById('score');
+        let levelElement = document.getElementById('level');
+        let levelUpElement = document.getElementById('levelUp');
+        let lastScoreUpdate = Date.now();
+        
+        // 关卡背景渐变数组
+        const levelBackgrounds = [
+            'linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 50%, #e17055 100%)',
+            'linear-gradient(135deg, #a8ff78 0%, #78ffd6 50%, #2a9d8f 100%)',
+            'linear-gradient(135deg, #ff9a9e 0%, #fecfef 50%, #ff6b6b 100%)',
+            'linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 50%, #0984e3 100%)',
+            'linear-gradient(135deg, #f6d365 0%, #fda085 50%, #d63031 100%)',
+            'linear-gradient(135deg, #5f27cd 0%, #341f97 50%, #2d3436 100%)',
+            'linear-gradient(135deg, #00d2d3 0%, #54a0ff 50%, #2d3436 100%)',
+            'linear-gradient(135deg, #ff9ff3 0%, #f368e0 50%, #e84393 100%)',
+            'linear-gradient(135deg, #30cfd0 0%, #330867 50%, #a8edea 100%)',
+            'linear-gradient(135deg, #f093fb 0%, #f5576c 50%, #4facfe 100%)',
+            'linear-gradient(135deg, #4facfe 0%, #00f2fe 50%, #43e97b 100%)',
+            'linear-gradient(135deg, #fa709a 0%, #fee140 50%, #30cfd0 100%)',
+            'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
+            'linear-gradient(135deg, #f83600 0%, #f9d423 50%, #ffeaa7 100%)',
+            'linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 50%, #97d9e1 100%)',
+            'linear-gradient(135deg, #ffecd2 0%, #fcb69f 50%, #ff8a80 100%)'
+        ];
+        
+        // 设置画布大小
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+        
+        // 鼠标/触摸位置
+        let mouseX = canvas.width / 2;
+        let mouseY = canvas.height / 2;
+        
+        // 可爱图标数组
+        const cuteIcons = ['🐻', '🐼', '🦊', '🐰', '🐨', '🦄', '🐸', '🐧', '🦉', '🐺', '🦋', '🦌', '🐙', '🦢', '🐮', '🦔', '🐷', '🦓', '🐗', '🦘', '🦡', '🦚', '🦛', '🦜', '🦞', '🦟', '🦠', '🦣', '🦤', '🦥', '🦦'];
+        
+        // 可爱球类
+        class CuteBall {
+            constructor(x, y, radius, icon) {
+                this.x = x;
+                this.y = y;
+                this.vx = 0;
+                this.vy = 0;
+                this.radius = radius;
+                this.baseRadius = radius;
+                this.icon = icon;
+                this.speed = 0.15;
+                this.avoidDistance = 250;
+                this.wobble = Math.random() * Math.PI * 2;
+                this.wobbleSpeed = 0.02 + Math.random() * 0.02;
+                this.squishX = 1;
+                this.squishY = 1;
+                this.rotation = 0;
+                this.scale = 1;
+                this.color = this.getRandomColor();
+            }
+            
+            getRandomColor() {
+                const colors = ['#ff9a9e', '#fecfef', '#feca57', '#ff6b6b', '#a8edea', '#fed6e3', '#d299c2', '#9b59b6', '#ffecd2', '#fcb69f', '#ff8a80', '#e74c3c'];
+                return colors[Math.floor(Math.random() * colors.length)];
+            }
+            
+            update(balls) {
+                // 计算与鼠标的距离
+                const dx = mouseX - this.x;
+                const dy = mouseY - this.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                // 远离鼠标
+                if (distance < this.avoidDistance && distance > 0) {
+                    const avoidForce = (this.avoidDistance - distance) / this.avoidDistance;
+                    this.vx += -(dx / distance) * avoidForce * 8;
+                    this.vy += -(dy / distance) * avoidForce * 8;
+                }
+                
+                // 检测与其他球的碰撞
+                let totalSquishX = 1;
+                let totalSquishY = 1;
+                
+                for (let other of balls) {
+                    if (other === this) continue;
+                    
+                    const dx2 = other.x - this.x;
+                    const dy2 = other.y - this.y;
+                    const distance2 = Math.sqrt(dx2 * dx2 + dy2 * dy2);
+                    const minDistance = this.radius + other.radius;
+                    
+                    if (distance2 < minDistance && distance2 > 0) {
+                        // 推开力
+                        const pushForce = (minDistance - distance2) / minDistance;
+                        const pushX = -(dx2 / distance2) * pushForce * 5;
+                        const pushY = -(dy2 / distance2) * pushForce * 5;
+                        
+                        this.vx += pushX;
+                        this.vy += pushY;
+                        
+                        // 计算挤压变形
+                        const squishAmount = (minDistance - distance2) / (this.radius * 2);
+                        totalSquishX = Math.min(totalSquishX, 1 - squishAmount * 0.4);
+                        totalSquishY = Math.max(totalSquishY, 1 + squishAmount * 0.3);
+                    }
+                }
+                
+                this.squishX = totalSquishX;
+                this.squishY = totalSquishY;
+                
+                // 应用速度
+                this.x += this.vx;
+                this.y += this.vy;
+                
+                // 阻尼
+                this.vx *= 0.85;
+                this.vy *= 0.85;
+                
+                // 边界检测
+                const effectiveRadius = this.radius * Math.max(this.squishX, this.squishY);
+                
+                if (this.x - effectiveRadius < 0) {
+                    this.x = effectiveRadius;
+                    this.vx = Math.abs(this.vx) * 0.5;
+                }
+                if (this.x + effectiveRadius > canvas.width) {
+                    this.x = canvas.width - effectiveRadius;
+                    this.vx = -Math.abs(this.vx) * 0.5;
+                }
+                if (this.y - effectiveRadius < 0) {
+                    this.y = effectiveRadius;
+                    this.vy = Math.abs(this.vy) * 0.5;
+                }
+                if (this.y + effectiveRadius > canvas.height) {
+                    this.y = canvas.height - effectiveRadius;
+                    this.vy = -Math.abs(this.vy) * 0.5;
+                }
+                
+                // 更新摇摆
+                this.wobble += this.wobbleSpeed;
+            }
+            
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.scale(this.squishX * this.scale, this.squishY * this.scale);
+                ctx.rotate(this.rotation);
+                
+                // 绘制阴影
+                ctx.save();
+                ctx.translate(5, 5);
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+                ctx.beginPath();
+                ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+                
+                // 绘制背景圆
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // 绘制可爱图标
+                ctx.font = `${this.radius * 1.2}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(this.icon, 0, 0);
+                
+                // 绘制高光
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+                ctx.beginPath();
+                ctx.arc(-this.radius * 0.3, -this.radius * 0.3, this.radius * 0.25, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.restore();
+            }
+        }
+        
+        // 创建更多可爱图标球
+        const balls = [];
+        const radius = Math.min(canvas.width, canvas.height) / 10;
+        
+        // 使用更紧凑的排列方式
+        const cols = 6;
+        const rows = 4;
+        const spacing = radius * 1.8;
+        const startX = (canvas.width - spacing * (cols - 1)) / 2;
+        const startY = (canvas.height - spacing * (rows - 1)) / 2;
+        
+        for (let i = 0; i < rows; i++) {
+            for (let j = 0; j < cols; j++) {
+                const x = startX + j * spacing;
+                const y = startY + i * spacing;
+                const iconIndex = (i * cols + j) % cuteIcons.length;
+                balls.push(new CuteBall(x, y, radius, cuteIcons[iconIndex]));
+            }
+        }
+        
+        // 鼠标移动事件
+        canvas.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+        });
+        
+        // 触摸事件
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            mouseX = touch.clientX;
+            mouseY = touch.clientY;
+        });
+        
+        // 更新在线时长
+        function updateOnlineTime() {
+            const elapsed = Math.floor((Date.now() - startTime) / 1000);
+            const minutes = Math.floor(elapsed / 60);
+            const seconds = elapsed % 60;
+            onlineTimeElement.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+        
+        // 更新分数
+        function updateScore() {
+            scoreElement.textContent = score;
+        }
+        
+        // 更新关卡
+        function updateLevel() {
+            levelElement.textContent = level;
+        }
+        
+        // 检查并升级关卡
+        function checkLevelUp() {
+            const newLevel = Math.floor(score / 300) + 1;
+            if (newLevel > level) {
+                level = newLevel;
+                updateLevel();
+                
+                // 更换背景颜色
+                const bgIndex = (level - 1) % levelBackgrounds.length;
+                document.body.style.background = levelBackgrounds[bgIndex];
+                
+                // 显示升级提示
+                levelUpElement.textContent = `关卡 ${level}！`;
+                levelUpElement.classList.add('show');
+                setTimeout(() => {
+                    levelUpElement.classList.remove('show');
+                }, 2000);
+                
+                console.log(`升级到关卡 ${level}`);
+            }
+        }
+        
+        // 自动增加分数
+        function autoIncreaseScore() {
+            const now = Date.now();
+            if (now - lastScoreUpdate >= 1000) { // 每秒增加
+                score += Math.floor(Math.random() * 5) + 3; // 每秒增加3-7分
+                updateScore();
+                checkLevelUp();
+                lastScoreUpdate = now;
+            }
+        }
+        
+        // 保存游戏数据到数据库
+        async function saveGameData() {
+            try {
+                const gameData = {
+                    score: score,
+                    level: level,
+                    onlineTime: Math.floor((Date.now() - startTime) / 1000),
+                    timestamp: new Date().toISOString()
+                };
+                
+                // 保存到数据库
+                await IDB.put('gameData', JSON.stringify(gameData));
+                console.log('游戏数据已保存到数据库');
+            } catch (error) {
+                console.error('保存游戏数据失败:', error);
+            }
+        }
+        
+        // 从数据库加载游戏数据
+        async function loadGameData() {
+            try {
+                const savedData = await IDB.get('gameData');
+                if (savedData) {
+                    const gameData = JSON.parse(savedData);
+                    console.log('从数据库加载游戏数据:', gameData);
+                    return gameData;
+                }
+            } catch (error) {
+                console.error('加载游戏数据失败:', error);
+            }
+            return null;
+        }
+        
+        // 游戏循环
+        function gameLoop() {
+            // 清空画布
+            ctx.fillStyle = 'rgba(255, 234, 167, 0.15)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // 更新所有小球
+            balls.forEach(ball => {
+                ball.update(balls);
+            });
+            
+            // 绘制所有小球
+            balls.forEach(ball => {
+                ball.draw();
+            });
+            
+            // 绘制鼠标/触摸点
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.beginPath();
+            ctx.arc(mouseX, mouseY, 30, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(mouseX, mouseY, 30, 0, Math.PI * 2);
+            ctx.stroke();
+            
+            // 添加装饰性的粒子效果
+            for (let i = 0; i < 6; i++) {
+                const angle = (Date.now() * 0.001 + i * 1.047) % (Math.PI * 2);
+                const distance = 40;
+                const x = mouseX + Math.cos(angle) * distance;
+                const y = mouseY + Math.sin(angle) * distance;
+                
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+                ctx.beginPath();
+                ctx.arc(x, y, 3, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            // 更新统计信息
+            updateOnlineTime();
+            autoIncreaseScore(); // 自动增加分数
+            
+            requestAnimationFrame(gameLoop);
+        }
+        
+        // 页面卸载时保存数据
+        window.addEventListener('beforeunload', saveGameData);
+        
+        // 定期保存数据
+        setInterval(saveGameData, 10000); // 每10秒保存一次
+        
+        // 初始化数据库
+        async function initGame() {
+            try {
+                await IDB.init();
+                console.log('数据库初始化完成');
+                
+                // 加载之前的数据
+                const savedData = await loadGameData();
+                if (savedData) {
+                    score = savedData.score || 0;
+                    level = savedData.level || 1;
+                    updateScore();
+                    updateLevel();
+                    
+                    // 设置对应关卡的背景
+                    const bgIndex = (level - 1) % levelBackgrounds.length;
+                    document.body.style.background = levelBackgrounds[bgIndex];
+                    
+                    console.log('找到之前的游戏数据');
+                }
+                
+                // 开始游戏
+                gameLoop();
+            } catch (error) {
+                console.error('初始化失败:', error);
+                // 即使数据库失败，也启动游戏
+                gameLoop();
+            }
+        }
+        
+        // 开始游戏
+        initGame();
+    </script>
+</body>
+</html>

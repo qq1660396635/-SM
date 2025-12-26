@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>聚合搜索中心</title>
+    <style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { 
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    min-height: 100vh; overflow-x: hidden; 
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+    color: #ffffff;
+}
+
+.background { 
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+}
+
+.bg-pattern { 
+    position: absolute; width: 100%; height: 100%;
+    background-image: 
+        radial-gradient(circle at 20% 50%, rgba(120, 119, 198, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(255, 119, 198, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 40% 20%, rgba(120, 219, 255, 0.1) 0%, transparent 50%);
+    animation: bgFloat 20s ease-in-out infinite;
+}
+
+@keyframes bgFloat {
+    0%, 100% { transform: translate(0, 0) rotate(0deg); }
+    33% { transform: translate(-20px, -20px) rotate(1deg); }
+    66% { transform: translate(20px, -10px) rotate(-1deg); }
+}
+
+.container { 
+    position: relative; z-index: 1; max-width: 1200px; margin: 0 auto;
+    padding: 20px; min-height: 100vh; display: flex; flex-direction: column;
+}
+
+header { 
+    text-align: center; margin-bottom: 30px;
+    animation: fadeInDown 0.8s ease;
+}
+
+header h1 { 
+    font-size: 2.5rem; font-weight: 700; margin-bottom: 15px;
+    background: linear-gradient(135deg, #60a5fa, #a78bfa, #f472b6);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text; letter-spacing: -0.02em;
+}
+
+header p { 
+    font-size: 1rem; color: rgba(255, 255, 255, 0.7); font-weight: 400;
+}
+
+.nav-grid { 
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 15px; flex: 1; align-content: start;
+    animation: fadeInUp 0.8s ease 0.2s both;
+}
+
+.tool-card { 
+    background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px;
+    padding: 12px; cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative; overflow: hidden; display: flex;
+    flex-direction: column; align-items: center; text-align: center;
+}
+
+.tool-card::before { 
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, #60a5fa, #a78bfa, #f472b6);
+    transform: scaleX(0); transition: transform 0.3s ease;
+}
+
+.tool-card:hover { 
+    transform: translateY(-3px); background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+.tool-card:hover::before { transform: scaleX(1); }
+
+.tool-icon { 
+    width: 36px; height: 36px; display: flex; align-items: center;
+    justify-content: center; background: linear-gradient(135deg, rgba(96, 165, 250, 0.2), rgba(167, 139, 250, 0.2));
+    border-radius: 8px; margin-bottom: 10px; font-size: 1.1rem;
+    transition: all 0.3s ease;
+}
+
+.tool-card:hover .tool-icon { 
+    transform: scale(1.1);
+    background: linear-gradient(135deg, rgba(96, 165, 250, 0.3), rgba(167, 139, 250, 0.3));
+}
+
+.tool-title { 
+    font-size: 0.9rem; font-weight: 600; margin-bottom: 4px; color: #ffffff;
+}
+
+.tool-desc { 
+    font-size: 0.7rem; color: rgba(255, 255, 255, 0.6); line-height: 1.3;
+}
+
+@keyframes fadeInDown {
+    from { opacity: 0; transform: translateY(-30px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 768px) {
+    header h1 { font-size: 2rem; }
+    header { margin-bottom: 25px; }
+    .nav-grid { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+}
+
+@media (max-width: 480px) {
+    header h1 { font-size: 1.8rem; }
+    .tool-card { padding: 10px; }
+    .tool-icon { width: 32px; height: 32px; font-size: 1rem; }
+    .tool-title { font-size: 0.8rem; }
+    .tool-desc { font-size: 0.65rem; }
+    
+    .nav-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+    }
+}
+    </style>
+</head>
+<body>
+    <div class="background">
+        <div class="bg-pattern"></div>
+    </div>
+    
+    <div class="container">
+        <header>
+            <h1>聚合搜索中心</h1>
+            <p>精选实用工具，一键直达</p>
+        </header>
+        
+        <div class="nav-grid" id="navGrid">
+            <!-- 工具卡片将通过JavaScript动态生成 -->
+        </div>
+    </div>
+
+    <!-- 直接引用配置文件 -->
+    <script src="搜索_nav-config.js"></script>
+    
+    <script>
+        // 直接使用 window.navConfig，无需异步
+        function initNavigation() {
+            const navGrid = document.getElementById('navGrid');
+            
+            // 检查配置是否存在
+            if (typeof window.navConfig === 'undefined') {
+                navGrid.innerHTML = `
+                    <div style="grid-column: 1 / -1; text-align: center; padding: 60px 20px; color: rgba(255, 255, 255, 0.7);">
+                        <div style="font-size: 3rem; margin-bottom: 15px; opacity: 0.5;">📦</div>
+                        <div style="font-size: 1.2rem; margin-bottom: 8px; color: rgba(255, 255, 255, 0.9);">配置文件未找到</div>
+                        <p>请确保 聚合搜索_nav-config.js 文件存在</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // 直接获取工具列表
+            const tools = window.navConfig.getAllTools();
+            
+            if (tools.length === 0) {
+                navGrid.innerHTML = `
+                    <div style="grid-column: 1 / -1; text-align: center; padding: 60px 20px; color: rgba(255, 255, 255, 0.7);">
+                        <div style="font-size: 3rem; margin-bottom: 15px; opacity: 0.5;">📦</div>
+                        <div style="font-size: 1.2rem; margin-bottom: 8px; color: rgba(255, 255, 255, 0.9);">暂无工具</div>
+                        <p>配置文件中没有定义工具</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // 渲染工具卡片
+            navGrid.innerHTML = tools.map((tool, index) => 
+                `<div class="tool-card" style="animation-delay: ${index * 0.1}s" onclick="navigateTo('${tool.file}')">
+                    <div class="tool-icon">${tool.icon || '🔧'}</div>
+                    <h3 class="tool-title">${tool.name}</h3>
+                    <p class="tool-desc">${tool.description || '点击进入工具'}</p>
+                </div>`
+            ).join('');
+        }
+
+        // 导航到指定页面
+        function navigateTo(file) {
+            window.location.href = file;
+        }
+
+        // 启动应用
+        initNavigation();
+    </script>
+</body>
+</html>

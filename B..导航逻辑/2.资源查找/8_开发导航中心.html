@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>我的收藏</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background: #0f0f1e;
+    color: #e0e0e0;
+    min-height: 100vh;
+    padding: 10px;
+    overflow-x: hidden;
+}
+
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: 
+        radial-gradient(circle at 20% 30%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 80% 70%, rgba(255, 119, 198, 0.2) 0%, transparent 50%),
+        radial-gradient(circle at 40% 80%, rgba(120, 219, 255, 0.2) 0%, transparent 50%);
+    z-index: -1;
+}
+
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 10px;
+}
+
+.header {
+    text-align: center;
+    margin-bottom: 15px;
+    position: relative;
+}
+
+h1 {
+    font-size: 2.5rem;
+    font-weight: 800;
+    margin-bottom: 5px;
+    background: linear-gradient(120deg, #a78bfa, #ec4899, #3b82f6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -1px;
+}
+
+.subtitle {
+    color: #9ca3af;
+    font-size: 1rem;
+    font-weight: 300;
+}
+
+.cards-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.card {
+    background: rgba(30, 30, 45, 0.7);
+    backdrop-filter: blur(10px);
+    border-radius: 15px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+    transition: all 0.3s ease;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    position: relative;
+}
+
+.card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #a78bfa, #ec4899, #3b82f6);
+    transform: scaleX(0);
+    transition: transform 0.3s ease;
+}
+
+.card:hover::before {
+    transform: scaleX(1);
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
+}
+
+.card-header {
+    padding: 12px 15px;
+    background: rgba(30, 30, 45, 0.9);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.card-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.card-title i {
+    font-size: 1rem;
+    background: linear-gradient(120deg, #a78bfa, #ec4899);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.card-content {
+    padding: 12px;
+}
+
+.links-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+}
+
+.link-item {
+    background: rgba(40, 40, 60, 0.6);
+    border-radius: 8px;
+    padding: 10px 5px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    color: #e0e0e0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 50px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    position: relative;
+    overflow: hidden;
+}
+
+.link-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(167, 139, 250, 0.1) 0%, rgba(236, 72, 153, 0.1) 100%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.link-item:hover::before {
+    opacity: 1;
+}
+
+.link-item:hover {
+    transform: translateY(-3px);
+    background: rgba(60, 60, 90, 0.8);
+    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
+    border-color: rgba(167, 139, 250, 0.3);
+}
+
+.link-text {
+    font-size: 0.85rem;
+    font-weight: 500;
+    word-break: break-all;
+    line-height: 1.2;
+    position: relative;
+    z-index: 1;
+}
+
+.pagination {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 15px;
+}
+
+.page-btn {
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    background: rgba(40, 40, 60, 0.7);
+    color: #e0e0e0;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.page-btn:hover {
+    background: rgba(167, 139, 250, 0.2);
+    border-color: rgba(167, 139, 250, 0.5);
+}
+
+.page-btn.active {
+    background: linear-gradient(135deg, #a78bfa, #ec4899);
+    border-color: transparent;
+    color: white;
+}
+
+.page-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+    .cards-container {
+        grid-template-columns: 1fr;
+    }
+    
+    h1 {
+        font-size: 2rem;
+    }
+    
+    .links-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (max-width: 480px) {
+    body {
+        padding: 5px;
+    }
+    
+    .container {
+        padding: 5px;
+    }
+    
+    h1 {
+        font-size: 1.8rem;
+    }
+    
+    .card-header {
+        padding: 10px 12px;
+    }
+    
+    .card-content {
+        padding: 10px;
+    }
+    
+    .link-item {
+        padding: 8px 4px;
+        min-height: 45px;
+    }
+    
+    .link-text {
+        font-size: 0.8rem;
+    }
+}
+</style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>我的收藏</h1>
+        <p class="subtitle">精心整理的实用资源集合</p>
+    </div>
+    
+    <div class="cards-container" id="cardsContainer">
+        <div class="loading">正在加载...</div>
+    </div>
+    
+    <div class="pagination" id="pagination">
+        <!-- 分页按钮将在这里动态生成 -->
+    </div>
+</div>
+
+<script src="/db.js"></script>
+<script>
+// 分类图标映射
+const categoryIcons = {
+    "开发技术": "fa-code",
+    "学习资源": "fa-book",
+    "实用工具": "fa-tools",
+    "阅读收藏": "fa-bookmark",
+    "技术社区": "fa-users",
+    "硬件资源": "fa-microchip",
+    "开发工具": "fa-laptop-code",
+    "系统内核": "fa-server",
+    "编程游戏": "fa-gamepad",
+    "转换工具": "fa-exchange-alt"
+};
+
+let currentPage = 1;
+const cardsPerPage = 3; // 每页显示3个卡片
+const linksPerCard = 9; // 每个卡片9个链接，一行3个，共3行
+let allCategories = {};
+let filteredCategories = {};
+
+// 获取分类图标
+function getCategoryIcon(categoryName) {
+    return categoryIcons[categoryName] || "fa-folder";
+}
+
+// 初始化
+async function init() {
+    try {
+        await IDB.init();
+        console.log('数据库初始化完成');
+        // 加载配置文件
+        await loadConfig();
+    } catch (error) {
+        console.error('初始化失败:', error);
+        showError('初始化失败：' + error.message);
+    }
+}
+
+// 加载配置文件
+async function loadConfig() {
+    const configFileName = '8_用户导航配置.js';
+    try {
+        // 优先从官方存储区读取
+        const cachedConfig = await IDB.get(configFileName, 'official');
+        if (cachedConfig) {
+            console.log('从官方存储区加载配置');
+            eval(cachedConfig);
+            if (window.defaultConfig) {
+                allCategories = window.defaultConfig;
+                filteredCategories = {...allCategories};
+                renderCards();
+                renderPagination();
+                return;
+            }
+        }
+        // 官方存储区没有才fetch
+        console.log('从网络加载配置文件');
+        const resp = await fetch(configFileName);
+        if (!resp.ok) {
+            throw new Error(`配置文件加载失败: ${configFileName} (状态: ${resp.status})`);
+        }
+        const text = await resp.text();
+        console.log('配置文件加载成功');
+        // 立即写库到官方存储区
+        await IDB.put(configFileName, text, 'official');
+        console.log('配置文件已缓存到官方存储区');
+        // 执行配置代码
+        eval(text);
+        if (window.defaultConfig) {
+            allCategories = window.defaultConfig;
+            filteredCategories = {...allCategories};
+            renderCards();
+            renderPagination();
+        } else {
+            throw new Error('配置文件格式错误，未找到defaultConfig');
+        }
+    } catch (error) {
+        console.error('配置文件加载失败:', error);
+        showError('配置文件加载失败：' + error.message);
+    }
+}
+
+// 渲染卡片
+function renderCards() {
+    const container = document.getElementById('cardsContainer');
+    const categoryNames = Object.keys(filteredCategories);
+    
+    if (categoryNames.length === 0) {
+        container.innerHTML = '<div class="error">没有数据</div>';
+        return;
+    }
+    
+    const startIndex = (currentPage - 1) * cardsPerPage;
+    const endIndex = startIndex + cardsPerPage;
+    const categoriesToShow = categoryNames.slice(startIndex, endIndex);
+    
+    if (categoriesToShow.length === 0) {
+        container.innerHTML = '<div class="error">没有更多数据</div>';
+        return;
+    }
+    
+    container.innerHTML = categoriesToShow.map((categoryName) => {
+        let links = filteredCategories[categoryName];
+        if (!Array.isArray(links)) {
+            links = [];
+        }
+        if (links.length > linksPerCard) {
+            links = links.slice(0, linksPerCard);
+        }
+        
+        const icon = getCategoryIcon(categoryName);
+        
+        return `
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">
+                    <i class="fas ${icon}"></i>
+                    ${categoryName}
+                </div>
+            </div>
+            <div class="card-content">
+                <div class="links-grid">
+                    ${links.map(link => `
+                    <div class="link-item" onclick="openLink('${link.url}', '${link.name}')" title="${link.name}">
+                        <span class="link-text">${link.name}</span>
+                    </div>
+                    `).join('')}
+                </div>
+            </div>
+        </div>
+        `;
+    }).join('');
+}
+
+// 渲染分页
+function renderPagination() {
+    const pagination = document.getElementById('pagination');
+    const categoryNames = Object.keys(filteredCategories);
+    const totalPages = Math.ceil(categoryNames.length / cardsPerPage);
+    
+    if (totalPages <= 1) {
+        pagination.innerHTML = '';
+        return;
+    }
+    
+    let paginationHTML = '';
+    
+    // 上一页按钮
+    paginationHTML += `<button class="page-btn" onclick="changePage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>
+    <i class="fas fa-chevron-left"></i>
+    </button>`;
+    
+    // 页码按钮
+    for (let i = 1; i <= totalPages; i++) {
+        if (i === 1 || i === totalPages || (i >= currentPage - 2 && i <= currentPage + 2)) {
+            paginationHTML += `<button class="page-btn ${i === currentPage ? 'active' : ''}" onclick="changePage(${i})">${i}</button>`;
+        } else if (i === currentPage - 3 || i === currentPage + 3) {
+            paginationHTML += `<span style="padding: 0 5px; color: #9ca3af;">...</span>`;
+        }
+    }
+    
+    // 下一页按钮
+    paginationHTML += `<button class="page-btn" onclick="changePage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>
+    <i class="fas fa-chevron-right"></i>
+    </button>`;
+    
+    pagination.innerHTML = paginationHTML;
+}
+
+// 切换页面
+function changePage(page) {
+    const categoryNames = Object.keys(filteredCategories);
+    const totalPages = Math.ceil(categoryNames.length / cardsPerPage);
+    
+    if (page >= 1 && page <= totalPages) {
+        currentPage = page;
+        renderCards();
+        renderPagination();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+}
+
+// 打开链接
+function openLink(url, name) {
+    window.open(url, '_blank');
+}
+
+// 显示错误
+function showError(message) {
+    const container = document.getElementById('cardsContainer');
+    container.innerHTML = `<div class="error">${message}</div>`;
+}
+
+// 页面加载时初始化
+window.addEventListener('load', init);
+</script>
+</body>
+</html>

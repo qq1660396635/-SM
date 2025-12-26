@@ -1,0 +1,1078 @@
+<!DOCTYPE html> 
+<html lang="zh-CN"> 
+<head> 
+  <meta charset="UTF-8"> 
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Python 标准库v3.13.7</title> 
+  
+   <script src="A.插件_字体缩放.js"></script>
+       
+  <style> 
+    :root {
+      --primary-color: #f97316; /* 橙色主色调*/
+      --secondary-color: #fbbf24; /* 黄色辅助色*/
+      --accent-color: #dc2626; /* 红色强调色*/
+      --text-color: #1e293b;
+      --text-secondary: #64748b;
+      --bg-color: #fff7ed; /* 浅橙色背景*/
+      --border-color: #fed7aa;
+      --hover-bg: #ffedd5;
+      --code-bg: #ffffff;
+      --tree-line: #fb923c;
+    }
+    
+    * {
+      margin: 0; 
+      padding: 0; 
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace; 
+      font-size: 13px; 
+      line-height: 1.5; 
+      color: #334155; 
+      background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 50%, #fed7aa 100%);
+      overflow: hidden; 
+      height: 100vh; 
+      width: 100vw; 
+      display: flex; 
+      flex-direction: column;
+    }
+    
+    .container {
+      flex: 1; 
+      display: flex; 
+      flex-direction: column; 
+      background-color: rgba(255, 255, 255, 0.95);
+      overflow: hidden; 
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    }
+    
+    header {
+      background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+      color: #fff; 
+      padding: 12px 16px; 
+      text-align: left; 
+      border-bottom: 1px solid var(--border-color); 
+      flex-shrink: 0; 
+      z-index: 10;
+    }
+    
+    header h1 {
+      font-size: 18px; 
+      font-weight: 600; 
+      margin-bottom: 4px;
+    }
+    
+    header p {
+      opacity: 0.9; 
+      font-size: 12px;
+    }
+    
+    .controls {
+      padding: 10px 16px; 
+      background-color: var(--code-bg); 
+      border-bottom: 1px solid var(--border-color); 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center; 
+      flex-wrap: wrap; 
+      gap: 8px; 
+      flex-shrink: 0;
+    }
+    
+    .controls button {
+      background: linear-gradient(135deg, var(--accent-color), var(--secondary-color));
+      color: white; 
+      border: none; 
+      padding: 6px 12px;
+      border-radius: 6px; 
+      cursor: pointer; 
+      transition: all 0.3s; 
+      font-size: 12px; 
+      font-family: inherit;
+    }
+    
+    .controls button:hover {
+      background: linear-gradient(135deg, var(--secondary-color), var(--primary-color));
+      transform: translateY(-1px);
+    }
+    
+    #searchInput {
+      padding: 6px 10px; 
+      border: 1px solid var(--border-color); 
+      border-radius: 6px; 
+      background-color: rgba(255, 247, 237, 0.8); 
+      color: #334155; 
+      font-size: 12px; 
+      font-family: inherit; 
+      width: 180px;
+    }
+    
+    #searchInput:focus {
+      outline: none; 
+      border-color: var(--accent-color); 
+      box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.2);
+    }
+    
+    .tree-container {
+      flex: 1; 
+      padding: 12px; 
+      overflow: auto; 
+      background-color: rgba(255, 247, 237, 0.5);
+    }
+    
+    .tree ul {
+      list-style-type: none; 
+      padding-left: 16px; 
+      margin: 0;
+    }
+    
+    .tree li {
+      position: relative; 
+      padding: 1px 0; 
+      white-space: nowrap;
+    }
+    
+    .tree li::before {
+      content: ""; 
+      position: absolute; 
+      left: -10px; 
+      top: 8px; 
+      width: 10px; 
+      height: 1px; 
+      background-color: var(--tree-line);
+    }
+    
+    .tree li::after {
+      content: ""; 
+      position: absolute; 
+      left: -10px; 
+      top: -2px; 
+      width: 1px; 
+      height: 100%; 
+      background-color: var(--tree-line);
+    }
+    
+    .tree li:last-child::after {
+      height: 10px;
+    }
+    
+    .tree > ul > li::before, .tree > ul > li::after {
+      display: none;
+    }
+    
+    .tree-node {
+      display: flex; 
+      align-items: center; 
+      cursor: pointer; 
+      padding: 2px 4px; 
+      border-radius: 4px; 
+      transition: background-color 0.2s;
+    }
+    
+    .tree-node:hover {
+      background-color: var(--hover-bg);
+    }
+    
+    /* 修改：emoji图标样式 */
+    .tree-node .icon {
+      margin-right: 6px; 
+      font-size: 14px;
+      display: inline-block;
+      width: 16px;
+      text-align: center;
+    }
+    
+    .tree-node .folder-icon {
+      color: #f97316;
+    }
+    
+    .tree-node .file-icon {
+      color: var(--text-secondary);
+    }
+    
+    .tree-node .toggle {
+      color: #94a3b8; 
+      margin-right: 3px; 
+      font-size: 12px;
+      cursor: pointer;
+      transition: transform 0.2s ease;
+      display: inline-block;
+      width: 12px;
+      text-align: center;
+    }
+    
+    .collapsed .toggle {
+      transform: rotate(-90deg);
+    }
+    
+    .tree-content {
+      flex: 1; 
+      display: flex; 
+      align-items: center; 
+      min-width: 0;
+    }
+    
+    .tree-name {
+      font-weight: 500; 
+      font-size: 13px; 
+      overflow: hidden; 
+      text-overflow: ellipsis; 
+      color: #1e293b;
+    }
+    
+    .tree-desc {
+      color: #64748b; 
+      font-size: 10px; 
+      margin-left: 8px;
+      font-style: italic; 
+      overflow: hidden; 
+      text-overflow: ellipsis; 
+      white-space: nowrap; 
+      max-width: 180px;
+    }
+    
+    .collapsed > ul {
+      display: none;
+    }
+    
+    .highlight {
+      background: linear-gradient(135deg, var(--accent-color), var(--secondary-color));
+      padding: 0 3px; 
+      border-radius: 3px; 
+      color: #fff;
+    }
+    
+    footer {
+      background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+      color: white; 
+      padding: 8px 16px; 
+      text-align: center; 
+      font-size: 10px; 
+      border-top: 1px solid var(--border-color); 
+      flex-shrink: 0; 
+      z-index: 10;
+    }
+    
+    /* 移动端优化*/
+    @media (max-width: 768px) {
+      body {
+        font-size: 12px;
+      }
+      
+      header h1 {
+        font-size: 16px;
+      }
+      
+      header p {
+        font-size: 11px;
+      }
+      
+      .tree ul {
+        padding-left: 14px;
+      }
+      
+      .tree li {
+        padding: 0.5px 0;
+      }
+      
+      .tree-name {
+        font-size: 12px;
+      }
+      
+      .tree-desc {
+        font-size: 9px; 
+        margin-left: 6px; 
+        max-width: 120px;
+      }
+      
+      #searchInput {
+        width: 140px; 
+        font-size: 11px;
+      }
+      
+      .controls button {
+        font-size: 11px; 
+        padding: 5px 10px;
+      }
+    }
+    
+    /* 超小屏幕优化*/
+    @media (max-width: 480px) {
+      body {
+        font-size: 13px;
+      }
+      
+      header h1 {
+        font-size: 14px;
+      }
+      
+      header p {
+        font-size: 10px;
+      }
+      
+      .tree ul {
+        padding-left: 12px;
+      }
+      
+      .tree li {
+        padding: 0;
+      }
+      
+      .tree-node {
+        padding: 1px 3px;
+      }
+      
+      .tree-node .icon {
+        font-size: 12px;
+        width: 14px;
+      }
+      
+      .tree-node .toggle {
+        font-size: 10px;
+        width: 10px;
+      }
+      
+      .tree-name {
+        font-size: 11px;
+      }
+      
+      .tree-desc {
+        font-size: 8px; 
+        margin-left: 4px; 
+        max-width: 90px;
+      }
+      
+      .tree-container {
+        padding: 8px;
+      }
+      
+      .controls {
+        padding: 8px 12px;
+      }
+      
+      #searchInput {
+        width: 120px; 
+        font-size: 10px; 
+        padding: 4px 8px;
+      }
+      
+      .controls button {
+        font-size: 10px; 
+        padding: 4px 8px;
+      }
+    }
+    
+    /* 让描述文字不斜、不断行、显示完整*/
+    .tree-desc {
+      font-style: normal !important; 
+      white-space: normal !important; 
+      max-width: none !important; 
+      overflow: visible !important; 
+      text-overflow: unset !important; 
+      display: inline-block !important; 
+      line-height: 1.4 !important; 
+      margin-left: 6px !important; 
+      font-size: 11px !important; 
+    } 
+  </style> 
+</head> 
+<body> 
+  <div class="container"> 
+    <header> 
+      <h1>Python 标准库v3.13.7</h1> 
+      <p>Python Standard Library Documentation</p> 
+    </header> 
+    <div class="controls"> 
+      <div> 
+        <button id="expandAll">➕展开</button> 
+        <button id="collapseAll">➖折叠</button> 
+      </div> 
+      <div> 
+        <input type="text" id="searchInput" placeholder="搜索..."> 
+      </div> 
+    </div> 
+    <div class="tree-container"> 
+      <div class="tree" id="treeContainer"></div> 
+    </div> 
+    <footer> 
+      <p>© 2025 Python 标准库文档| Generated by 凉安</p> 
+    </footer> 
+  </div>
+
+  <!-- 第一部分：数据定义 -->
+  <script>
+    // 定义Python 标准库的完整数据结构
+    const pythonStdLib = [
+      {
+        name: "1️⃣概述 ",
+        type: "folder",
+        children: [
+          { name: "1.1 可用性注释", type: "file" },
+          { name: "1.2 内置函数", type: "file" },
+          {
+            name: "1.3 内置常量",
+            type: "folder",
+            children: [
+              { name: "1.3.1 由\"site\" 模块添加的常量", type: "file" }
+            ]
+          },
+          {
+            name: "1.4 内置类型",
+            type: "folder",
+            children: [
+              { name: "1.4.1 逻辑值检测", type: "file" },
+              { name: "1.4.2 布尔运算(\"and\", \"or\", \"not\")", type: "file" },
+              { name: "1.4.3 比较运算", type: "file" },
+              { name: "1.4.4 数字类型 (\"int\", \"float\", \"complex\")", type: "file" },
+              { name: "1.4.5 布尔类型(\"bool\")", type: "file" },
+              { name: "1.4.6 迭代器类型", type: "file" },
+              { name: "1.4.7 序列类型(\"list\", \"tuple\", \"range\")", type: "file" },
+              { name: "1.4.8 文本序列类型(\"str\")", type: "file" },
+              { name: "1.4.9 二进制序列类型 (\"bytes\", \"bytearray\", \"memoryview\")", type: "file" },
+              { name: "1.4.10 集合类型(\"set\", \"frozenset\")", type: "file" },
+              { name: "1.4.11 映射类型(\"dict\")", type: "file" },
+              { name: "1.4.12 上下文管理器类型", type: "file" },
+              { name: "1.4.13 类型注解的类型(\"Generic Alias\", \"Union\")", type: "file" },
+              { name: "1.4.14 其他内置类型", type: "file" }
+            ]
+          },
+          { name: "1.5 特殊属性", type: "file" },
+          { name: "1.6 整数字符串转换长度限制", type: "file" }
+        ]
+      },
+      {
+        name: "2️⃣内置异常",
+        type: "folder",
+        children: [
+          { name: "2.1 异常上下文", type: "file" },
+          { name: "2.2 从内置异常继承", type: "file" },
+          { name: "2.3 基类", type: "file" },
+          { name: "2.4 具体异常", type: "file" },
+          { name: "2.5 警告", type: "file" },
+          { name: "2.6 异常组", type: "file" },
+          { name: "2.7 异常层次结构", type: "file" }
+        ]
+      },
+      {
+        name: "3️⃣文本处理服务✍️",
+        type: "folder",
+        children: [
+          { name: "3.1 \"string\" (常见字符串操作)", type: "file" },
+          { name: "3.2 \"re\" (正则表达式操作)", type: "file" },
+          { name: "3.3 \"difflib\" (计算差异工具)", type: "file" },
+          { name: "3.4 \"textwrap\" (文本换行与填充)", type: "file" },
+          { name: "3.5 \"unicodedata\" (Unicode 数据库)", type: "file" },
+          { name: "3.6 \"stringprep\" ( 互联网字符串预处理)", type: "file" },
+          { name: "3.7 \"readline\" (GNU readline 接口)", type: "file" },
+          { name: "3.8 \"rlcompleter\" (readline 补全函数)", type: "file" }
+        ]
+      },
+      {
+        name: "4️⃣二进制数据服务 ",
+        type: "folder",
+        children: [
+          { name: "4.1 \"struct\" (字节串解包)", type: "file" },
+          { name: "4.2 \"codecs\" (编解码器注册)", type: "file" }
+        ]
+      },
+      {
+        name: "5️⃣数据类型 ️️",
+        type: "folder",
+        children: [
+          { name: "5.1 \"datetime\" (日期时间)", type: "file" },
+          { name: "5.2 \"zoneinfo\" (时区支持)", type: "file" },
+          { name: "5.3 \"calendar\" (日历函数)", type: "file" },
+          { name: "5.4 \"collections\" (容器类型)", type: "file" },
+          { name: "5.5 \"collections.abc\" (抽象基类)", type: "file" },
+          { name: "5.6 \"heapq\" (堆算法)", type: "file" },
+          { name: "5.7 \"bisect\" (二分算法)", type: "file" },
+          { name: "5.8 \"array\" (数字数组)", type: "file" },
+          { name: "5.9 \"weakref\" (弱引用)", type: "file" },
+          { name: "5.10 \"types\" (动态类型)", type: "file" },
+          { name: "5.11 \"copy\" (拷贝操作)", type: "file" },
+          { name: "5.12 \"pprint\" (美化输出)", type: "file" },
+          { name: "5.13 \"reprlib\" (替代repr)", type: "file" },
+          { name: "5.14 \"enum\" (枚举支持)", type: "file" },
+          { name: "5.15 \"graphlib\" (图结构操作)", type: "file" }
+        ]
+      },
+      {
+        name: "6️⃣数字和数学模块 ",
+        type: "folder",
+        children: [
+          { name: "6.1 \"numbers\" (数字抽象基类)", type: "file" },
+          { name: "6.2 \"math\" (数学函数)", type: "file" },
+          { name: "6.3 \"cmath\" (复数数学)", type: "file" },
+          { name: "6.4 \"decimal\" (十进制算术)", type: "file" },
+          { name: "6.5 \"fractions\" (有理数)", type: "file" },
+          { name: "6.6 \"random\" (伪随机数)", type: "file" },
+          { name: "6.7 \"statistics\" (统计函数)", type: "file" }
+        ]
+      },
+      {
+        name: "7️⃣函数式编程模块 ",
+        type: "folder",
+        children: [
+          { name: "7.1 \"itertools\" (迭代器工具)", type: "file" },
+          { name: "7.2 \"functools\" (高阶函数)", type: "file" },
+          { name: "7.3 \"operator\" (运算符函数)", type: "file" }
+        ]
+      },
+      {
+        name: "8️⃣文件和目录访问 ",
+        type: "folder",
+        children: [
+          { name: "8.1 \"pathlib\" (面向对象路径)", type: "file" },
+          { name: "8.2 \"os.path\" (路径操作)", type: "file" },
+          { name: "8.3 \"stat\" (文件状态)", type: "file" },
+          { name: "8.4 \"filecmp\" (文件比较)", type: "file" },
+          { name: "8.5 \"tempfile\" (临时文件)", type: "file" },
+          { name: "8.6 \"glob\" (路径模式扩展)", type: "file" },
+          { name: "8.7 \"fnmatch\" (文件名匹配)", type: "file" },
+          { name: "8.8 \"linecache\" (文本行缓存)", type: "file" },
+          { name: "8.9 \"shutil\" (高级文件操作)", type: "file" }
+        ]
+      },
+      {
+        name: "9️⃣数据持久化 ",
+        type: "folder",
+        children: [
+          { name: "9.1 \"pickle\" (对象序列化)", type: "file" },
+          { name: "9.2 \"copyreg\" (pickle 支持注册)", type: "file" },
+          { name: "9.3 \"shelve\" (对象持久化)", type: "file" },
+          { name: "9.4 \"marshal\" (内部序列化)", type: "file" },
+          { name: "9.5 \"dbm\" (Unix 数据库接口)", type: "file" },
+          { name: "9.6 \"sqlite3\" (SQLite 数据库)", type: "file" }
+        ]
+      },
+      {
+        name: " 数据压缩和存档 ️️",
+        type: "folder",
+        children: [
+          { name: "10.1 \"zlib\" (兼容gzip 压缩)", type: "file" },
+          { name: "10.2 \"gzip\" (gzip 文件支持)", type: "file" },
+          { name: "10.3 \"bz2\" (bzip2 压缩)", type: "file" },
+          { name: "10.4 \"lzma\" (LZMA 压缩)", type: "file" },
+          { name: "10.5 \"zipfile\" (ZIP 归档)", type: "file" },
+          { name: "10.6 \"tarfile\" (tar 归档)", type: "file" }
+        ]
+      },
+      {
+        name: "1️⃣1️⃣文件格式 ",
+        type: "folder",
+        children: [
+          { name: "11.1 \"csv\" (CSV 文件)", type: "file" },
+          { name: "11.2 \"configparser\" (配置解析)", type: "file" },
+          { name: "11.3 \"tomllib\" (TOML 解析)", type: "file" },
+          { name: "11.4 \"netrc\" (netrc 文件)", type: "file" },
+          { name: "11.5 \"plistlib\" (plist 文件)", type: "file" }
+        ]
+      },
+      {
+        name: "1️⃣2️⃣加密服务 ",
+        type: "folder",
+        children: [
+          { name: "12.1 \"hashlib\" (安全哈希)", type: "file" },
+          { name: "12.2 \"hmac\" (密钥哈希)", type: "file" },
+          { name: "12.3 \"secrets\" (安全随机数)", type: "file" }
+        ]
+      },
+      {
+        name: "1️⃣3️⃣通用操作系统服务 ",
+        type: "folder",
+        children: [
+          { name: "13.1 \"os\" (操作系统接口)", type: "file" },
+          { name: "13.2 \"io\" (流处理)", type: "file" },
+          { name: "13.3 \"time\" (时间访问)", type: "file" },
+          { name: "13.4 \"logging\" (日志记录)", type: "file" },
+          { name: "13.5 \"logging.config\" (日志配置)", type: "file" },
+          { name: "13.6 \"logging.handlers\" ( 日志处理器)", type: "file" },
+          { name: "13.7 \"platform\" (平台信息)", type: "file" },
+          { name: "13.8 \"errno\" (错误符号)", type: "file" },
+          { name: "13.9 \"ctypes\" (外部函数库)", type: "file" }
+        ]
+      },
+      {
+        name: "1️⃣4️⃣命令行界面⌨️",
+        type: "folder",
+        children: [
+          { name: "14.1 \"argparse\" (参数解析)", type: "file" },
+          { name: "14.2 \"optparse\" (选项解析)", type: "file" },
+          { name: "14.3 \"getpass\" (密码输入)", type: "file" },
+          { name: "14.4 \"fileinput\" (多输入流)", type: "file" },
+          { name: "14.5 \"curses\" (终端处理)", type: "file" },
+          { name: "14.6 \"curses.textpad\" (文本控件)", type: "file" },
+          { name: "14.7 \"curses.ascii\" (ASCII 工具)", type: "file" },
+          { name: "14.8 \"curses.panel\" (面板扩展)", type: "file" },
+          { name: "14.9 \"cmd\" (命令解释器)", type: "file" }
+        ]
+      },
+      {
+        name: "1️⃣5️⃣并发执行⚡",
+        type: "folder",
+        children: [
+          { name: "15.1 \"threading\" (线程并行)", type: "file" },
+          { name: "15.2 \"multiprocessing\" (进程并行)", type: "file" },
+          { name: "15.3 \"multiprocessing.shared_memory\" (共享内存)", type: "file" },
+          { name: "15.4 \"concurrent.futures\" ( 并行任务)", type: "file" },
+          { name: "15.5 \"subprocess\" (子进程管理)", type: "file" },
+          { name: "15.6 \"sched\" (事件调度)", type: "file" },
+          { name: "15.7 \"queue\" (同步队列)", type: "file" },
+          { name: "15.8 \"contextvars\" (上下文变量)", type: "file" },
+          { name: "15.9 \"_thread\" (低层线程API)", type: "file" }
+        ]
+      },
+      {
+        name: "1️⃣6️⃣网络和进程间通信 ",
+        type: "folder",
+        children: [
+          { name: "16.1 \"asyncio\" (异步I/O)", type: "file" },
+          { name: "16.2 \"socket\" (网络接口)", type: "file" },
+          { name: "16.3 \"ssl\" (TLS/SSL 包装)", type: "file" },
+          { name: "16.4 \"select\" (I/O 等待)", type: "file" },
+          { name: "16.5 \"selectors\" (I/O 复用)", type: "file" },
+          { name: "16.6 \"signal\" (信号处理)", type: "file" },
+          { name: "16.7 \"mmap\" (内存映射)", type: "file" }
+        ]
+      },
+      {
+        name: "1️⃣7️⃣互联网数据处理 ️️",
+        type: "folder",
+        children: [
+          { name: "17.1 \"email\" (邮件与MIME)", type: "file" },
+          { name: "17.2 \"json\" (JSON 编解码)", type: "file" },
+          { name: "17.3 \"mailbox\" (邮箱操作)", type: "file" },
+          { name: "17.4 \"mimetypes\" (MIME 类型)", type: "file" },
+          { name: "17.5 \"base64\" (Base 编码)", type: "file" },
+          { name: "17.6 \"binascii\" (二进制转换)", type: "file" },
+          { name: "17.7 \"quopri\" (MIME 编码)", type: "file" }
+        ]
+      },
+      {
+        name: "1️⃣8️⃣结构化标记处理 ️️",
+        type: "folder",
+        children: [
+          { name: "18.1 \"html\" (HTML 支持)", type: "file" },
+          { name: "18.2 \"html.parser\" (HTML 解析器)", type: "file" },
+          { name: "18.3 \"html.entities\" (HTML 实体)", type: "file" },
+          {
+            name: "18.4 XML 处理模块",
+            type: "folder",
+            children: [
+              { name: "18.4.1 \"xml.etree.ElementT ree\"(ElementT reeAPI)", type: "file" },
+              { name: "18.4.2 \"xml.dom\" (DOM API)", type: "file" },
+              { name: "18.4.3 \"xml.dom.minidom\" (最小DOM)", type: "file" },
+              { name: "18.4.4 \"xml.dom.pulldom\" ( 部分DOM)", type: "file" },
+              { name: "18.4.5 \"xml.sax\" (SAX2 解析器)", type: "file" },
+              { name: "18.4.6 \"xml.sax.handler\" (SAX 处理器)", type: "file" },
+              { name: "18.4.7 \"xml.sax.saxutils\" (SAX 工具)", type: "file" },
+              { name: "18.4.8 \"xml.sax.xmlreader\" (XML 解析接口)", type: "file" },
+              { name: "18.4.9 \"xml.parsers.expat\" (Expat 解析)", type: "file" }
+            ]
+          }
+        ]
+      },
+      {
+        name: "1️⃣9️⃣互联网协议支持 ",
+        type: "folder",
+        children: [
+          { name: "19.1 \"webbrowser\" (浏览器控制)", type: "file" },
+          { name: "19.2 \"wsgiref\" (WSGI 工具)", type: "file" },
+          {
+            name: "19.3 \"urllib\"",
+            type: "folder",
+            children: [
+              { name: "19.3.1 \"urllib.request\" (URL 请求)", type: "file" },
+              { name: "19.3.2 \"urllib.response\" (响应类)", type: "file" },
+              { name: "19.3.3 \"urllib.parse\" (URL 解析)", type: "file" },
+              { name: "19.3.4 \"urllib.error\" ( 异常类)", type: "file" },
+              { name: "19.3.5 \"urllib.robotparser\" (robots.txt)", type: "file" }
+            ]
+          },
+          {
+            name: "19.4 \"http\"",
+            type: "folder",
+            children: [
+              { name: "19.4.1 \"http.client\" (HTTP 客户端)", type: "file" },
+              { name: "19.4.2 \"ftplib\" (FTP 客户端)", type: "file" },
+              { name: "19.4.3 \"poplib\" (POP3 客户端)", type: "file" },
+              { name: "19.4.4 \"imaplib\" (IMAP4 客户端)", type: "file" },
+              { name: "19.4.5 \"smtplib\" (SMTP 客户端)", type: "file" }
+            ]
+          },
+          { name: "19.5 \"uuid\" (UUID 对象)", type: "file" },
+          { name: "19.6 \"socketserver\" (网络服务器)", type: "file" },
+          { name: "19.7 \"http.server\" (HTTP 服务器)", type: "file" },
+          { name: "19.8 \"http.cookies\" (HTTP 状态管理)", type: "file" },
+          { name: "19.9 \"http.cookiejar\" (Cookie 处理)", type: "file" },
+          {
+            name: "19.10 \"xmlrpc\"",
+            type: "folder",
+            children: [
+              { name: "19.10.1 \"xmlrpc.client\" (XML-RPC 客户端)", type: "file" },
+              { name: "19.10.2 \"xmlrpc.server\" (XML-RPC 服务器)", type: "file" }
+            ]
+          },
+          { name: "19.11 \"ipaddress\" (IP 地址操作)", type: "file" }
+        ]
+      },
+      {
+        name: "2️⃣0️⃣多媒体服务 ",
+        type: "folder",
+        children: [
+          { name: "20.1 \"wave\" (WAV 文件)", type: "file" },
+          { name: "20.2 \"colorsys\" (颜色系统转换)", type: "file" }
+        ]
+      },
+      {
+        name: "2️⃣1️⃣国际化 ",
+        type: "folder",
+        children: [
+          { name: "21.1 \"gettext\" (多语种支持)", type: "file" },
+          { name: "21.2 \"locale\" (本地化服务)", type: "file" }
+        ]
+      },
+      {
+        name: "2️⃣2️⃣Tk 图形界面 ️️",
+        type: "folder",
+        children: [
+          { name: "22.1 \"tkinter\" (Tk 接口)", type: "file" },
+          { name: "22.2 \"tkinter.colorchooser\" ( 颜色选择)", type: "file" },
+          { name: "22.3 \"tkinter.font\" (字体包装)", type: "file" },
+          {
+            name: "22.4 Tkinter 对话框",
+            type: "folder",
+            children: [
+              { name: "22.4.1 \"tkinter.messagebox\" (消息提示)", type: "file" },
+              { name: "22.4.2 \"tkinter.scrolledtext\" (滚动文本)", type: "file" },
+              { name: "22.4.3 \"tkinter.dnd\" (拖放支持)", type: "file" },
+              { name: "22.4.4 \"tkinter.ttk\" ( 主题控件)", type: "file" }
+            ]
+          },
+          { name: "22.5 \"IDLE\" (编辑器)", type: "file" },
+          { name: "22.6 \"turtle\" (海龟绘图)", type: "file" }
+        ]
+      },
+      {
+        name: "2️⃣3️⃣开发工具 ️️",
+        type: "folder",
+        children: [
+          { name: "23.1 \"typing\" (类型提示)", type: "file" },
+          { name: "23.2 \"pydoc\" (文档生成)", type: "file" },
+          { name: "23.3 Python 开发模式", type: "file" },
+          { name: "23.4 \"doctest\" (示例测试)", type: "file" },
+          { name: "23.5 \"unittest\" (单元测试)", type: "file" },
+          { name: "23.6 \"unittest.mock\" (模拟对象)", type: "file" },
+          {
+            name: "23.7 \"test\" (回归测试包)",
+            type: "folder",
+            children: [
+              { name: "23.7.1 \"test.support\" (测试工具)", type: "file" },
+              { name: "23.7.2 \"test.support.socket_helper\" ( 套接字测试)", type: "file" },
+              { name: "23.7.3 \"test.support.script_helper\" (脚本测试)", type: "file" },
+              { name: "23.7.4 \"test.support.bytecode_helper\"(字节码测试)", type: "file" },
+              { name: "23.7.5 \"test.support.threading_helper\"( 线程测试)", type: "file" },
+              { name: "23.7.6 \"test.support.os_helper\" (操作系统测试)", type: "file" },
+              { name: "23.7.7 \"test.support.import_helper\" (导入测试)", type: "file" },
+              { name: "23.7.8 \"test.support.warnings_helper\"( 警告测试)", type: "file" }
+            ]
+          }
+        ]
+      },
+      {
+        name: "2️⃣4️⃣调试和分析 ",
+        type: "folder",
+        children: [
+          { name: "24.1 审计事件表", type: "file" },
+          { name: "24.2 \"bdb\" (调试器框架)", type: "file" },
+          { name: "24.3 \"faulthandler\" (崩溃转储)", type: "file" },
+          { name: "24.4 \"pdb\" (Python 调试器)", type: "file" },
+          { name: "24.5 Python 性能分析器", type: "file" },
+          { name: "24.6 \"timeit\" (代码计时)", type: "file" },
+          { name: "24.7 \"trace\" (语句跟踪)", type: "file" },
+          { name: "24.8 \"tracemalloc\" (内存跟踪)", type: "file" }
+        ]
+      },
+      {
+        name: "2️⃣5️⃣软件打包和分发 ",
+        type: "folder",
+        children: [
+          { name: "25.1 \"ensurepip\" (pip 初始化)", type: "file" },
+          { name: "25.2 \"venv\" (虚拟环境)", type: "file" },
+          { name: "25.3 \"zipapp\" (可执行ZIP 管理)", type: "file" }
+        ]
+      },
+      {
+        name: "2️⃣6️⃣Python 运行时服务⚙️",
+        type: "folder",
+        children: [
+          { name: "26.1 \"sys\" (系统参数)", type: "file" },
+          { name: "26.2 \"sys.monitoring\" (执行监测)", type: "file" },
+          { name: "26.3 \"sysconfig\" (配置信息)", type: "file" },
+          { name: "26.4 \"builtins\" (内置对象)", type: "file" },
+          { name: "26.5 \"__main__\" (顶层代码)", type: "file" },
+          { name: "26.6 \"warnings\" (警告控制)", type: "file" },
+          { name: "26.7 \"dataclasses\" (数据类)", type: "file" },
+          { name: "26.8 \"contextlib\" (上下文工具)", type: "file" },
+          { name: "26.9 \"abc\" (抽象基类)", type: "file" },
+          { name: "26.10 \"atexit\" (退出处理器)", type: "file" },
+          { name: "26.11 \"traceback\" (栈回溯)", type: "file" },
+          { name: "26.12 \"__future__\" (Future 语句)", type: "file" },
+          { name: "26.13 \"gc\" (垃圾回收)", type: "file" },
+          { name: "26.14 \"inspect\" (对象检查)", type: "file" },
+          { name: "26.15 \"site\" (站点配置)", type: "file" },
+          {
+            name: "26.16 \"自定义Python 解释器\"",
+            type: "folder",
+            children: [
+              { name: "26.16.1 \"code\" ( 解释器基类)", type: "file" },
+              { name: "26.16.2 \"codeop\" ( 代码编译)", type: "file" }
+            ]
+          }
+        ]
+      },
+      {
+        name: "2️⃣7️⃣导入模块 ",
+        type: "folder",
+        children: [
+          { name: "27.1 \"zipimport\" (Zip 导入)", type: "file" },
+          { name: "27.2 \"pkgutil\" (包扩展)", type: "file" },
+          { name: "27.3 \"modulefinder\" (模块查找)", type: "file" },
+          { name: "27.4 \"runpy\" (模块执行)", type: "file" },
+          {
+            name: "27.5 \"importlib\"",
+            type: "folder",
+            children: [
+              { name: "27.5.1 \"importlib.resources\" (资源访问)", type: "file" },
+              { name: "27.5.2 \"importlib.resources.abc\" ( 资源抽象)", type: "file" },
+              { name: "27.5.3 \"importlib.metadata\" ( 软件包元数据)", type: "file" }
+            ]
+          },
+          { name: "27.6 \"sys.path\" (模块搜索路径)", type: "file" }
+        ]
+      },
+      {
+        name: "2️⃣8️⃣Python 语言服务 ",
+        type: "folder",
+        children: [
+          { name: "28.1 \"ast\" (抽象语法树)", type: "file" },
+          { name: "28.2 \"symtable\" (符号表)", type: "file" },
+          { name: "28.3 \"token\" (解析常量)", type: "file" },
+          { name: "28.4 \"keyword\" (关键字检验)", type: "file" },
+          { name: "28.5 \"tokenize\" (源代码分词)", type: "file" },
+          { name: "28.6 \"tabnanny\" (缩进检测)", type: "file" },
+          { name: "28.7 \"pyclbr\" (模块浏览器)", type: "file" },
+          { name: "28.8 \"py_compile\" (源文件编译)", type: "file" },
+          { name: "28.9 \"compileall\" (字节编译)", type: "file" },
+          { name: "28.10 \"dis\" (字节码反汇编)", type: "file" },
+          { name: "28.11 \"pickletools\" (pickle 工具)", type: "file" }
+        ]
+      },
+      {
+        name: "2️⃣9️⃣Windows 系统模块⊞",
+        type: "folder",
+        children: [
+          { name: "29.1 \"msvcrt\" (MS VC++例程)", type: "file" },
+          { name: "29.2 \"winreg\" (注册表访问)", type: "file" },
+          { name: "29.3 \"winsound\" (声音播放)", type: "file" }
+        ]
+      },
+      {
+        name: "3️⃣0️⃣Unix-specific 服务 ",
+        type: "folder",
+        children: [
+          { name: "30.1 \"shlex\" (简单词法分析)", type: "file" },
+          { name: "30.2 \"posix\" (POSIX 系统调用)", type: "file" },
+          { name: "30.3 \"pwd\" (密码数据库)", type: "file" },
+          { name: "30.4 \"grp\" (组数据库)", type: "file" },
+          { name: "30.5 \"termios\" (tty 控制)", type: "file" },
+          { name: "30.6 \"tty\" (终端控制)", type: "file" },
+          { name: "30.7 \"pty\" (伪终端)", type: "file" },
+          { name: "30.8 \"fcntl\" (系统调用)", type: "file" },
+          { name: "30.9 \"resource\" (资源信息)", type: "file" },
+          { name: "30.10 \"syslog\" (Unix 日志库)", type: "file" }
+        ]
+      },
+      {
+        name: "3️⃣1️⃣模块命令行界面（CLI）",
+        type: "folder",
+        children: [
+          {
+            name: "31.1 被取代的模块",
+            type: "folder",
+            children: [
+              { name: "31.1.1 \"getopt\" (C 风格选项解析)", type: "file" }
+            ]
+          },
+          { name: "31.2 移除的模块", type: "file" }
+        ]
+      },
+      {
+        name: "3️⃣2️⃣安全考量⚠️",
+        type: "folder"
+      }
+    ];
+  </script>
+
+  <!-- 第二部分：渲染逻辑 -->
+  <script>
+    // 创建树节点的函数
+    function createTreeNode(data) {
+      const li = document.createElement('li');
+      const nodeDiv = document.createElement('div');
+      nodeDiv.className = 'tree-node';
+      
+      // 添加折叠图标（仅文件夹）
+      if (data.type === 'folder') {
+        const toggleIcon = document.createElement('span');
+        toggleIcon.className = 'toggle';
+        toggleIcon.textContent = '▼';
+        nodeDiv.appendChild(toggleIcon);
+      }
+      
+      // 添加文件夹/文件图标（使用emoji）
+      const icon = document.createElement('span');
+      icon.className = 'icon';
+      if (data.type === 'folder') {
+        icon.className += ' folder-icon';
+        icon.textContent = '📁';
+      } else {
+        icon.className += ' file-icon';
+        icon.textContent = '🦕';
+      }
+      nodeDiv.appendChild(icon);
+      
+      // 添加内容区域
+      const contentDiv = document.createElement('div');
+      contentDiv.className = 'tree-content';
+      
+      const nameSpan = document.createElement('span');
+      nameSpan.className = 'tree-name';
+      nameSpan.textContent = data.name;
+      contentDiv.appendChild(nameSpan);
+      
+      if (data.desc) {
+        const descSpan = document.createElement('span');
+        descSpan.className = 'tree-desc';
+        descSpan.textContent = data.desc;
+        contentDiv.appendChild(descSpan);
+      }
+      
+      nodeDiv.appendChild(contentDiv);
+      li.appendChild(nodeDiv);
+      
+      // 递归创建子节点
+      if (data.children && data.children.length > 0) {
+        const ul = document.createElement('ul');
+        data.children.forEach(child => {
+          ul.appendChild(createTreeNode(child));
+        });
+        li.appendChild(ul);
+      }
+      
+      return li;
+    }
+    
+    // 初始化树形结构
+    function initTree() {
+      const treeContainer = document.getElementById('treeContainer');
+      const ul = document.createElement('ul');
+      
+      pythonStdLib.forEach(item => {
+        ul.appendChild(createTreeNode(item));
+      });
+      
+      treeContainer.appendChild(ul);
+document.querySelectorAll('.tree li:has(> ul)').forEach(li => {
+    li.classList.add('collapsed');
+});  // ← 补全
+
+    }
+    
+    // 页面加载完成后初始化
+    document.addEventListener('DOMContentLoaded', function() {
+      // 初始化树形结构
+      initTree();
+      
+      // 使用事件委托处理折叠/展开
+      document.getElementById('treeContainer').addEventListener('click', function(e) {
+        const treeNode = e.target.closest('.tree-node');
+        if (!treeNode) return;
+        
+        const folderIcon = treeNode.querySelector('.folder-icon');
+        if (!folderIcon) return;
+        
+        const li = treeNode.parentElement;
+        li.classList.toggle('collapsed');
+      });
+      
+      // 展开全部按钮
+      document.getElementById('expandAll').addEventListener('click', function() {
+        document.querySelectorAll('.tree li.collapsed').forEach(li => {
+          li.classList.remove('collapsed');
+        });
+      });
+      
+      // 折叠全部按钮
+      document.getElementById('collapseAll').addEventListener('click', function() {
+        document.querySelectorAll('.tree li:has(.folder-icon)').forEach(li => {
+          if (!li.parentElement.classList.contains('tree')) {
+            li.classList.add('collapsed');
+          }
+        });
+      });
+      
+      // 搜索功能
+      document.getElementById('searchInput').addEventListener('input', function(e) {
+        const searchTerm = e.target.value.toLowerCase();
+        
+        // 清除之前的高亮
+        document.querySelectorAll('.highlight').forEach(el => {
+          el.classList.remove('highlight');
+        });
+        
+        if (searchTerm === '') return;
+        
+        // 搜索并高亮匹配项
+        document.querySelectorAll('.tree-node').forEach(node => {
+          const text = node.textContent.toLowerCase();
+          if (text.includes(searchTerm)) {
+            node.querySelector('.tree-name').classList.add('highlight');
+            
+            // 展开父节点
+            let parent = node.closest('li');
+            while (parent && !parent.classList.contains('tree')) {
+              parent.classList.remove('collapsed');
+              parent = parent.parentElement.closest('li');
+            }
+          }
+        });
+      });
+    });
+  </script>
+
+  <!-- 第三部分：图标定义 -->
+  <script>
+    // 使用emoji图标，无需复杂的SVG定义
+    // 所有图标已在第二部分直接使用emoji字符
+    // 这里可以添加一些额外的图标配置或样式增强
+    
+    // 可选：添加图标点击效果
+    document.addEventListener('DOMContentLoaded', function() {
+      // 为文件夹图标添加点击效果
+      document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('folder-icon')) {
+          // 添加点击动画
+          e.target.style.transform = 'scale(1.2)';
+          setTimeout(() => {
+            e.target.style.transform = 'scale(1)';
+          }, 150);
+        }
+      });
+    });
+  </script>
+</body> 
+</html>

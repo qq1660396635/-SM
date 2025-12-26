@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prism「三大件」下载脚本</title>
+   
+  。  <!-- Prism.js 代码高亮 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" id="prism-theme">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+
+</head>
+<body>
+    <div class="container" id="mainContainer">
+        <div class="header">
+            <h1>📦 Prism「三大件」下载脚本</h1>
+            <p>Termux环境下下载Prism语法高亮核心文件</p>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressBar"></div>
+            </div>
+        </div>
+        
+        <div id="contentContainer">
+            <div class="loading">
+                <div class="loading-spinner"></div>
+                正在加载安装指南...
+            </div>
+        </div>
+        
+        <div class="tips">
+            <h3>💡使用说明</h3>
+            <ul>
+                <li>安装后将下载Prism语法高亮核心文件到本地</li>
+                <li>脚本会自动从CDN获取最新版本</li>
+                <li>点击命令块右上角"复制"按钮快速复制</li>
+                <li>所有命令需在Termux环境中执行</li>
+                <li>点击步骤可标记为已完成，进度自动保存</li>
+                <li>使用右下角+/-按钮调整页面缩放</li>
+                <li><strong> css静态路由，需JS包裹</strong></li>
+            </ul>
+        </div>
+    </div>
+    
+    <!-- 主题切换器 -->
+    <div class="theme-switcher">
+        <button class="theme-btn" onclick="switchTheme()">🌙切换主题</button>
+    </div>
+    
+    <!-- 引入数据库管理器 -->
+    <script src="/db.js"></script>
+    <!-- 引入公共插件 -->
+    <script src="1.common_plugin.js"></script>
+    <!-- 引入缩放插件 -->
+    <script src="/A2_全局中心/B_插件工具/3.插件_字体缩放.js"></script>
+    <!-- 配置文件 -->
+    <script src="1.拉取-语法高亮.js"></script>
+    
+    <!-- 页面初始化脚本 -->
+    <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+        try {
+            // 初始化数据库
+            await IDB.init();
+            console.log('数据库初始化完成');
+            
+            // 加载配置文件（优先从缓存）
+            const configText = await IDB.CacheMgr.get('1.拉取-语法高亮.js');
+            // 执行配置文件内容
+            eval(configText);
+            
+            // 渲染页面内容
+            await CommonPlugin.renderGuide(prismDownloadConfig);
+            
+            // 保存浏览记录
+            await CommonPlugin.saveViewHistory('prism_download');
+            
+            // 加载主题
+            CommonPlugin.loadTheme();
+        } catch (error) {
+            console.error('加载失败:', error);
+            CommonPlugin.showError('加载失败');
+        }
+    });
+    </script>
+</body>
+</html>

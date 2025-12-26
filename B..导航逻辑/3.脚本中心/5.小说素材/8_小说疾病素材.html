@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>常见疾病查询系统</title>
+    
+     <!-- 引入数据库管理器 -->
+    <script src="/db.js"></script>
+    <script src="8_小说疾病素材.js"></script>
+    <!-- 引入缩放插件 -->
+  <script src="/A2_全局中心/B_插件工具/3.插件_字体缩放.js"></script>
+  
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 8px;
+            line-height: 1.4;
+            font-size: 0.85rem;
+        }
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 10px;
+            padding: 8px;
+        }
+        .header h1 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            margin-bottom: 3px;
+        }
+        .search-box {
+            background: rgba(255,255,255,0.95);
+            border-radius: 12px;
+            padding: 10px;
+            margin-bottom: 10px;
+            display: flex;
+            gap: 8px;
+        }
+        .search-input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+        .search-btn {
+            padding: 10px 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        .category {
+            background: white;
+            border-radius: 12px;
+            margin-bottom: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .category-header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 8px 12px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .category-icon {
+            width: 22px;
+            height: 22px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+        }
+        .disease-list {
+            padding: 4px;
+        }
+        .disease-item {
+            display: flex;
+            padding: 6px 8px;
+            border-bottom: 1px solid #f0f0f0;
+            transition: background 0.2s;
+        }
+        .disease-item:last-child {
+            border-bottom: none;
+        }
+        .disease-item:hover {
+            background: #f8f9fa;
+        }
+        .disease-name {
+            flex: 0 0 110px;
+            font-weight: 500;
+            color: #333;
+            font-size: 0.8rem;
+            padding-right: 8px;
+        }
+        .disease-content {
+            flex: 1;
+            color: #555;
+            font-size: 0.75rem;
+            line-height: 1.3;
+        }
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 200px;
+            color: white;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        .loading-spinner {
+            width: 30px;
+            height: 30px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-top: 3px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(255,255,255,0.95);
+            border-radius: 12px;
+        }
+        .pagination button {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            background: white;
+            color: #333;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.3s;
+        }
+        .pagination button:hover:not(:disabled) {
+            background: #f0f0f0;
+        }
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .pagination button.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: #667eea;
+        }
+        .pagination-info {
+            font-size: 0.8rem;
+            color: #666;
+            margin: 0 10px;
+        }
+        .stats {
+            background: rgba(255,255,255,0.95);
+            border-radius: 12px;
+            padding: 8px;
+            margin-bottom: 10px;
+            text-align: center;
+            font-size: 0.75rem;
+            color: #555;
+        }
+        .highlight {
+            background: #fff3cd;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏥 常见疾病查询系统</h1>
+        </div>
+        
+        <div class="search-box">
+            <input type="text" class="search-input" id="searchInput" placeholder="输入疾病名称搜索...">
+            <button class="search-btn" onclick="searchDiseases()">搜索</button>
+        </div>
+        
+        <div class="stats" id="statsContainer">
+            正在加载数据...
+        </div>
+        
+        <div id="contentContainer">
+            <div class="loading">
+                <div class="loading-spinner"></div>
+                正在加载数据...
+            </div>
+        </div>
+        
+        <div class="pagination" id="pagination" style="display: none;">
+            <button onclick="goToPage('prev')" id="prevBtn">上一页</button>
+            <div id="pageNumbers"></div>
+            <button onclick="goToPage('next')" id="nextBtn">下一页</button>
+        </div>
+    </div>
+
+    <script>
+        let allDiseaseData = null;
+        let filteredData = null;
+        let currentPage = 1;
+        const itemsPerPage = 2; // 每页显示2个分类
+        
+        // 缓存配置文件并渲染数据
+        async function loadDiseaseData() {
+            try {
+                // 使用IDB.CacheMgr获取配置文件（优先从缓存）
+                const configText = await IDB.CacheMgr.get('8_小说疾病素材.js');
+                
+                // 执行配置文件内容
+                eval(configText);
+                allDiseaseData = diseaseData;
+                filteredData = diseaseData;
+                
+                // 渲染页面
+                renderPage(currentPage);
+                
+                // 更新统计信息
+                updateStats(filteredData);
+                
+                // 保存浏览历史到用户区域（使用E_前缀）
+                saveViewHistory('diseases_home');
+                
+            } catch (error) {
+                console.error('加载疾病数据失败:', error);
+                document.getElementById('contentContainer').innerHTML = `
+                    <div class="loading" style="flex-direction: column; gap: 15px;">
+                        <div style="color: #ff6b6b; font-size: 1.1rem;">⚠️ 数据加载失败</div>
+                        <div style="font-size: 0.9rem;">请检查网络连接或稍后重试</div>
+                        <button onclick="location.reload()" style="
+                            padding: 8px 16px; 
+                            background: rgba(255,255,255,0.2); 
+                            border: 1px solid white; 
+                            color: white; 
+                            border-radius: 20px; 
+                            cursor: pointer; 
+                            margin-top: 10px; 
+                            font-size: 0.8rem;
+                        ">重新加载</button>
+                    </div>`;
+            }
+        }
+        
+        // 渲染页面
+        function renderPage(page) {
+            if (!filteredData) return;
+            
+            const container = document.getElementById('contentContainer');
+            container.innerHTML = '';
+            
+            // 计算分页范围
+            const startIndex = (page - 1) * itemsPerPage;
+            const endIndex = startIndex + itemsPerPage;
+            const categoriesToShow = filteredData.categories.slice(startIndex, endIndex);
+            
+            // 遍历分类
+            categoriesToShow.forEach((category, index) => {
+                const categoryDiv = document.createElement('div');
+                categoryDiv.className = 'category';
+                
+                // 创建分类标题（使用中文数字）
+                const header = document.createElement('div');
+                header.className = 'category-header';
+                const chineseNumbers = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十'];
+                header.innerHTML = `
+                    <div class="category-icon">${chineseNumbers[startIndex + index]}</div>
+                    <span>${category.title}</span>
+                `;
+                
+                // 创建疾病列表
+                const diseaseList = document.createElement('div');
+                diseaseList.className = 'disease-list';
+                
+                // 遍历分类下的所有疾病
+                category.items.forEach((disease, diseaseIndex) => {
+                    const diseaseItem = document.createElement('div');
+                    diseaseItem.className = 'disease-item';
+                    diseaseItem.innerHTML = `
+                        <div class="disease-name">${diseaseIndex + 1}. ${disease.name}</div>
+                        <div class="disease-content">${disease.content}</div>
+                    `;
+                    diseaseList.appendChild(diseaseItem);
+                });
+                
+                categoryDiv.appendChild(header);
+                categoryDiv.appendChild(diseaseList);
+                container.appendChild(categoryDiv);
+            });
+            
+            // 更新分页控件
+            updatePagination();
+        }
+        
+        // 更新分页控件
+        function updatePagination() {
+            if (!filteredData) return;
+            
+            const totalPages = Math.ceil(filteredData.categories.length / itemsPerPage);
+            const pagination = document.getElementById('pagination');
+            const pageNumbers = document.getElementById('pageNumbers');
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            
+            // 显示分页控件
+            pagination.style.display = 'flex';
+            
+            // 更新上一页/下一页按钮状态
+            prevBtn.disabled = currentPage === 1;
+            nextBtn.disabled = currentPage === totalPages;
+            
+            // 生成页码按钮
+            pageNumbers.innerHTML = '';
+            const maxPageButtons = 5; // 最多显示5个页码按钮
+            
+            let startPage = Math.max(1, currentPage - Math.floor(maxPageButtons / 2));
+            let endPage = Math.min(totalPages, startPage + maxPageButtons - 1);
+            
+            if (endPage - startPage < maxPageButtons - 1) {
+                startPage = Math.max(1, endPage - maxPageButtons + 1);
+            }
+            
+            // 添加第一页和省略号
+            if (startPage > 1) {
+                addPageButton(1);
+                if (startPage > 2) {
+                    const dots = document.createElement('span');
+                    dots.textContent = '...';
+                    dots.style.padding = '0 5px';
+                    pageNumbers.appendChild(dots);
+                }
+            }
+            
+            // 添加页码按钮
+            for (let i = startPage; i <= endPage; i++) {
+                addPageButton(i);
+            }
+            
+            // 添加省略号和最后一页
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) {
+                    const dots = document.createElement('span');
+                    dots.textContent = '...';
+                    dots.style.padding = '0 5px';
+                    pageNumbers.appendChild(dots);
+                }
+                addPageButton(totalPages);
+            }
+            
+            function addPageButton(pageNum) {
+                const btn = document.createElement('button');
+                btn.textContent = pageNum;
+                btn.onclick = () => goToPage(pageNum);
+                if (pageNum === currentPage) {
+                    btn.classList.add('active');
+                }
+                pageNumbers.appendChild(btn);
+            }
+        }
+        
+        // 跳转到指定页面
+        function goToPage(page) {
+            if (!filteredData) return;
+            
+            const totalPages = Math.ceil(filteredData.categories.length / itemsPerPage);
+            
+            if (page === 'prev') {
+                currentPage = Math.max(1, currentPage - 1);
+            } else if (page === 'next') {
+                currentPage = Math.min(totalPages, currentPage + 1);
+            } else {
+                currentPage = page;
+            }
+            
+            renderPage(currentPage);
+        }
+        
+        // 更新统计信息
+        function updateStats(data) {
+            const totalDiseases = data.categories.reduce((sum, cat) => sum + cat.items.length, 0);
+            const statsContainer = document.getElementById('statsContainer');
+            statsContainer.innerHTML = `
+                共收录 <span class="highlight">${data.categories.length}</span> 个分类，
+                <span class="highlight">${totalDiseases}</span> 种常见疾病
+            `;
+        }
+        
+        // 搜索功能
+        function searchDiseases() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            if (!searchTerm) {
+                filteredData = allDiseaseData;
+                currentPage = 1;
+                renderPage(currentPage);
+                updateStats(filteredData);
+                return;
+            }
+            
+            filteredData = {
+                categories: allDiseaseData.categories.map(category => ({
+                    ...category,
+                    items: category.items.filter(disease => 
+                        disease.name.toLowerCase().includes(searchTerm) || 
+                        disease.content.toLowerCase().includes(searchTerm)
+                    )
+                })).filter(category => category.items.length > 0)
+            };
+            
+            currentPage = 1;
+            renderPage(currentPage);
+            updateStats(filteredData);
+        }
+        
+        // 保存浏览历史（使用E_前缀存储到用户区域）
+        async function saveViewHistory(page) {
+            try {
+                const history = await IDB.get('E_viewHistory', 'userdata') || [];
+                const now = new Date().toISOString();
+                
+                // 添加新的浏览记录
+                history.unshift({
+                    page: page,
+                    timestamp: now
+                });
+                
+                // 只保留最近20条记录
+                if (history.length > 20) {
+                    history.splice(20);
+                }
+                
+                await IDB.put('E_viewHistory', history, 'userdata');
+            } catch (error) {
+                console.error('保存浏览历史失败:', error);
+            }
+        }
+        
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            // 初始化数据库
+            IDB.init().then(() => {
+                console.log('数据库初始化完成');
+                // 加载配置文件
+                loadDiseaseData();
+            }).catch(error => {
+                console.error('数据库初始化失败:', error);
+                document.getElementById('contentContainer').innerHTML = `
+                    <div class="loading" style="flex-direction: column; gap: 15px;">
+                        <div style="color: #ff6b6b; font-size: 1.1rem;">⚠️ 数据库初始化失败</div>
+                        <div style="font-size: 0.9rem;">请检查浏览器是否支持IndexedDB</div>
+                    </div>`;
+            });
+        });
+    </script>
+</body>
+</html>

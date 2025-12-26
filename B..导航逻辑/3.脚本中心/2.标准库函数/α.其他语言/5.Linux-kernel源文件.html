@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>linux-5.15.194 十月二版本/kernel</title>
+    <script src="../A.插件_字体缩放.js"></script>
+    <style>
+        :root {
+            --primary-color: #3b82f6;
+            --secondary-color: #0ea5e9;
+            --accent-color: #6366f1;
+            --text-color: #1e293b;
+            --text-secondary: #64748b;
+            --bg-color: #f0f9ff;
+            --border-color: #dbeafe;
+            --hover-bg: #e0f2fe;
+            --code-bg: #ffffff;
+            --tree-line: #93c5fd;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            color: var(--text-color);
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 50%, #dbeafe 100%);
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            flex-direction: column;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            text-rendering: optimizeLegibility;
+        }
+
+        .container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: rgba(255, 255, 255, 0.95);
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            margin: 8px;
+            border-radius: 8px;
+            border: 1px solid rgba(219, 234, 254, 0.3);
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: #fff;
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            flex-shrink: 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        header::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+            animation: shimmer 3s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+        header h1 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 4px;
+            position: relative;
+        }
+
+        header p {
+            opacity: 0.9;
+            font-size: 12px;
+            position: relative;
+        }
+
+        .controls {
+            padding: 10px 16px;
+            background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        .controls button {
+            background: linear-gradient(135deg, var(--accent-color), var(--secondary-color));
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 12px;
+            font-family: inherit;
+            font-weight: 500;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .controls button:hover {
+            background: linear-gradient(135deg, var(--secondary-color), var(--primary-color));
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        #searchInput {
+            padding: 6px 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background-color: rgba(240, 249, 255, 0.8);
+            color: var(--text-color);
+            font-size: 12px;
+            font-family: inherit;
+            width: 180px;
+            transition: all 0.3s;
+        }
+
+        #searchInput:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            background: rgba(255, 255, 255, 0.95);
+            box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+        }
+
+        .tree-container {
+            flex: 1;
+            padding: 12px;
+            overflow: auto;
+            background: linear-gradient(180deg, rgba(240, 249, 255, 0.4) 0%, rgba(240, 249, 255, 0.2) 100%);
+        }
+
+        .tree-container::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .tree-container::-webkit-scrollbar-thumb {
+            background: var(--accent-color);
+            border-radius: 3px;
+        }
+
+        .tree ul {
+            list-style-type: none;
+            padding-left: 16px;
+            margin: 0;
+        }
+
+        .tree li {
+            position: relative;
+            padding: 1px 0;
+            white-space: nowrap;
+        }
+
+        .tree li::before {
+            content: "";
+            position: absolute;
+            left: -10px;
+            top: 8px;
+            width: 10px;
+            height: 1px;
+            background-color: var(--tree-line);
+        }
+
+        .tree li::after {
+            content: "";
+            position: absolute;
+            left: -10px;
+            top: -2px;
+            width: 1px;
+            height: 100%;
+            background-color: var(--tree-line);
+        }
+
+        .tree li:last-child::after {
+            height: 10px;
+        }
+
+        .tree > ul > li::before, .tree > ul > li::after {
+            display: none;
+        }
+
+        .tree-node {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            padding: 2px 4px;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        .tree-node:hover {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(14, 165, 233, 0.05) 100%);
+            transform: translateX(2px);
+        }
+
+        .tree-node i {
+            margin-right: 6px;
+            color: var(--text-color);
+            width: 12px;
+            text-align: center;
+            font-size: 10px;
+        }
+
+        .tree-node .folder {
+            color: var(--primary-color);
+        }
+
+        .tree-node .file {
+            color: var(--text-secondary);
+        }
+
+        .tree-node .toggle {
+            color: #94a3b8;
+            margin-right: 3px;
+            font-size: 9px;
+            transition: transform 0.2s;
+        }
+
+        .collapsed .toggle.fa-chevron-down::before {
+            content: "\f054";
+        }
+
+        .tree-content {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            min-width: 0;
+        }
+
+        .tree-name {
+            font-weight: 500;
+            font-size: 13px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: var(--text-color);
+        }
+
+        .tree-desc {
+            font-style: normal !important;
+            white-space: normal !important;
+            max-width: none !important;
+            overflow: visible !important;
+            text-overflow: unset !important;
+            display: inline-block !important;
+            line-height: 1.4 !important;
+            margin-left: 6px !important;
+            font-size: 11px !important;
+            color: var(--text-secondary) !important;
+            background: rgba(59, 130, 246, 0.06) !important;
+            padding: 1px 4px !important;
+            border-radius: 3px !important;
+            border: 1px solid rgba(59, 130, 246, 0.1) !important;
+            transition: all 0.2s !important;
+        }
+
+        .tree-node:hover .tree-desc {
+            background: rgba(59, 130, 246, 0.1) !important;
+            border-color: rgba(59, 130, 246, 0.2) !important;
+        }
+
+        /* 新增：目录序号样式 */
+        .folder-number {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 16px;
+            height: 16px;
+            background: linear-gradient(135deg, var(--accent-color), var(--secondary-color));
+            color: white;
+            font-size: 9px;
+            font-weight: 600;
+            border-radius: 8px;
+            margin-right: 4px;
+            padding: 0 4px;
+            line-height: 1;
+            opacity: 0.8;
+            transition: all 0.2s;
+        }
+
+        .tree-node:hover .folder-number {
+            opacity: 1;
+            transform: scale(1.1);
+        }
+
+        .collapsed > ul {
+            display: none;
+        }
+
+        .highlight {
+            background: linear-gradient(135deg, var(--accent-color), var(--secondary-color));
+            padding: 0 3px;
+            border-radius: 3px;
+            color: #fff;
+            font-weight: 500;
+        }
+
+        footer {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 8px 16px;
+            text-align: center;
+            font-size: 10px;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+            flex-shrink: 0;
+        }
+
+        @media (max-width: 768px) {
+            body { font-size: 12px; }
+            .container { margin: 4px; }
+            header h1 { font-size: 16px; }
+            header p { font-size: 11px; }
+            .tree ul { padding-left: 14px; }
+            .tree-name { font-size: 12px; }
+            .tree-desc { font-size: 10px; }
+            #searchInput { width: 140px; font-size: 11px; }
+            .controls button { font-size: 11px; padding: 5px 10px; }
+            .folder-number { font-size: 8px; min-width: 14px; height: 14px; }
+        }
+
+        @media (max-width: 480px) {
+            body { font-size: 11px; }
+            .container { margin: 2px; }
+            header h1 { font-size: 14px; }
+            header p { font-size: 10px; }
+            .tree ul { padding-left: 12px; }
+            .tree-node { padding: 1px 3px; }
+            .tree-name { font-size: 11px; }
+            .tree-desc { font-size: 9px; }
+            #searchInput { width: 120px; font-size: 10px; }
+            .controls button { font-size: 10px; padding: 4px 8px; }
+            .folder-number { font-size: 7px; min-width: 12px; height: 12px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>linux-5.15.194 十月二版本/kernel</h1>
+            <p>Linux Kernel Source Directory - v5.15.194</p>
+        </header>
+        <div class="controls">
+            <div>
+                <button id="expandAll">展开</button>
+                <button id="collapseAll">折叠</button>
+            </div>
+            <div>
+                <input type="text" id="searchInput" placeholder="搜索...">
+            </div>
+        </div>
+        <div class="tree-container">
+            <div class="tree">
+                <ul id="treeRoot"></ul>
+            </div>
+        </div>
+        <footer>
+            <p>© 2025 Linux 内核源码| Generated by 凉安</p>
+        </footer>
+    </div>
+
+    <!-- 引入配置文件 -->
+    <script src="5.Linux-kernel-config.js"></script>
+    <script>
+        let folderCounter = 0;
+
+        function createTreeNode(data, level = 0) {
+            const li = document.createElement('li');
+            const nodeDiv = document.createElement('div');
+            nodeDiv.className = 'tree-node';
+
+            // 为文件夹添加序号
+            if (data.type === 'folder') {
+                folderCounter++;
+                const numberSpan = document.createElement('span');
+                numberSpan.className = 'folder-number';
+                numberSpan.textContent = folderCounter;
+                nodeDiv.appendChild(numberSpan);
+
+                const toggleIcon = document.createElement('span');
+                toggleIcon.className = 'toggle';
+                toggleIcon.textContent = '▼';
+                nodeDiv.appendChild(toggleIcon);
+            }
+
+            const icon = document.createElement('span');
+            icon.className = 'icon';
+            if (data.type === 'folder') {
+                icon.className += ' folder';
+                icon.textContent = '📁';  // 恢复文件夹图标
+            } else {
+                icon.className += ' file';
+                icon.textContent = '📄';  // 恢复文件图标
+            }
+            nodeDiv.appendChild(icon);
+
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'tree-content';
+
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'tree-name';
+            nameSpan.textContent = data.name;
+            contentDiv.appendChild(nameSpan);
+
+            if (data.desc) {
+                const descSpan = document.createElement('span');
+                descSpan.className = 'tree-desc';
+                descSpan.textContent = data.desc;
+                contentDiv.appendChild(descSpan);
+            }
+
+            nodeDiv.appendChild(contentDiv);
+            li.appendChild(nodeDiv);
+
+            if (data.children && data.children.length > 0) {
+                const ul = document.createElement('ul');
+                data.children.forEach(child => {
+                    ul.appendChild(createTreeNode(child, level + 1));
+                });
+                li.appendChild(ul);
+            }
+
+            return li;
+        }
+
+        function initTree() {
+            const treeRoot = document.getElementById('treeRoot');
+            folderCounter = 0; // 重置计数器
+            treeData.forEach(item => {
+                treeRoot.appendChild(createTreeNode(item));
+            });
+
+            // 默认折叠所有文件夹
+            document.querySelectorAll('.tree li:has(> ul)').forEach(li => {
+                li.classList.add('collapsed');
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            initTree();
+
+            document.getElementById('treeRoot').addEventListener('click', function(e) {
+                const treeNode = e.target.closest('.tree-node');
+                if (!treeNode) return;
+
+                const folderIcon = treeNode.querySelector('.folder');
+                if (!folderIcon) return;
+
+                const li = treeNode.parentElement;
+                li.classList.toggle('collapsed');
+            });
+
+            document.getElementById('expandAll').addEventListener('click', function() {
+                document.querySelectorAll('.tree li.collapsed').forEach(li => {
+                    li.classList.remove('collapsed');
+                });
+            });
+
+            document.getElementById('collapseAll').addEventListener('click', function() {
+                document.querySelectorAll('.tree li:has(.folder)').forEach(li => {
+                    if (!li.parentElement.classList.contains('tree')) {
+                        li.classList.add('collapsed');
+                    }
+                });
+            });
+
+            document.getElementById('searchInput').addEventListener('input', function(e) {
+                const searchTerm = e.target.value.toLowerCase();
+
+                document.querySelectorAll('.highlight').forEach(el => {
+                    el.classList.remove('highlight');
+                });
+
+                if (searchTerm === '') return;
+
+                document.querySelectorAll('.tree-node').forEach(node => {
+                    const text = node.textContent.toLowerCase();
+                    if (text.includes(searchTerm)) {
+                        node.querySelector('.tree-name').classList.add('highlight');
+                        let parent = node.closest('li');
+                        while (parent && !parent.classList.contains('tree')) {
+                            parent.classList.remove('collapsed');
+                            parent = parent.parentElement.closest('li');
+                        }
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

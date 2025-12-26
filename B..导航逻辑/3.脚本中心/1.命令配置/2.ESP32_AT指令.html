@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESP32 AT 指令速查</title>
+    <style>
+        /* --- 全局与布局--- */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        /* --- 顶部工具栏--- */
+        .toolbar {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 15px 20px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            margin-bottom: 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .search-section {
+            flex: 1;
+            min-width: 250px;
+        }
+        
+        .search-box {
+            position: relative;
+        }
+        
+        .search-box input {
+            width: 100%;
+            padding: 12px 15px 12px 45px;
+            border: 2px solid #e1e5e9;
+            border-radius: 25px;
+            font-size: 15px;
+            outline: none;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+        }
+        
+        .search-box input:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            background: #fff;
+        }
+        
+        .search-box::before {
+            content: "🔍";
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #888;
+            font-size: 16px;
+        }
+        
+        .control-panel {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        
+        .category-dropdown {
+            padding: 12px 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 15px;
+            background: #f8f9fa;
+            outline: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: 150px;
+        }
+        
+        .category-dropdown:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            background: #fff;
+        }
+        
+        /* --- 命令列表--- */
+        .commands-list {
+            list-style: none;
+        }
+        
+        .command-item {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .command-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+            background: rgba(255, 255, 255, 1);
+        }
+        
+        .command-name {
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Source Code Pro', monospace;
+            font-size: 16px;
+            font-weight: 600;
+            color: #667eea;
+            white-space: nowrap;
+            flex-shrink: 0;
+            min-width: 180px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .command-desc {
+            font-size: 15px;
+            color: #555;
+            flex: 1;
+        }
+        
+        /* --- 分页--- */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            margin-top: 30px;
+        }
+        
+        .pagination button {
+            padding: 10px 15px;
+            border: 2px solid #e1e5e9;
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+        
+        .pagination button:hover:not(:disabled) {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+            transform: translateY(-1px);
+        }
+        
+        .pagination button.active {
+            background: #667eea;
+            color: #fff;
+            border-color: #667eea;
+        }
+        
+        .pagination button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        
+        .pagination-info {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.9);
+            margin: 0 10px;
+            font-weight: 500;
+        }
+        
+        /* --- 加载/错误提示--- */
+        .message {
+            text-align: center;
+            padding: 60px 20px;
+            font-size: 18px;
+            color: rgba(255, 255, 255, 0.9);
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+        }
+        
+        .error-message {
+            color: #ff6b6b;
+        }
+        
+        /* --- 响应式设计--- */
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+            
+            .toolbar {
+                flex-direction: column;
+                gap: 15px;
+                align-items: stretch;
+            }
+            
+            .search-section {
+                width: 100%;
+            }
+            
+            .control-panel {
+                width: 100%;
+                justify-content: space-between;
+            }
+            
+            .command-item {
+                flex-direction: row;
+                gap: 12px;
+                align-items: center;
+                padding: 14px 16px;
+            }
+            
+            .command-name {
+                min-width: 160px;
+                font-size: 15px;
+            }
+            
+            .command-desc {
+                font-size: 14px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .toolbar {
+                padding: 12px 15px;
+            }
+            
+            .search-box input {
+                padding: 10px 12px 10px 38px;
+                font-size: 14px;
+            }
+            
+            .category-dropdown {
+                padding: 10px 12px;
+                font-size: 14px;
+                min-width: 130px;
+            }
+            
+            .command-item {
+                padding: 12px 14px;
+            }
+            
+            .command-name {
+                min-width: 140px;
+                font-size: 14px;
+            }
+            
+            .command-desc {
+                font-size: 13px;
+            }
+            
+            .pagination button {
+                padding: 8px 12px;
+                font-size: 13px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="toolbar">
+            <div class="search-section">
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="搜索指令或描述...">
+                </div>
+            </div>
+            <div class="control-panel">
+                <select class="category-dropdown" id="categoryDropdown">
+                    <option value="all">全部分类</option>
+                </select>
+            </div>
+        </header>
+        
+        <main>
+            <ul class="commands-list" id="commandsList">
+                <li class="message">正在从E盘加载AT指令配置...</li>
+            </ul>
+        </main>
+        
+        <nav class="pagination" id="pagination">
+            <!-- 分页按钮将在这里动态生成-->
+        </nav>
+    </div>
+
+    <script>
+        //==============================================
+        // ===== IndexedDB 数据库管理器=====
+        //==============================================
+        window.IDB = {
+            DB_NAME: 'LiangAnUserCenterDB',
+            VERSION: 1,
+            STORES: {
+                configs: 'configs',
+                userdata: 'userdata',
+                official: 'official'
+            },
+            db: null,
+            initPromise: null,
+            
+            async init() {
+                if (this.initPromise) return this.initPromise;
+                this.initPromise = new Promise((resolve, reject) => {
+                    console.log('🔄开始初始化数据库...');
+                    const request = indexedDB.open(this.DB_NAME, this.VERSION);
+                    
+                    request.onerror = () => {
+                        const error = request.error;
+                        console.error('数据库打开失败:', error);
+                        reject(error);
+                    };
+                    
+                    request.onsuccess = () => {
+                        this.db = request.result;
+                        console.log('数据库初始化完成');
+                        resolve(this.db);
+                    };
+                    
+                    request.onupgradeneeded = (e) => {
+                        console.log('🔄数据库升级中...');
+                        const db = e.target.result;
+                        
+                        if (!db.objectStoreNames.contains(this.STORES.configs)) {
+                            db.createObjectStore(this.STORES.configs);
+                            console.log('创建configs存储');
+                        }
+                        
+                        if (!db.objectStoreNames.contains(this.STORES.userdata)) {
+                            db.createObjectStore(this.STORES.userdata);
+                            console.log('创建userdata存储');
+                        }
+                        
+                        if (!db.objectStoreNames.contains(this.STORES.official)) {
+                            db.createObjectStore(this.STORES.official);
+                            console.log('创建official存储');
+                        }
+                        
+                        console.log('数据库升级完成');
+                    };
+                });
+                return this.initPromise;
+            },
+            
+            async isAvailable() {
+                try {
+                    await this.init();
+                    return true;
+                } catch (error) {
+                    console.error('数据库不可用:', error);
+                    return false;
+                }
+            },
+            
+            async put(key, value, store = 'configs') {
+                try {
+                    await this.init();
+                    return new Promise((resolve) => {
+                        const tx = this.db.transaction([this.STORES[store]], 'readwrite');
+                        const objectStore = tx.objectStore(this.STORES[store]);
+                        const request = objectStore.put(value, key);
+                        
+                        request.onsuccess = () => {
+                            console.log(`数据库存储成功: ${key}`);
+                            resolve();
+                        };
+                        
+                        request.onerror = () => {
+                            console.error(`数据库存储失败: ${key}`);
+                            resolve();
+                        };
+                    });
+                } catch (error) {
+                    console.error('数据库存储异常:', error);
+                }
+            },
+            
+            async get(key, store = 'configs') {
+                try {
+                    await this.init();
+                    return new Promise((resolve) => {
+                        const tx = this.db.transaction([this.STORES[store]], 'readonly');
+                        const objectStore = tx.objectStore(this.STORES[store]);
+                        const request = objectStore.get(key);
+                        
+                        request.onsuccess = () => {
+                            const result = request.result;
+                            if (result) {
+                                console.log(`⚡数据库命中: ${key}`);
+                            } else {
+                                console.log(`🤷数据库未命中: ${key}`);
+                            }
+                            resolve(result);
+                        };
+                        
+                        request.onerror = () => {
+                            console.error(`数据库查询失败: ${key}`);
+                            resolve(null);
+                        };
+                    });
+                } catch (error) {
+                    console.error('数据库获取异常:', error);
+                    return null;
+                }
+            }
+        };
+    </script>
+
+    <script>
+        // 初始化应用
+        class AtCommandApp {
+            constructor() {
+                this.currentCategory = 'all';
+                this.searchTerm = '';
+                this.currentPage = 1;
+                this.itemsPerPage = 25; // 每页显示更多
+                this.allCommands = [];
+                this.filteredCommands = [];
+                this.configFile = '2.at指令配置.js';
+                this.dbKey = 'E_at指令配置.js'; // E盘键名
+                this.init();
+            }
+            
+            async init() {
+                const listEl = document.getElementById('commandsList');
+                try {
+                    // 1. 优先从E盘（userdata存储区）读取配置文件
+                    console.log('🚀尝试从E盘加载AT指令配置...');
+                    const configScript = await IDB.get(this.dbKey, 'userdata');
+                    
+                    if (configScript) {
+                        // 2a. 如果E盘有缓存，直接执行
+                        console.log('从E盘加载成功，开始执行脚本...');
+                        eval(configScript);
+                        this.startApp();
+                    } else {
+                        // 2b. 如果E盘没有缓存，则从本地文件加载
+                        console.log('🤷E盘未命中，开始从本地文件加载...');
+                        await this.loadConfigFromFile();
+                    }
+                } catch (error) {
+                    console.error('AT指令速查手册初始化失败:', error);
+                    listEl.innerHTML = `<li class="message error-message">加载失败！<br>请确保'at指令配置.js'文件与当前HTML文件在同一目录下。<br>错误信息: ${error.message}</li>`;
+                }
+            }
+            
+            /**
+             * 通过fetch加载本地JS文件，然后执行并缓存
+             */
+            async loadConfigFromFile() {
+                const listEl = document.getElementById('commandsList');
+                listEl.innerHTML = `<li class="message">首次运行，正在从本地文件加载配置...</li>`;
+                
+                try {
+                    const response = await fetch(this.configFile);
+                    if (!response.ok) {
+                        throw new Error(`文件加载失败: ${this.configFile} (状态: ${response.status})`);
+                    }
+                    
+                    const configText = await response.text();
+                    console.log(`本地文件加载成功，大小: ${configText.length} 字符`);
+                    
+                    // 执行脚本
+                    eval(configText);
+                    
+                    // 检查配置是否成功注入到全局
+                    if (typeof window.atCommandConfig === 'undefined') {
+                        throw new Error('配置文件执行后，未找到 window.atCommandConfig 对象，请检查文件内容格式。');
+                    }
+                    
+                    // 将原始JS文本内容缓存到E盘，以便下次快速加载
+                    await IDB.put(this.dbKey, configText, 'userdata');
+                    console.log(`配置已成功缓存到E盘数据库: ${this.dbKey}`);
+                    
+                    this.startApp();
+                } catch (error) {
+                    console.error('从文件加载配置失败:', error);
+                    listEl.innerHTML = `<li class="message error-message">文件加载失败！<br>请确保'at指令配置.js'文件与当前HTML文件在同一目录下。<br>错误信息: ${error.message}</li>`;
+                }
+            }
+            
+            startApp() {
+                try {
+                    this.loadCommands();
+                    this.createCategoryDropdown();
+                    this.bindEvents();
+                    this.applyFilters();
+                } catch (error) {
+                    console.error('启动UI失败:', error);
+                    document.getElementById('commandsList').innerHTML = `<li class="message error-message">启动失败！<br>UI初始化时出错: ${error.message}</li>`;
+                }
+            }
+            
+            loadCommands() {
+                this.allCommands = [];
+                for (const [category, items] of Object.entries(window.atCommandConfig)) {
+                    items.forEach(cmd => {
+                        // *** 修复点1: 使用正确的字段名'category' ***
+                        this.allCommands.push({ ...cmd, category: category });
+                    });
+                }
+            }
+            
+            createCategoryDropdown() {
+                const dropdown = document.getElementById('categoryDropdown');
+                dropdown.innerHTML = '<option value="all">全部分类</option>';
+                const categories = new Set();
+                this.allCommands.forEach(cmd => categories.add(cmd.category));
+                Array.from(categories).sort().forEach(category => {
+                    const option = document.createElement('option');
+                    option.value = category;
+                    option.textContent = category;
+                    dropdown.appendChild(option);
+                });
+            }
+            
+            bindEvents() {
+                document.getElementById('searchInput').addEventListener('input', (e) => {
+                    this.searchTerm = e.target.value.toLowerCase();
+                    this.currentPage = 1;
+                    this.applyFilters();
+                });
+                
+                document.getElementById('categoryDropdown').addEventListener('change', (e) => {
+                    this.currentCategory = e.target.value;
+                    this.currentPage = 1;
+                    this.applyFilters();
+                });
+                
+                document.getElementById('pagination').addEventListener('click', (e) => {
+                    if (e.target.tagName === 'BUTTON') {
+                        const page = parseInt(e.target.dataset.page);
+                        if (page) {
+                            this.currentPage = page;
+                            this.renderCommands();
+                            this.renderPagination();
+                        }
+                    }
+                });
+            }
+            
+            applyFilters() {
+                if (this.currentCategory === 'all') {
+                    this.filteredCommands = [...this.allCommands];
+                } else {
+                    // *** 修复点2: 使用正确的字段名'category'进行过滤***
+                    this.filteredCommands = this.allCommands.filter(cmd => cmd.category === this.currentCategory);
+                }
+                
+                if (this.searchTerm) {
+                    this.filteredCommands = this.filteredCommands.filter(cmd =>
+                        cmd.name.toLowerCase().includes(this.searchTerm) || 
+                        cmd.desc.toLowerCase().includes(this.searchTerm)
+                    );
+                }
+                
+                const totalPages = Math.ceil(this.filteredCommands.length / this.itemsPerPage);
+                if (this.currentPage > totalPages && totalPages > 0) {
+                    this.currentPage = totalPages;
+                }
+                
+                this.renderCommands();
+                this.renderPagination();
+            }
+            
+            getCurrentPageCommands() {
+                const startIndex = (this.currentPage - 1) * this.itemsPerPage;
+                const endIndex = startIndex + this.itemsPerPage;
+                return this.filteredCommands.slice(startIndex, endIndex);
+            }
+            
+            renderCommands() {
+                const listEl = document.getElementById('commandsList');
+                const commands = this.getCurrentPageCommands();
+                
+                if (commands.length === 0) {
+                    listEl.innerHTML = `<li class="message">没有找到相关指令，试试其他关键词或分类。</li>`;
+                    return;
+                }
+                
+                listEl.innerHTML = commands.map((cmd, index) => {
+                    // *** 修复点3: 添加全局序号***
+                    // 计算在整个filteredCommands中的序号
+                    const globalIndex = this.filteredCommands.findIndex(c => c.name === cmd.name) + 1;
+                    
+                    return `
+                        <li class="command-item">
+                            <div class="command-name">
+                                <span style="opacity:0.5; font-size:0.8em; margin-right: 8px;">${globalIndex}.</span>${cmd.name}
+                            </div>
+                            <div class="command-desc">${cmd.desc}</div>
+                        </li>
+                    `;
+                }).join('');
+            }
+            
+            renderPagination() {
+                const pagination = document.getElementById('pagination');
+                const totalPages = Math.ceil(this.filteredCommands.length / this.itemsPerPage);
+                
+                if (totalPages <= 1) {
+                    pagination.innerHTML = '';
+                    return;
+                }
+                
+                let html = `<button ${this.currentPage === 1 ? 'disabled' : ''} data-page="${this.currentPage - 1}">‹</button>`;
+                
+                const maxVisiblePages = 5;
+                let startPage = Math.max(1, this.currentPage - Math.floor(maxVisiblePages / 2));
+                let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+                
+                if (endPage - startPage < maxVisiblePages - 1) {
+                    startPage = Math.max(1, endPage - maxVisiblePages + 1);
+                }
+                
+                if (startPage > 1) {
+                    html += `<button data-page="1">1</button>`;
+                    if (startPage > 2) {
+                        html += `<span>...</span>`;
+                    }
+                }
+                
+                for (let i = startPage; i <= endPage; i++) {
+                    html += `<button class="${i === this.currentPage ? 'active' : ''}" data-page="${i}">${i}</button>`;
+                }
+                
+                if (endPage < totalPages) {
+                    if (endPage < totalPages - 1) {
+                        html += `<span>...</span>`;
+                    }
+                    html += `<button data-page="${totalPages}">${totalPages}</button>`;
+                }
+                
+                html += `<button ${this.currentPage === totalPages ? 'disabled' : ''} data-page="${this.currentPage + 1}">›</button>`;
+                html += `<span class="pagination-info">${this.currentPage} / ${totalPages}</span>`;
+                
+                pagination.innerHTML = html;
+            }
+        }
+
+        // 启动应用
+        document.addEventListener('DOMContentLoaded', () => {
+            new AtCommandApp();
+        });
+    </script>
+</body>
+</html>

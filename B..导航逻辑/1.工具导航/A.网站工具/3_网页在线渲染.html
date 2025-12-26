@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>在线网页编辑器 (上下布局)</title>
+    <style>
+        /* 基础样式重置 */
+        body, html {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            height: 100%;
+            overflow: hidden;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        /* 主容器 */
+        .container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            position: relative;
+        }
+
+        /* 控制面板样式 */
+        .control-panel {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .control-panel-toggle {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .control-panel-toggle:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+
+        .control-panel-toggle:active {
+            transform: scale(0.95);
+        }
+
+        .control-panel-toggle::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .control-panel-toggle:active::before {
+            width: 100px;
+            height: 100px;
+        }
+
+        .control-panel-toggle svg {
+            width: 24px;
+            height: 24px;
+            fill: white;
+            transition: transform 0.3s ease;
+        }
+
+        .control-panel.active .control-panel-toggle svg {
+            transform: rotate(45deg);
+        }
+
+        .control-panel-content {
+            position: absolute;
+            top: 60px;
+            right: 0;
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+            min-width: 260px;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-20px) scale(0.95);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .control-panel.active .control-panel-content {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0) scale(1);
+        }
+
+        .control-panel-content h3 {
+            margin: 0 0 20px 0;
+            font-size: 16px;
+            color: #333;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .control-group {
+            margin-bottom: 20px;
+        }
+
+        .control-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .control-group label {
+            display: block;
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .control-group button {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .control-group button::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .control-group button:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .control-group button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .control-group button:active {
+            transform: translateY(0);
+        }
+
+        /* 上方编辑器区域 */
+        .editor-pane {
+            flex: 0 0 20vh;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            box-sizing: border-box;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        /* 下方预览区域 */
+        .preview-pane {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            box-sizing: border-box;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+        }
+
+        h2 {
+            margin: 0 0 15px 0;
+            font-size: 18px;
+            color: #333;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* 编辑器内容包装器 */
+        .editor-content {
+            display: flex;
+            flex-grow: 1;
+            gap: 15px;
+            min-height: 0;
+        }
+
+        /* 代码输入框 */
+        #code-input {
+            flex-grow: 1;
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 14px;
+            resize: none;
+            box-sizing: border-box;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        #code-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        /* 预览用的 iframe */
+        #preview-frame {
+            flex-grow: 1;
+            width: 100%;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            background-color: white;
+            transition: all 0.3s ease;
+        }
+
+        #preview-frame:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        /* 添加一些动画效果 */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .editor-pane, .preview-pane {
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        .preview-pane {
+            animation-delay: 0.1s;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- 可折叠的控制面板 -->
+        <div class="control-panel" id="controlPanel">
+            <button class="control-panel-toggle" id="controlPanelToggle">
+                <svg viewBox="0 0 24 24">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/>
+                </svg>
+            </button>
+            
+            <div class="control-panel-content">
+                <h3>⚙️ 控制面板</h3>
+                
+                <div class="control-group">
+                    <button id="run-button">▶️ 运行代码</button>
+                </div>
+                
+                <div class="control-group">
+                    <button id="open-new-window">🔗 在新窗口打开</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 上方：代码编辑区 -->
+        <div class="editor-pane">
+            <h2>📝 粘贴你的HTML代码</h2>
+            <div class="editor-content">
+                <textarea id="code-input" placeholder="在这里粘贴你的 HTML, CSS, JavaScript 代码...
+例如:
+<style>
+  body { font-family: sans-serif; background: #eef; }
+  .container { padding: 20px; }
+  h1 { color: #333; }
+</style>
+
+<div class='container'>
+  <h1>你好，新布局！</h1>
+  <p>这是一个在下方预览区中运行的段落。</p>
+  <button onclick='alert(\"按钮点击了！\")'>点我试试</button>
+</div>"></textarea>
+            </div>
+        </div>
+
+        <!-- 下方：效果预览区 -->
+        <div class="preview-pane">
+            <h2>👀 效果预览</h2>
+            <iframe id="preview-frame"></iframe>
+        </div>
+    </div>
+
+    <script>
+        // 获取页面中的元素
+        const codeInput = document.getElementById('code-input');
+        const runButton = document.getElementById('run-button');
+        const previewFrame = document.getElementById('preview-frame');
+        const openNewWindowBtn = document.getElementById('open-new-window');
+        const controlPanel = document.getElementById('controlPanel');
+        const controlPanelToggle = document.getElementById('controlPanelToggle');
+
+        // 控制面板折叠/展开
+        controlPanelToggle.addEventListener('click', function() {
+            controlPanel.classList.toggle('active');
+        });
+
+        // 定义一个函数来更新预览
+        function updatePreview() {
+            const userCode = codeInput.value;
+            previewFrame.srcdoc = userCode;
+        }
+
+        // 点击"运行"按钮时，更新预览
+        runButton.addEventListener('click', updatePreview);
+
+        // 在新窗口打开预览
+        openNewWindowBtn.addEventListener('click', function() {
+            const userCode = codeInput.value;
+            
+            // 创建新窗口的HTML内容
+            const newWindowHTML = `
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>预览窗口</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: auto;
+            font-size: 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .preview-container {
+            transform-origin: top left;
+            transition: transform 0.2s ease;
+            min-height: 100vh;
+            background: white;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        
+        /* 右下角缩放控制按钮 */
+        .zoom-controls {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 1000;
+        }
+        
+        .zoom-btn {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        .zoom-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+        
+        .zoom-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .zoom-level-display {
+            position: fixed;
+            bottom: 80px;
+            right: 20px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+            z-index: 999;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .zoom-level-display.show {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="preview-container" id="previewContainer">
+        ${userCode}
+    </div>
+    
+    <div class="zoom-controls">
+        <button class="zoom-btn" id="zoomInBtn">+</button>
+        <button class="zoom-btn" id="zoomOutBtn">−</button>
+    </div>
+    
+    <div class="zoom-level-display" id="zoomLevelDisplay">100%</div>
+    
+    <script>
+        // 缩放功能
+        let currentZoom = 100;
+        const minZoom = 50;
+        const maxZoom = 200;
+        const zoomStep = 10;
+        
+        const previewContainer = document.getElementById('previewContainer');
+        const zoomInBtn = document.getElementById('zoomInBtn');
+        const zoomOutBtn = document.getElementById('zoomOutBtn');
+        const zoomLevelDisplay = document.getElementById('zoomLevelDisplay');
+        
+        function updateZoom() {
+            // 限制缩放范围
+            if (currentZoom < minZoom) currentZoom = minZoom;
+            if (currentZoom > maxZoom) currentZoom = maxZoom;
+            
+            // 应用缩放
+            const scale = currentZoom / 100;
+            previewContainer.style.transform = \`scale(\${scale})\`;
+            
+            // 调整容器宽度以适应缩放
+            if (scale < 1) {
+                previewContainer.style.width = \`\${100 / scale}%\`;
+            } else {
+                previewContainer.style.width = '100%';
+            }
+            
+            // 显示缩放级别
+            zoomLevelDisplay.textContent = \`\${currentZoom}%\`;
+            zoomLevelDisplay.classList.add('show');
+            
+            // 2秒后隐藏缩放级别显示
+            setTimeout(() => {
+                zoomLevelDisplay.classList.remove('show');
+            }, 2000);
+        }
+        
+        // 放大按钮
+        zoomInBtn.addEventListener('click', function() {
+            currentZoom += zoomStep;
+            updateZoom();
+        });
+        
+        // 缩小按钮
+        zoomOutBtn.addEventListener('click', function() {
+            currentZoom -= zoomStep;
+            updateZoom();
+        });
+        
+        // 键盘快捷键支持
+        document.addEventListener('keydown', function(e) {
+            // Ctrl/Cmd + Plus 放大
+            if ((e.ctrlKey || e.metaKey) && (e.key === '+' || e.key === '=')) {
+                e.preventDefault();
+                currentZoom += zoomStep;
+                updateZoom();
+            }
+            // Ctrl/Cmd + Minus 缩小
+            if ((e.ctrlKey || e.metaKey) && e.key === '-') {
+                e.preventDefault();
+                currentZoom -= zoomStep;
+                updateZoom();
+            }
+            // Ctrl/Cmd + 0 重置
+            if ((e.ctrlKey || e.metaKey) && e.key === '0') {
+                e.preventDefault();
+                currentZoom = 100;
+                updateZoom();
+            }
+        });
+        
+        // 鼠标滚轮缩放（按住Ctrl）
+        document.addEventListener('wheel', function(e) {
+            if (e.ctrlKey || e.metaKey) {
+                e.preventDefault();
+                if (e.deltaY < 0) {
+                    currentZoom += zoomStep;
+                } else {
+                    currentZoom -= zoomStep;
+                }
+                updateZoom();
+            }
+        });
+    <\/script>
+</body>
+</html>`;
+            
+            // 打开新窗口
+            const newWindow = window.open('', '_blank', 'width=1200,height=800');
+            newWindow.document.write(newWindowHTML);
+            newWindow.document.close();
+        });
+        
+        // 页面加载时，运行一次默认的示例代码
+        window.onload = updatePreview;
+
+        // 点击页面其他地方关闭控制面板
+        document.addEventListener('click', function(event) {
+            if (!controlPanel.contains(event.target)) {
+                controlPanel.classList.remove('active');
+            }
+        });
+    </script>
+</body>
+</html>

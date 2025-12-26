@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Termux 目录扫描器</title>
+    
+    <!-- 引入缩放插件 -->
+    <script src="/A2_全局中心/B_插件工具/3.插件_字体缩放.js"></script>
+    
+    <style>
+        /* 1. 基础样式重置 */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        /* 2. 页面主体样式 */
+        body { 
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #2c3e50; 
+            line-height: 1.6; 
+            padding: 0; 
+            min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
+        }
+        
+        /* 3. 背景纹理效果 */
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                repeating-linear-gradient(45deg, transparent, transparent 35px, rgba(255,255,255,.05) 35px, rgba(255,255,255,.05) 70px),
+                repeating-linear-gradient(-45deg, transparent, transparent 35px, rgba(255,255,255,.03) 35px, rgba(255,255,255,.03) 70px);
+            pointer-events: none;
+            z-index: 1;
+        }
+        
+        /* 4. 主容器样式 */
+        .container { 
+            width: 100%;
+            animation: fadeIn 0.5s ease-in;
+            position: relative;
+            z-index: 2;
+        }
+        
+        /* 5. 页面头部样式 */
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 6px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+        
+        /* 6. 页面标题样式 */
+        h1 { 
+            color: #764ba2; 
+            font-size: 14px; 
+            display: flex; 
+            align-items: center; 
+            gap: 6px; 
+        }
+        
+        /* 7. 按钮组容器 */
+        .button-group {
+            display: flex;
+            gap: 6px;
+        }
+        
+        /* 8. 通用按钮样式 */
+        .btn {
+            padding: 4px 8px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            border: none;
+        }
+        
+        /* 9. 高亮按钮样式 */
+        .highlight-btn {
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            color: white;
+        }
+        
+        /* 10. 高亮按钮悬停效果 */
+        .highlight-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+        }
+        
+        /* 11. 返回按钮样式 */
+        .home-btn {
+            background: rgba(255, 255, 255, 0.9);
+            color: #764ba2;
+            border: 1px solid #764ba2;
+        }
+        
+        /* 12. 返回按钮悬停效果 */
+        .home-btn:hover {
+            background: #764ba2;
+            color: white;
+        }
+        
+        /* 13. 标签页容器 */
+        .tab-container {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 0;
+            display: flex;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* 14. 标签页按钮 */
+        .tab-button {
+            flex: 1;
+            padding: 6px 12px;
+            background: transparent;
+            border: none;
+            font-size: 12px;
+            font-weight: 600;
+            color: #6c757d;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+        
+        /* 15. 活动标签页样式 */
+        .tab-button.active {
+            color: #764ba2;
+            background: rgba(118, 75, 162, 0.1);
+        }
+        
+        /* 16. 活动标签页下划线 */
+        .tab-button.active::after {
+            content: "";
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+        }
+        
+        /* 17. 标签页悬停效果 */
+        .tab-button:hover:not(.active) {
+            background: rgba(118, 75, 162, 0.05);
+        }
+        
+        /* 18. iframe容器 */
+        .iframe-container { 
+            background: #ffffff; 
+            height: calc(100vh - 120px);
+            overflow: hidden; 
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); 
+            position: relative;
+        }
+        
+        /* 19. iframe样式 */
+        .iframe-container iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            display: block;
+        }
+        
+        /* 20. 底部信息区域 */
+        .info-section { 
+            padding: 10px 12px; 
+            background: rgba(255, 255, 255, 0.9); 
+            backdrop-filter: blur(10px); 
+            border-top: 1px solid #e1e8ed; 
+        }
+        
+        /* 21. 信息区域标题 */
+        .info-section h2 { color: #764ba2; margin-bottom: 4px; font-size: 14px; }
+        
+        /* 22. 信息网格布局 */
+        .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 6px; }
+        
+        /* 23. 信息项样式 */
+        .info-item { background: rgba(248, 249, 250, 0.9); padding: 6px; border-radius: 4px; border-left: 2px solid #764ba2; transition: transform 0.2s ease; }
+        
+        /* 24. 信息项悬停效果 */
+        .info-item:hover { transform: translateX(2px); }
+        
+        /* 25. 信息标签样式 */
+        .info-label { color: #6c757d; font-size: 9px; margin-bottom: 1px; text-transform: uppercase; letter-spacing: 0.5px; }
+        
+        /* 26. 信息内容样式 */
+        .info-content { color: #2c3e50; font-size: 10px; }
+        
+        /* 27. Toast提示框 */
+        .toast { position: fixed; bottom: 20px; right: 20px; background: #764ba2; color: white; padding: 8px 12px; border-radius: 4px; font-size: 12px; z-index: 1000; opacity: 0; transform: translateY(10px); transition: all 0.3s ease; }
+        
+        /* 28. Toast显示状态 */
+        .toast.show { opacity: 1; transform: translateY(0); }
+        
+        /* 29. 响应式设计 */
+        @media (max-width: 768px) { 
+            .info-grid { grid-template-columns: 1fr; }
+            h1 { font-size: 12px; }
+            .tab-button { padding: 4px 8px; font-size: 10px; }
+            .btn { padding: 3px 6px; font-size: 10px; }
+        }
+        
+        /* 30. 淡入动画 */
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        
+        /* 31. 加载状态样式 */
+        .loading { 
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center; 
+            color: #6c757d; 
+            font-size: 12px;
+            z-index: 10;
+        }
+        
+        /* 32. 加载动画 */
+        .loading::after {
+            content: "";
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #764ba2;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 6px;
+            vertical-align: middle;
+        }
+        
+        /* 33. 旋转动画 */
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📁 Termux 目录扫描器</h1>
+            <div class="button-group">
+                <button class="btn highlight-btn" onclick="openHighlighter()">🎨 高亮</button>
+                <button class="btn home-btn" onclick="goBack()">⬅️ 返回</button>
+            </div>
+        </div>
+        
+        <div class="tab-container">
+            <button class="tab-button active" onclick="switchTab('bash')">Bash</button>
+            <button class="tab-button" onclick="switchTab('python')">Python</button>
+        </div>
+        
+        <div class="iframe-container">
+            <div class="loading" id="loading">加载中...</div>
+            <iframe id="codeFrame" src="5_bash路径扫描.html" frameborder="0"></iframe>
+        </div>
+        
+        <div class="info-section">
+            <h2>📋 说明</h2>
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label">功能</div>
+                    <div class="info-content">交互式扫描目录，支持层级限制</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">输出</div>
+                    <div class="info-content">彩色树状目录结构</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">特性</div>
+                    <div class="info-content">路径检查、层级控制</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">依赖</div>
+                    <div class="info-content">Bash需tree，Python仅需内置库</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // 1. 全局变量：当前活跃的标签页
+        let currentTab = 'bash';
+        
+        // 2. 缩放插件对象
+        const EnhancedZoomPlugin = {
+            currentZoom: 80,
+            MIN_ZOOM: 50,
+            MAX_ZOOM: 150,
+            ZOOM_STEP: 10,
+            
+            // 3. 初始化缩放插件
+            init() {
+                this.createZoomControls();
+                this.loadZoomLevel();
+                this.addKeyboardSupport();
+                this.applyZoom();
+                this.setupIframeZoomSync();
+            },
+            
+            // 4. 创建缩放控制UI
+            createZoomControls() {
+                const zoomContainer = document.createElement('div');
+                zoomContainer.className = 'zoom-plugin-container';
+                zoomContainer.innerHTML = `
+                    <button class="zoom-btn zoom-in" title="放大">+</button>
+                    <span class="zoom-level">${this.currentZoom}%</span>
+                    <button class="zoom-btn zoom-out" title="缩小">−</button>
+                `;
+                
+                const style = document.createElement('style');
+                style.textContent = `
+                    .zoom-plugin-container {
+                        position: fixed;
+                        bottom: 15px;
+                        right: 15px;
+                        display: flex;
+                        flex-direction: column;
+                        gap: 6px;
+                        z-index: 1000;
+                        align-items: center;
+                    }
+                    .zoom-btn {
+                        width: 30px;
+                        height: 30px;
+                        border: none;
+                        background: rgba(102, 126, 234, 0.9);
+                        color: white;
+                        border-radius: 50%;
+                        cursor: pointer;
+                        font-size: 16px;
+                        font-weight: bold;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        transition: all 0.2s;
+                        box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+                    }
+                    .zoom-btn:hover {
+                        background: rgba(102, 126, 234, 1);
+                        transform: scale(1.1);
+                    }
+                    .zoom-btn:disabled {
+                        opacity: 0.5;
+                        cursor: not-allowed;
+                    }
+                    .zoom-level {
+                        background: rgba(0, 0, 0, 0.7);
+                        color: white;
+                        padding: 3px 6px;
+                        border-radius: 10px;
+                        font-size: 10px;
+                        font-weight: bold;
+                        min-width: 30px;
+                        text-align: center;
+                    }
+                `;
+                
+                document.head.appendChild(style);
+                document.body.appendChild(zoomContainer);
+                
+                zoomContainer.querySelector('.zoom-in').addEventListener('click', () => this.zoomIn());
+                zoomContainer.querySelector('.zoom-out').addEventListener('click', () => this.zoomOut());
+            },
+            
+            // 5. 设置iframe缩放同步
+            setupIframeZoomSync() {
+                const iframe = document.getElementById('codeFrame');
+                iframe.addEventListener('load', () => {
+                    this.sendZoomToIframe();
+                });
+            },
+            
+            // 6. 发送缩放级别到iframe
+            sendZoomToIframe() {
+                const iframe = document.getElementById('codeFrame');
+                if (iframe && iframe.contentWindow) {
+                    iframe.contentWindow.postMessage({
+                        type: 'zoom',
+                        zoomLevel: this.currentZoom
+                    }, '*');
+                }
+            },
+            
+            // 7. 应用缩放
+            applyZoom() {
+                const root = document.documentElement;
+                root.style.fontSize = `${this.currentZoom / 100}rem`;
+                this.sendZoomToIframe();
+                this.updateButtonStates();
+                this.updateZoomDisplay();
+                this.saveZoomLevel();
+            },
+            
+            // 8. 放大功能
+            zoomIn() {
+                if (this.currentZoom < this.MAX_ZOOM) {
+                    this.currentZoom += this.ZOOM_STEP;
+                    this.applyZoom();
+                }
+            },
+            
+            // 9. 缩小功能
+            zoomOut() {
+                if (this.currentZoom > this.MIN_ZOOM) {
+                    this.currentZoom -= this.ZOOM_STEP;
+                    this.applyZoom();
+                }
+            },
+            
+            // 10. 更新按钮状态
+            updateButtonStates() {
+                const zoomInBtn = document.querySelector('.zoom-in');
+                const zoomOutBtn = document.querySelector('.zoom-out');
+                
+                if (zoomInBtn) zoomInBtn.disabled = this.currentZoom >= this.MAX_ZOOM;
+                if (zoomOutBtn) zoomOutBtn.disabled = this.currentZoom <= this.MIN_ZOOM;
+            },
+            
+            // 11. 更新缩放显示
+            updateZoomDisplay() {
+                const zoomLevel = document.querySelector('.zoom-level');
+                if (zoomLevel) {
+                    zoomLevel.textContent = `${this.currentZoom}%`;
+                }
+            },
+            
+            // 12. 保存缩放级别
+            saveZoomLevel() {
+                if (window.IDB) {
+                    IDB.put('E_zoom_level', this.currentZoom, 'userdata');
+                }
+            },
+            
+            // 13. 加载缩放级别
+            async loadZoomLevel() {
+                try {
+                    if (window.IDB) {
+                        const savedZoom = await IDB.get('E_zoom_level', 'userdata');
+                        if (savedZoom && savedZoom >= this.MIN_ZOOM && savedZoom <= this.MAX_ZOOM) {
+                            this.currentZoom = savedZoom;
+                        }
+                    }
+                } catch (error) {
+                    console.error('加载缩放级别失败:', error);
+                }
+            },
+            
+            // 14. 添加键盘快捷键支持
+            addKeyboardSupport() {
+                document.addEventListener('keydown', (e) => {
+                    if (e.ctrlKey || e.metaKey) {
+                        if (e.key === '+' || e.key === '=') {
+                            e.preventDefault();
+                            this.zoomIn();
+                        } else if (e.key === '-') {
+                            e.preventDefault();
+                            this.zoomOut();
+                        } else if (e.key === '0') {
+                            e.preventDefault();
+                            this.currentZoom = 100;
+                            this.applyZoom();
+                        }
+                    }
+                });
+            }
+        };
+        
+        // 15. 切换标签页功能
+        function switchTab(tabName) {
+            if (currentTab === tabName) return;
+            
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            document.getElementById('loading').style.display = 'block';
+            
+            const frame = document.getElementById('codeFrame');
+            const fileName = tabName === 'bash' ? '5_bash路径扫描.html' : '5_Python路径扫描.html';
+            frame.src = fileName;
+            
+            frame.onload = function() {
+                document.getElementById('loading').style.display = 'none';
+                currentTab = tabName;
+                EnhancedZoomPlugin.sendZoomToIframe();
+                showToast(`已切换到 ${tabName === 'bash' ? 'Bash' : 'Python'} 版本`);
+            };
+            
+            frame.onerror = function() {
+                document.getElementById('loading').style.display = 'none';
+                showToast('加载失败，请检查文件是否存在');
+            };
+        }
+        
+        // 16. 打开高亮查看器
+        function openHighlighter() {
+            const highlighterUrl = '/B..导航逻辑/1.工具导航_功能选择/1_多语言-代码高亮.html';
+            showToast('🚀 正在跳转到代码高亮查看器...');
+            setTimeout(() => {
+                window.open(highlighterUrl, '_blank');
+            }, 500);
+        }
+        
+        // 17. 导航函数
+        function navigateTo(file) {
+            window.location.href = file;
+        }
+        
+        // 18. 返回功能
+        function goBack() {
+            showToast('⬅️ 正在返回...');
+            setTimeout(() => {
+                navigateTo('/B..导航逻辑/5_长期支持/2.termux脚本/a.bash_本地服务/bash本地服务.html');
+            }, 500);
+        }
+        
+        // 19. 显示Toast提示
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2000);
+        }
+        
+        // 20. 监听来自iframe的消息
+        window.addEventListener('message', function(event) {
+            if (event.data.type === 'jumpToHighlighter') {
+                const highlighterUrl = '/B..导航逻辑/1.工具导航_功能选择/1_多语言-代码高亮.html';
+                localStorage.setItem('externalCode', event.data.content);
+                showToast('🚀 正在跳转到代码高亮查看器...');
+                setTimeout(() => {
+                    window.open(highlighterUrl, '_blank');
+                }, 500);
+            }
+        });
+        
+        // 21. 页面加载完成事件
+        window.addEventListener('load', function() {
+            setTimeout(() => {
+                document.getElementById('loading').style.display = 'none';
+            }, 600);
+        });
+        
+        // 22. DOM内容加载完成事件
+        document.addEventListener('DOMContentLoaded', function() {
+            EnhancedZoomPlugin.init();
+        });
+    </script>
+</body>
+</html>

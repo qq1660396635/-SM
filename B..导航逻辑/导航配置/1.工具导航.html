@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>工具导航</title>
+    <script src="/A2_全局中心/B_插件工具/1.插件_主页跳转.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: linear-gradient(135deg, #f8b1d4 0%, #d4a8e0 100%); min-height: 100vh; padding: 15px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        header { text-align: center; margin-bottom: 30px; color: white; }
+        h1 { font-size: 2.5rem; margin-bottom: 10px; text-shadow: 2px 2px 4px rgba(0,0,0,0.2); }
+        .tools-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 50px; }
+        
+        /* 基础卡片样式 */
+        .tool-card { background: white; border-radius: 12px; padding: 20px; text-decoration: none; color: #333; transition: all 0.3s ease; box-shadow: 0 2px 8px rgba(0,0,0,0.1); display: flex; flex-direction: column; align-items: center; text-align: center; position: relative; }
+        .tool-card:hover { transform: translateY(-3px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+        .tool-icon { font-size: 2.5rem; margin-bottom: 12px; }
+        .tool-number { position: absolute; top: 10px; left: 10px; background: #1890ff; color: white; padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; }
+        .tool-name { font-size: 1.1rem; font-weight: 600; color: #333; margin-bottom: 8px; }
+        .tool-description { font-size: 0.85rem; color: #666; line-height: 1.3; }
+
+        /* --- 第5个工具的特殊颜色样式 --- */
+       .tool-card.special-item {
+    background: #dcedc8; /* 更浅的绿色 */
+    border: 2px solid #c5e1a5;
+}
+.tool-card.special-item .tool-name { color: #689f38; }
+.tool-card.special-item .tool-description { color: #8bc34a; }
+
+
+
+        /* 分页与统计 */
+        .pagination { display: flex; justify-content: center; gap: 10px; margin: 60px 0; }
+        .pagination button { padding: 10px 15px; border: none; border-radius: 20px; background: white; color: #1890ff; cursor: pointer; transition: all 0.3s ease; font-size: 0.9rem; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+        .pagination button:hover:not(:disabled) { background: #f5f5f5; transform: translateY(-2px); }
+        .pagination button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .pagination .active { background: #1890ff; color: white; }
+        .stats { position: fixed; bottom: 20px; left: 20px; background: white; padding: 10px 15px; border-radius: 8px; color: #333; font-size: 0.85rem; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        
+        /* 平板横屏 */
+        @media (max-width: 900px) { 
+            .tools-grid { grid-template-columns: repeat(3, 1fr); gap: 12px; } 
+            .tool-card { padding: 15px; }
+            .tool-icon { font-size: 2.2rem; }
+            .tool-name { font-size: 1rem; }
+            .tool-description { font-size: 0.8rem; }
+        }
+        
+        /* 手机竖屏 */
+        @media (max-width: 600px) { 
+            body { padding: 8px; } 
+            h1 { font-size: 1.8rem; } 
+            .tools-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; } 
+            .tool-card { padding: 10px; }
+            .tool-icon { font-size: 1.6rem; margin-bottom: 8px; }
+            .tool-number { font-size: 9px; padding: 2px 5px; }
+            .tool-name { font-size: 0.85rem; margin-bottom: 5px; }
+            .tool-description { font-size: 0.7rem; line-height: 1.2; }
+            .stats { display: none; }
+            .pagination { gap: 5px; margin: 40px 0; }
+            .pagination button { padding: 8px 12px; font-size: 0.8rem; }
+        }
+        
+        /* 超小屏幕 */
+        @media (max-width: 380px) { 
+            .tools-grid { grid-template-columns: repeat(3, 1fr); gap: 6px; } 
+            .tool-card { padding: 8px; }
+            .tool-icon { font-size: 1.4rem; }
+            .tool-name { font-size: 0.75rem; }
+            .tool-description { font-size: 0.65rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🛠️ 工具导航</h1>
+            <p class="subtitle">  .  </p> 
+        </header>
+        <main>
+            <div class="tools-grid" id="toolsGrid"></div>
+            <div class="pagination" id="pagination"></div>
+        </main>
+    </div>
+    
+    <div class="stats" id="stats">
+        共 <span id="toolCount">0</span> 个工具
+    </div>
+    
+    <!-- 引用外部配置文件 -->
+    <script src="1.tools-config.js"></script>
+    
+    <script>
+        // 配置常量
+        const CONFIG = {
+            ITEMS_PER_PAGE: 12,
+            MAX_VISIBLE_PAGES: 5
+        };
+        
+        let currentPage = 1;
+        let allTools = [];
+        let totalPages = 1;
+        
+        function initTools() {
+            allTools = window.toolsConfig.getAllTools();
+            totalPages = Math.ceil(allTools.length / CONFIG.ITEMS_PER_PAGE);
+            
+            document.getElementById('toolCount').textContent = allTools.length;
+            
+            renderTools();
+            renderPagination();
+        }
+        
+        function renderTools() {
+            const toolsGrid = document.getElementById('toolsGrid');
+            const startIndex = (currentPage - 1) * CONFIG.ITEMS_PER_PAGE;
+            const endIndex = startIndex + CONFIG.ITEMS_PER_PAGE;
+            const pageTools = allTools.slice(startIndex, endIndex);
+            
+            toolsGrid.innerHTML = pageTools.map((tool, index) => {
+                const globalIndex = startIndex + index;
+                
+                // 判断是否是第5个元素 (索引为4)，如果是则加上 special-item 类
+                const specialClass = globalIndex === 4 ? ' special-item' : '';
+
+                return `
+                    <a href="${tool.file}" class="tool-card${specialClass}" target="_blank">
+                        <span class="tool-number">#${globalIndex + 1}</span>
+                        <span class="tool-icon">${tool.icon}</span>
+                        <div class="tool-name">${tool.name}</div>
+                        <div class="tool-description">${tool.description}</div>
+                    </a>
+                `;
+            }).join('');
+        }
+        
+        function renderPagination() {
+            const pagination = document.getElementById('pagination');
+            
+            if (totalPages <= 1) {
+                pagination.innerHTML = '';
+                return;
+            }
+            
+            let html = '';
+            
+            // 上一页按钮
+            html += `<button ${currentPage === 1 ? 'disabled' : ''} onclick="goToPage(${currentPage - 1})">上一页</button>`;
+            
+            // 页码按钮
+            const startPage = Math.max(1, currentPage - Math.floor(CONFIG.MAX_VISIBLE_PAGES / 2));
+            const endPage = Math.min(totalPages, startPage + CONFIG.MAX_VISIBLE_PAGES - 1);
+            
+            for (let i = startPage; i <= endPage; i++) {
+                html += `<button class="${i === currentPage ? 'active' : ''}" onclick="goToPage(${i})">${i}</button>`;
+            }
+            
+            // 下一页按钮
+            html += `<button ${currentPage === totalPages ? 'disabled' : ''} onclick="goToPage(${currentPage + 1})">下一页</button>`;
+            
+            pagination.innerHTML = html;
+        }
+        
+        function goToPage(page) {
+            if (page >= 1 && page <= totalPages) {
+                currentPage = page;
+                renderTools();
+                renderPagination();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+        
+        window.addEventListener('load', initTools);
+    </script>
+</body>
+</html>

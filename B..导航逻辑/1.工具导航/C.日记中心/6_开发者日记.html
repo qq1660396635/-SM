@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>开发者日记</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; min-height: 100vh; overflow-x: hidden; background: linear-gradient(135deg, #0d1117 0%, #161b22 50%, #1c2128 100%); color: #ffffff; }
+.container { max-width: 800px; margin: 0 auto; padding: 15px; min-height: 100vh; display: flex; flex-direction: column; }
+header { text-align: center; margin-bottom: 20px; animation: fadeInDown 0.8s ease; }
+header h1 { font-size: 2rem; font-weight: 700; margin-bottom: 10px; background: linear-gradient(135deg, #58a6ff, #8b949e, #6e7681); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.search-container { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 15px; margin-bottom: 20px; }
+.search-input { width: 100%; padding: 12px 20px; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 25px; font-size: 14px; transition: all 0.3s ease; background: rgba(255, 255, 255, 0.05); color: #ffffff; }
+.search-input:focus { outline: none; border-color: rgba(255, 255, 255, 0.4); background: rgba(255, 255, 255, 0.1); }
+.diary-list { flex: 1; display: flex; flex-direction: column; gap: 8px; animation: fadeInUp 0.8s ease 0.2s both; }
+.diary-item { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; padding: 12px 15px; transition: all 0.3s ease; position: relative; display: flex; align-items: flex-start; cursor: pointer; }
+.diary-item:hover { background: rgba(255, 255, 255, 0.08); border-color: rgba(255, 255, 255, 0.2); transform: translateX(5px); }
+.diary-number { background: linear-gradient(135deg, #58a6ff, #8b949e); color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; margin-right: 12px; flex-shrink: 0; margin-top: 2px; }
+.diary-content { flex: 1; font-size: 14px; line-height: 1.6; color: rgba(255, 255, 255, 0.9); word-wrap: break-word; word-break: break-word; white-space: pre-wrap; overflow-wrap: break-word; }
+.diary-date { font-size: 11px; color: rgba(255, 255, 255, 0.5); margin-left: 10px; flex-shrink: 0; margin-top: 2px; }
+.pagination { display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 20px; flex-wrap: wrap; }
+.pagination button { padding: 6px 12px; border: 1px solid rgba(255, 255, 255, 0.2); background: rgba(255, 255, 255, 0.1); color: #ffffff; border-radius: 6px; cursor: pointer; font-size: 12px; transition: all 0.3s ease; min-width: 32px; }
+.pagination button:hover:not(:disabled) { background: rgba(255, 255, 255, 0.2); transform: translateY(-1px); }
+.pagination button.active { background: linear-gradient(135deg, #58a6ff, #8b949e); border-color: transparent; }
+.pagination button:disabled { opacity: 0.4; cursor: not-allowed; }
+.skeleton { background: linear-gradient(90deg, rgba(255,255,255,0.05) 25%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.05) 75%); background-size: 200% 100%; animation: skeleton-loading 1.5s infinite; border-radius: 8px; height: 48px; margin-bottom: 8px; }
+@keyframes skeleton-loading { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+@keyframes fadeInDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+@media (max-width: 480px) { .container { padding: 10px; } header h1 { font-size: 1.5rem; } .diary-item { padding: 10px 12px; } .diary-number { width: 20px; height: 20px; font-size: 10px; } .diary-content { font-size: 13px; } .diary-date { font-size: 10px; } }
+</style>
+</head>
+<body>
+<div class="container">
+<header>
+<h1>开发者日记</h1>
+</header>
+<div class="search-container">
+<input type="text" class="search-input" id="searchInput" placeholder="搜索日记内容...">
+</div>
+<main>
+<div class="diary-list" id="diaryList">
+<!-- 骨架屏-->
+<div class="skeleton"></div>
+<div class="skeleton"></div>
+<div class="skeleton"></div>
+<div class="skeleton"></div>
+<div class="skeleton"></div>
+<div class="skeleton"></div>
+</div>
+<div class="pagination" id="pagination"></div>
+</main>
+</div>
+<script>
+// 配置常量
+const CONFIG = {
+CONFIG_FILE: '6_diary-config.js',
+ITEMS_PER_PAGE: 12,
+SEARCH_DELAY: 300,
+LOADING_DELAY: 500
+};
+
+// 按需加载工具
+window.ScriptCache = {
+has: function(url) {
+return window._allScripts && window._allScripts[url];
+},
+get: function(url) {
+return this.has(url) ? window._allScripts[url] : null;
+},
+set: function(url, data) {
+window._allScripts = window._allScripts || {};
+window._allScripts[url] = data || true;
+},
+load: function(url) {
+if (this.has(url)) return Promise.resolve();
+return new Promise((resolve, reject) => {
+const s = document.createElement('script');
+s.src = url;
+s.onload = () => {
+this.set(url, true);
+resolve();
+};
+s.onerror = reject;
+document.head.appendChild(s);
+});
+}
+};
+
+// 日记应用类
+class DiaryApp {
+constructor() {
+this.currentPage = 1;
+this.allDiaries = [];
+this.filteredDiaries = [];
+this.searchTimeout = null;
+this.init();
+}
+
+async init() {
+// 延迟加载配置
+setTimeout(async () => {
+await this.loadConfig();
+this.loadDiaries();
+}, CONFIG.LOADING_DELAY);
+}
+
+async loadConfig() {
+try {
+await ScriptCache.load(CONFIG.CONFIG_FILE);
+if (typeof window.diaryConfig === 'undefined') {
+throw new Error('配置文件加载失败');
+}
+} catch (error) {
+console.error('配置加载失败:', error);
+this.showError();
+throw error;
+}
+}
+
+loadDiaries() {
+try {
+this.allDiaries = [...window.diaryConfig.diaries];
+this.filteredDiaries = [...this.allDiaries];
+this.currentPage = 1;
+this.renderDiaries();
+this.renderPagination();
+this.initSearch();
+} catch (error) {
+console.error('日记加载失败:', error);
+this.showError();
+}
+}
+
+renderDiaries() {
+const diaryList = document.getElementById('diaryList');
+const startIndex = (this.currentPage - 1) * CONFIG.ITEMS_PER_PAGE;
+const endIndex = startIndex + CONFIG.ITEMS_PER_PAGE;
+const diariesToShow = this.filteredDiaries.slice(startIndex, endIndex);
+
+if (diariesToShow.length === 0) {
+diaryList.innerHTML = '<div style="text-align: center; padding: 40px; color: rgba(255,255,255,0.6);">没有找到相关日记</div>';
+return;
+}
+
+diaryList.innerHTML = diariesToShow.map((diary, index) => `
+<div class="diary-item">
+<div class="diary-number">${startIndex + index + 1}</div>
+<div class="diary-content">${this.escapeHtml(diary.content).replace(/\n/g, '<br>')}</div>
+<div class="diary-date">${diary.date}</div>
+</div>
+`).join('');
+}
+
+escapeHtml(text) {
+const map = {
+'&': '&amp;',
+'<': '&lt;',
+'>': '&gt;',
+'"': '&quot;',
+"'": '&#039;'
+};
+return text.replace(/[&<>"']/g, m => map[m]);
+}
+
+renderPagination() {
+const pagination = document.getElementById('pagination');
+const totalPages = Math.ceil(this.filteredDiaries.length / CONFIG.ITEMS_PER_PAGE);
+
+if (totalPages <= 1) {
+pagination.innerHTML = '';
+return;
+}
+
+let paginationHTML = '';
+paginationHTML += `<button onclick="changePage(${this.currentPage-1})" ${this.currentPage===1?'disabled':''}>‹</button>`;
+
+const startPage = Math.max(1, this.currentPage - 2);
+const endPage = Math.min(totalPages, this.currentPage + 2);
+
+if (startPage > 1) {
+paginationHTML += `<button onclick="changePage(1)">1</button>`;
+if (startPage > 2) paginationHTML += `<span style="color: rgba(255,255,255,0.5);">...</span>`;
+}
+
+for (let i = startPage; i <= endPage; i++) {
+paginationHTML += `<button onclick="changePage(${i})" class="${i===this.currentPage?'active':''}">${i}</button>`;
+}
+
+if (endPage < totalPages) {
+if (endPage < totalPages - 1) paginationHTML += `<span style="color: rgba(255,255,255,0.5);">...</span>`;
+paginationHTML += `<button onclick="changePage(${totalPages})">${totalPages}</button>`;
+}
+
+paginationHTML += `<button onclick="changePage(${this.currentPage+1})" ${this.currentPage===totalPages?'disabled':''}>›</button>`;
+pagination.innerHTML = paginationHTML;
+}
+
+initSearch() {
+const searchInput = document.getElementById('searchInput');
+searchInput.addEventListener('input', (e) => {
+clearTimeout(this.searchTimeout);
+this.searchTimeout = setTimeout(() => {
+const searchTerm = e.target.value.toLowerCase().trim();
+if (searchTerm === '') {
+this.filteredDiaries = [...this.allDiaries];
+} else {
+this.filteredDiaries = this.allDiaries.filter(diary =>
+diary.content.toLowerCase().includes(searchTerm)
+);
+}
+this.currentPage = 1;
+this.renderDiaries();
+this.renderPagination();
+}, CONFIG.SEARCH_DELAY);
+});
+}
+
+showError() {
+document.getElementById('diaryList').innerHTML = '<div style="text-align: center; padding: 40px; color: rgba(255,255,255,0.6);">日记加载失败，请刷新重试</div>';
+}
+}
+
+// 全局函数
+function changePage(page) {
+if (window.diaryApp) {
+const totalPages = Math.ceil(window.diaryApp.filteredDiaries.length / CONFIG.ITEMS_PER_PAGE);
+if (page >= 1 && page <= totalPages) {
+window.diaryApp.currentPage = page;
+window.diaryApp.renderDiaries();
+window.diaryApp.renderPagination();
+window.scrollTo({top: 0, behavior: 'smooth'});
+}
+}
+}
+
+// 启动应用
+document.addEventListener('DOMContentLoaded', () => {
+window.diaryApp = new DiaryApp();
+});
+</script>
+</body>
+</html>

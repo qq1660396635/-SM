@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>每日签到</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding: 15px;
+        }
+
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            width: 100%;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .header {
+            text-align: center;
+        }
+
+        .title-input {
+            background: rgba(255,255,255,0.9);
+            border: none;
+            border-radius: 10px;
+            padding: 10px 15px;
+            font-size: 20px;
+            font-weight: bold;
+            color: #333;
+            text-align: center;
+            width: 100%;
+            outline: none;
+        }
+
+        .title-input::placeholder {
+            color: #999;
+        }
+
+        .streak-card {
+            background: white;
+            border-radius: 12px;
+            padding: 18px;
+            text-align: center;
+            box-shadow: 0 3px 15px rgba(0,0,0,0.1);
+        }
+
+        .streak-number {
+            font-size: 36px;
+            font-weight: bold;
+            color: #4facfe;
+        }
+
+        .streak-text {
+            color: #666;
+            margin-top: 3px;
+            font-size: 13px;
+        }
+
+        .checkin-btn {
+            background: white;
+            border: none;
+            border-radius: 12px;
+            padding: 14px;
+            font-size: 16px;
+            font-weight: bold;
+            color: #4facfe;
+            cursor: pointer;
+            transition: transform 0.2s;
+            box-shadow: 0 3px 15px rgba(0,0,0,0.1);
+        }
+
+        .checkin-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+        }
+
+        .checkin-btn:disabled {
+            background: #00b894;
+            color: white;
+            cursor: not-allowed;
+        }
+
+        .calendar {
+            background: white;
+            border-radius: 12px;
+            padding: 15px;
+            box-shadow: 0 3px 15px rgba(0,0,0,0.1);
+            flex: 1;
+            min-height: 240px;
+        }
+
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .calendar-title {
+            font-weight: bold;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .calendar-nav {
+            display: flex;
+            gap: 8px;
+        }
+
+        .nav-btn {
+            width: 26px;
+            height: 26px;
+            border: none;
+            background: #f0f0f0;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 3px;
+        }
+
+        .weekday {
+            text-align: center;
+            font-size: 11px;
+            color: #999;
+            padding: 3px 0;
+        }
+
+        .day {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            font-size: 12px;
+            background: #f8f8f8;
+            cursor: pointer;
+        }
+
+        .day.checked {
+            background: #4facfe;
+            color: white;
+        }
+
+        .day.today {
+            border: 2px solid #4facfe;
+        }
+
+        .day.other {
+            color: #ccc;
+        }
+
+        .stats {
+            display: flex;
+            gap: 8px;
+        }
+
+        .stat {
+            flex: 1;
+            background: white;
+            border-radius: 12px;
+            padding: 12px;
+            text-align: center;
+            box-shadow: 0 3px 15px rgba(0,0,0,0.1);
+        }
+
+        .stat-value {
+            font-size: 20px;
+            font-weight: bold;
+            color: #4facfe;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: #666;
+            margin-top: 3px;
+        }
+
+        .motivation {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            text-align: center;
+            padding: 8px;
+            border-radius: 8px;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <input type="text" class="title-input" id="titleInput" placeholder="点击输入你的目标" autofocus>
+        </div>
+
+        <div class="streak-card">
+            <div class="streak-number" id="streak">0</div>
+            <div class="streak-text">连续坚持天数</div>
+        </div>
+
+        <button class="checkin-btn" id="checkinBtn">今日签到</button>
+
+        <div class="calendar">
+            <div class="calendar-header">
+                <div class="calendar-title" id="calendarTitle"></div>
+                <div class="calendar-nav">
+                    <button class="nav-btn" id="prev">‹</button>
+                    <button class="nav-btn" id="next">›</button>
+                </div>
+            </div>
+            <div class="calendar-grid" id="calendar"></div>
+        </div>
+
+        <div class="stats">
+            <div class="stat">
+                <div class="stat-value" id="total">0</div>
+                <div class="stat-label">累计签到</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="month">0</div>
+                <div class="stat-label">本月签到</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="rate">0%</div>
+                <div class="stat-label">签到率</div>
+            </div>
+        </div>
+
+        <div class="motivation" id="motivation">开始你的第一天吧！</div>
+    </div>
+
+    <script>
+        class CheckinApp {
+            constructor() {
+                this.currentMonth = new Date();
+                this.data = JSON.parse(localStorage.getItem('checkinData') || '{"title":"","checkins":[]}');
+                this.init();
+            }
+
+            init() {
+                this.setupTitle();
+                this.renderCalendar();
+                this.updateStats();
+                this.updateStreak();
+                this.setupCheckin();
+                this.setupNav();
+            }
+
+            setupTitle() {
+                const input = document.getElementById('titleInput');
+                input.value = this.data.title;
+                
+                if (!this.data.title) {
+                    setTimeout(() => input.focus(), 100);
+                }
+                
+                input.addEventListener('blur', () => {
+                    this.data.title = input.value;
+                    this.save();
+                });
+                
+                input.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        input.blur();
+                    }
+                });
+            }
+
+            save() {
+                localStorage.setItem('checkinData', JSON.stringify(this.data));
+            }
+
+            setupCheckin() {
+                const btn = document.getElementById('checkinBtn');
+                const today = new Date().toISOString().split('T')[0];
+                
+                if (this.data.checkins.includes(today)) {
+                    btn.disabled = true;
+                    btn.textContent = '✓ 已签到';
+                } else {
+                    btn.addEventListener('click', () => {
+                        this.data.checkins.push(today);
+                        this.save();
+                        btn.disabled = true;
+                        btn.textContent = '✓ 已签到';
+                        this.renderCalendar();
+                        this.updateStats();
+                        this.updateStreak();
+                    });
+                }
+            }
+
+            updateStreak() {
+                const streak = this.calculateStreak();
+                document.getElementById('streak').textContent = streak;
+                
+                const messages = {
+                    0: '🌱 开始你的第一天吧！',
+                    1: '💪 很好的开始！',
+                    3: '🔥 坚持3天了！',
+                    7: '⭐ 一周了！',
+                    14: '🏆 两周！',
+                    21: '🌟 三周！',
+                    30: '👑 一个月！'
+                };
+                
+                let msg = messages[0];
+                for (const [days, text] of Object.entries(messages).reverse()) {
+                    if (streak >= parseInt(days)) {
+                        msg = text;
+                        break;
+                    }
+                }
+                document.getElementById('motivation').textContent = msg;
+            }
+
+            calculateStreak() {
+                if (this.data.checkins.length === 0) return 0;
+                
+                const sorted = [...this.data.checkins].sort().reverse();
+                let streak = 0;
+                const today = new Date().toISOString().split('T')[0];
+                
+                for (let i = 0; i < sorted.length; i++) {
+                    const date = new Date(today);
+                    date.setDate(date.getDate() - i);
+                    const expected = date.toISOString().split('T')[0];
+                    
+                    if (sorted[i] === expected) {
+                        streak++;
+                    } else {
+                        break;
+                    }
+                }
+                return streak;
+            }
+
+            setupNav() {
+                document.getElementById('prev').addEventListener('click', () => {
+                    this.currentMonth.setMonth(this.currentMonth.getMonth() - 1);
+                    this.renderCalendar();
+                });
+                
+                document.getElementById('next').addEventListener('click', () => {
+                    this.currentMonth.setMonth(this.currentMonth.getMonth() + 1);
+                    this.renderCalendar();
+                });
+            }
+
+            renderCalendar() {
+                const grid = document.getElementById('calendar');
+                grid.innerHTML = '';
+                
+                const year = this.currentMonth.getFullYear();
+                const month = this.currentMonth.getMonth();
+                
+                document.getElementById('calendarTitle').textContent = `${year}年${month + 1}月`;
+                
+                const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+                weekdays.forEach(day => {
+                    const el = document.createElement('div');
+                    el.className = 'weekday';
+                    el.textContent = day;
+                    grid.appendChild(el);
+                });
+                
+                const firstDay = new Date(year, month, 1).getDay();
+                const daysInMonth = new Date(year, month + 1, 0).getDate();
+                
+                for (let i = 0; i < firstDay; i++) {
+                    const el = document.createElement('div');
+                    el.className = 'day other';
+                    grid.appendChild(el);
+                }
+                
+                const today = new Date().toISOString().split('T')[0];
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const date = new Date(year, month, day).toISOString().split('T')[0];
+                    const el = document.createElement('div');
+                    el.className = 'day';
+                    el.textContent = day;
+                    
+                    if (this.data.checkins.includes(date)) {
+                        el.classList.add('checked');
+                    }
+                    if (date === today) {
+                        el.classList.add('today');
+                    }
+                    
+                    grid.appendChild(el);
+                }
+            }
+
+            updateStats() {
+                const total = this.data.checkins.length;
+                document.getElementById('total').textContent = total;
+                
+                const now = new Date();
+                const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+                const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+                const monthCheckins = this.data.checkins.filter(d => d >= monthStart && d <= monthEnd);
+                document.getElementById('month').textContent = monthCheckins.length;
+                
+                const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+                const rate = Math.round((monthCheckins.length / daysInMonth) * 100);
+                document.getElementById('rate').textContent = rate + '%';
+            }
+        }
+
+        new CheckinApp();
+    </script>
+</body>
+</html>

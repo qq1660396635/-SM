@@ -1,0 +1,142 @@
+// 将CSS样式通过JS注入到页面中
+(function() {
+    const css = `
+        /* 1. 基础样式：应用于所有带有 "language-" 类名的 <code> 和 <pre> 元素 */
+        code[class*="language-"],
+        pre[class*="language-"] {
+            color: #333; /* 主文字颜色：深灰色，比纯黑更柔和 */
+            background: none; /* 背景透明，由下面的规则统一设置 */
+            font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
+            font-size: 0.9em; /* 稍微调小字体，在浅色背景下更精致 */
+            text-align: left;
+            white-space: pre;
+            word-spacing: normal;
+            word-break: normal;
+            word-wrap: normal;
+            line-height: 1.6; /* 增加行高，提升可读性 */
+            -moz-tab-size: 4;
+            -o-tab-size: 4;
+            tab-size: 4;
+            -webkit-hyphens: none;
+            -moz-hyphens: none;
+            -ms-hyphens: none;
+            hyphens: none;
+        }
+
+        /* 2. 代码块容器样式 */
+        pre[class*="language-"] {
+            padding: 1.2em;
+            margin: 1em 0;
+            overflow: auto;
+            border-radius: 8px; /* 增加圆角，看起来更现代 */
+        }
+
+        /* 3. 代码块背景色：使用非常干净的浅灰白色，并添加柔和阴影 */
+        :not(pre) > code[class*="language-"],
+        pre[class*="language-"] {
+            background: #f8f9fa; /* 柔和的浅灰白色背景 */
+            border: 1px solid #e9ecef; /* 淡雅的边框 */
+        }
+
+        /* 4. 行内代码样式 */
+        :not(pre) > code[class*="language-"] {
+            padding: 0.2em 0.4em;
+            border-radius: 4px;
+            background: #e9ecef; /* 行内代码背景稍深，以作区分 */
+        }
+
+        /* 5. 注释样式：使用柔和的灰色，已移除斜体 */
+        .token.block-comment,
+        .token.cdata,
+        .token.comment,
+        .token.doctype,
+        .token.prolog {
+            color: #6a737d;
+        }
+
+        /* 6. 标点符号样式：使用中性灰色，不抢眼 */
+        .token.punctuation {
+            color: #586069;
+        }
+
+        /* 7. 标签、属性名样式：使用沉稳的绿色 */
+        .token.attr-name,
+        .token.namespace,
+        .token.tag {
+            color: #22863a;
+        }
+
+        /* 8. 函数名样式：使用优雅的紫色 */
+        .token.function-name {
+            color: #6f42c1;
+        }
+
+        /* 9. 类名、常量、属性、符号样式：使用明亮的蓝色 */
+        .token.class-name,
+        .token.constant,
+        .token.property,
+        .token.symbol {
+            color: #032f62;
+        }
+
+        /* 10. 关键字样式：使用醒目的蓝色 */
+        .token.atrule,
+        .token.builtin,
+        .token.keyword,
+        .token.selector {
+            color: #d73a49; /* 保留一个柔和的红色用于关键字，因为它在代码中很常见且醒目，如果实在不喜欢，可以换成下面的蓝色 */
+            /* color: #0969da; */ /* 如果完全不喜欢红色，请取消这行注释并注释掉上面一行 */
+        }
+
+        /* 11. 字符串、变量样式：使用深绿色 */
+        .token.attr-value,
+        .token.char,
+        .token.string,
+        .token.variable {
+            color: #22863a;
+        }
+
+        /* 12. 数字、布尔值样式：使用温暖的橙色 */
+        .token.boolean,
+        .token.number {
+            color: #e36209;
+        }
+
+        /* 13. 操作符、URL样式：使用主文字颜色 */
+        .token.entity,
+        .token.operator,
+        .token.url {
+            color: #333;
+        }
+
+        /* 14. 加粗样式 */
+        .token.bold,
+        .token.important {
+            font-weight: bold;
+            color: #032f62; /* 加粗内容用蓝色强调 */
+        }
+        
+        /* 15. 斜体样式：此规则已移除，不再有任何元素使用斜体 */
+        
+        /* 16. 删除内容样式 */
+        .token.deleted {
+            color: #b31d28; /* 删除内容用红色提示 */
+            background: #ffeef0; /* 配合浅红色背景 */
+        }
+
+        /* 17. 插入内容样式 */
+        .token.inserted {
+            color: #22863a; /* 插入内容用绿色提示 */
+            background: #f0fff4; /* 配合浅绿色背景 */
+        }
+    `;
+    
+    // 创建一个style元素
+    const style = document.createElement('style');
+    
+    // 将CSS字符串设置到style元素中
+    style.textContent = css;
+    
+    // 将style元素添加到文档的head中，使样式生效
+    document.head.appendChild(style);
+})();

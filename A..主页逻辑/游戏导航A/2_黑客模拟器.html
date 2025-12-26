@@ -1,0 +1,1647 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>黑客命令模拟器</title>
+    
+        <!-- 引入数据库管理器 -->
+    <script src="/db.js"></script>
+    
+        <!-- 引入插件工具箱 🏄-->
+    <script src="/A2_全局中心/B_插件工具/toolbox.js"></script>  
+  
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(135deg, #0c0c0c 0%, #1a1a2e 50%, #16213e 100%);
+            color: #00ff41;
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+            touch-action: manipulation;
+        }
+        
+        /* 矩阵背景 */
+        .matrix-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            opacity: 0.1;
+            z-index: -1;
+        }
+        
+        /* 主页面优化 - 充满屏幕 */
+        #home-page {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
+            text-align: center;
+            padding-top: 40px;
+            padding-bottom: 40px;
+        }
+        
+        .title {
+            font-size: 1.3rem;
+            margin-bottom: 0.8rem;
+            text-shadow: 0 0 10px #00ff41;
+            animation: glow 2s ease-in-out infinite alternate;
+            z-index: 1;
+            position: relative;
+            letter-spacing: 1px;
+        }
+        
+        @keyframes glow {
+            from { text-shadow: 0 0 10px #00ff41; }
+            to { text-shadow: 0 0 20px #00ff41, 0 0 30px #00ff41; }
+        }
+        
+        /* 优化的气泡容器 - 响应式网格 */
+        .bubbles-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.8rem;
+            max-width: 450px;
+            width: 100%;
+            padding: 0.8rem;
+            justify-items: center;
+        }
+        
+        /* 优化的气泡样式 - 真正像球一样 */
+        .bubble {
+            width: 75px;
+            height: 75px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            animation: float 3s ease-in-out infinite;
+            text-decoration: none;
+            color: white;
+            font-weight: bold;
+            text-align: center;
+            padding: 6px;
+            word-break: break-word;
+            font-size: 0.65rem;
+            line-height: 1.1;
+        }
+            box-shadow: 
+                0 4px 8px rgba(0, 0, 0, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2),
+                inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .bubble::before {
+            content: '';
+            position: absolute;
+            top: 10%;
+            left: 15%;
+            width: 30%;
+            height: 30%;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            filter: blur(3px);
+        }
+        
+        .bubble:hover {
+            transform: scale(1.05);
+            animation-play-state: paused;
+        }
+        
+        .bubble:active {
+            transform: scale(0.95);
+        }
+        
+        /* 各种颜色方案 */
+        .bubble:nth-child(1) {
+            background: radial-gradient(circle at 30% 30%, #ff6b6b, #c44569);
+            animation-delay: 0s;
+        }
+        
+        .bubble:nth-child(2) {
+            background: radial-gradient(circle at 30% 30%, #4ecdc4, #44a08d);
+            animation-delay: 0.5s;
+        }
+        
+        .bubble:nth-child(3) {
+            background: radial-gradient(circle at 30% 30%, #45b7d1, #96ceb4);
+            animation-delay: 1s;
+        }
+        
+        .bubble:nth-child(4) {
+            background: radial-gradient(circle at 30% 30%, #feca57, #ff9ff3);
+            animation-delay: 1.5s;
+        }
+        
+        .bubble:nth-child(5) {
+            background: radial-gradient(circle at 30% 30%, #5f27cd, #341f97);
+            animation-delay: 2s;
+        }
+        
+        .bubble:nth-child(6) {
+            background: radial-gradient(circle at 30% 30%, #fd79a8, #e84393);
+            animation-delay: 0.8s;
+        }
+        
+        .bubble:nth-child(7) {
+            background: radial-gradient(circle at 30% 30%, #74b9ff, #0984e3);
+            animation-delay: 1.8s;
+        }
+        
+        .bubble:nth-child(8) {
+            background: radial-gradient(circle at 30% 30%, #00b894, #00a085);
+            animation-delay: 1.2s;
+        }
+        
+        .bubble:nth-child(9) {
+            background: radial-gradient(circle at 30% 30%, #a29bfe, #6c5ce7);
+            animation-delay: 2.2s;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            25% { transform: translateY(-10px) rotate(1deg); }
+            50% { transform: translateY(-5px) rotate(0deg); }
+            75% { transform: translateY(-8px) rotate(-1deg); }
+        }
+        
+        /* 命令页面样式 */
+        .command-page {
+            min-height: 100vh;
+            padding: 20px;
+            display: none;
+            padding-top: 80px;
+        }
+        
+        .command-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #00ff41;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        
+        .back-btn {
+            background: transparent;
+            border: 1px solid #00ff41;
+            color: #00ff41;
+            padding: 10px 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: inherit;
+            border-radius: 3px;
+        }
+        
+        .back-btn:hover {
+            background: #00ff41;
+            color: #000;
+        }
+        
+        .prompt-box {
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid #00ff41;
+            padding: 12px;
+            margin-bottom: 1.2rem;
+            border-radius: 5px;
+            font-size: 0.75rem;
+            line-height: 1.3;
+        }
+        
+        .terminal {
+            background: #000;
+            border: 1px solid #00ff41;
+            border-radius: 5px;
+            padding: 15px;
+            min-height: 350px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.75rem;
+        }
+        
+        .input-line {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .prompt-sign {
+            color: #00ff41;
+            margin-right: 10px;
+            flex-shrink: 0;
+        }
+        
+        .command-input {
+            background: transparent;
+            border: none;
+            color: #00ff41;
+            font-family: inherit;
+            font-size: 0.85rem;
+            outline: none;
+            flex: 1;
+        }
+        
+        .output {
+            margin-top: 15px;
+            white-space: pre-wrap;
+            line-height: 1.3;
+            font-size: 0.75rem;
+        }
+        
+        /* 响应式设计 - 手机优先 */
+        @media (max-width: 768px) {
+            .title {
+                font-size: 1.1rem;
+                margin-bottom: 0.7rem;
+            }
+            
+            .bubbles-container {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 0.7rem;
+                max-width: 100%;
+                padding: 0.4rem;
+            }
+            
+            .bubble {
+                width: 70px;
+                height: 70px;
+                font-size: 0.6rem;
+                padding: 5px;
+            }
+            
+            #home-page {
+                padding-top: 30px;
+                padding-bottom: 30px;
+            }
+            
+            .command-page {
+                padding-top: 50px;
+                padding: 12px;
+            }
+            
+            .terminal {
+                min-height: 280px;
+                padding: 12px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .title {
+                font-size: 1.1rem;
+                margin-bottom: 0.6rem;
+            }
+            
+            .bubbles-container {
+                gap: 0.6rem;
+                padding: 0.2rem;
+            }
+            
+            .bubble {
+                width: 65px;
+                height: 65px;
+                font-size: 0.55rem;
+                padding: 4px;
+            }
+            
+            .command-header {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 0.5rem;
+            }
+            
+            .back-btn {
+                align-self: flex-start;
+                padding: 8px 15px;
+                font-size: 0.8rem;
+            }
+            
+            .prompt-box {
+                font-size: 0.7rem;
+                padding: 12px;
+            }
+        }
+        
+        @media (max-width: 360px) {
+            .bubbles-container {
+                gap: 0.5rem;
+            }
+            
+            .bubble {
+                width: 60px;
+                height: 60px;
+                font-size: 0.5rem;
+                padding: 3px;
+            }
+            
+            .title {
+                font-size: 1rem;
+                margin-bottom: 0.5rem;
+            }
+        }
+        
+        /* 横屏优化 */
+        @media (orientation: landscape) and (max-height: 600px) {
+            #home-page {
+                padding-top: 15px;
+                padding-bottom: 15px;
+            }
+            
+            .title {
+                font-size: 1rem;
+                margin-bottom: 0.7rem;
+            }
+            
+            .bubbles-container {
+                max-width: 85%;
+                gap: 0.6rem;
+            }
+            
+            .bubble {
+                width: 70px;
+                height: 70px;
+                font-size: 0.6rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 矩阵背景 -->
+    <div class="matrix-bg" id="matrixBg"></div>
+    
+    <!-- 主页面 -->
+    <div id="home-page">
+        <h1 class="title">黑客命令模拟器</h1>
+        <div class="bubbles-container">
+            <a class="bubble" onclick="showCommand('delete-db')">删库<br>跑路</a>
+            <a class="bubble" onclick="showCommand('port-scan')">端口<br>扫描</a>
+            <a class="bubble" onclick="showCommand('password-crack')">密码<br>破解</a>
+            <a class="bubble" onclick="showCommand('network-scan')">网络<br>扫描</a>
+            <a class="bubble" onclick="showCommand('firewall-bypass')">防火墙<br>绕过</a>
+            <a class="bubble" onclick="showCommand('sql-injection')">SQL<br>注入</a>
+            <a class="bubble" onclick="showCommand('ddos-attack')">DDoS<br>攻击</a>
+            <a class="bubble" onclick="showCommand('malware-upload')">木马<br>植入</a>
+            <a class="bubble" onclick="showCommand('data-breach')">数据<br>泄露</a>
+        </div>
+    </div>
+    
+    <!-- 删库跑路模拟器 -->
+    <div id="delete-db" class="command-page">
+        <div class="command-header">
+            <button class="back-btn" onclick="showHome()">返回主页</button>
+            <h2>🗑️ 删库跑路模拟器</h2>
+        </div>
+        <div class="prompt-box">
+            💡 提示：这是一个模拟器，请输入命令来体验删库跑路的流程。输入 "help" 查看可用命令。
+        </div>
+        <div class="terminal">
+            <div class="output" id="delete-db-output">
+                🚨 警告：这是一个模拟环境，不会对真实系统造成影响<br>
+                输入 "help" 查看可用命令<br><br>
+            </div>
+            <div class="input-line">
+                <span class="prompt-sign">root@hacker:~#</span>
+                <input type="text" class="command-input" onkeypress="handleCommand(event, 'delete-db')" placeholder="输入命令...">
+            </div>
+        </div>
+    </div>
+    
+    <!-- 端口扫描模拟器 -->
+    <div id="port-scan" class="command-page">
+        <div class="command-header">
+            <button class="back-btn" onclick="showHome()">返回主页</button>
+            <h2>🔍 端口扫描工具</h2>
+        </div>
+        <div class="prompt-box">
+            💡 提示：模拟端口扫描工具，输入 "scan <IP地址>" 开始扫描
+        </div>
+        <div class="terminal">
+            <div class="output" id="port-scan-output">
+                🔍 端口扫描工具已启动<br>
+                输入 "scan 192.168.1.1" 开始扫描示例<br><br>
+            </div>
+            <div class="input-line">
+                <span class="prompt-sign">scanner@tool:~#</span>
+                <input type="text" class="command-input" onkeypress="handleCommand(event, 'port-scan')" placeholder="输入命令...">
+            </div>
+        </div>
+    </div>
+    
+    <!-- 密码破解模拟器 -->
+    <div id="password-crack" class="command-page">
+        <div class="command-header">
+            <button class="back-btn" onclick="showHome()">返回主页</button>
+            <h2>🔑 密码破解工具</h2>
+        </div>
+        <div class="prompt-box">
+            💡 提示：模拟密码破解过程，输入 "crack <目标>" 开始
+        </div>
+        <div class="terminal">
+            <div class="output" id="password-crack-output">
+                🔑 密码破解工具已加载<br>
+                输入 "crack admin" 开始示例破解<br><br>
+            </div>
+            <div class="input-line">
+                <span class="prompt-sign">cracker@tool:~#</span>
+                <input type="text" class="command-input" onkeypress="handleCommand(event, 'password-crack')" placeholder="输入命令...">
+            </div>
+        </div>
+    </div>
+    
+    <!-- 网络扫描模拟器 -->
+    <div id="network-scan" class="command-page">
+        <div class="command-header">
+            <button class="back-btn" onclick="showHome()">返回主页</button>
+            <h2>🌐 网络扫描工具</h2>
+        </div>
+        <div class="prompt-box">
+            💡 提示：扫描网络中的活动主机，输入 "scan <网段>" 开始
+        </div>
+        <div class="terminal">
+            <div class="output" id="network-scan-output">
+                🌐 网络扫描工具已启动<br>
+                输入 "scan 192.168.1.0/24" 开始扫描示例<br><br>
+            </div>
+            <div class="input-line">
+                <span class="prompt-sign">scanner@net:~#</span>
+                <input type="text" class="command-input" onkeypress="handleCommand(event, 'network-scan')" placeholder="输入命令...">
+            </div>
+        </div>
+    </div>
+    
+    <!-- 防火墙绕过模拟器 -->
+    <div id="firewall-bypass" class="command-page">
+        <div class="command-header">
+            <button class="back-btn" onclick="showHome()">返回主页</button>
+            <h2>🛡️ 防火墙绕过工具</h2>
+        </div>
+        <div class="prompt-box">
+            💡 提示：模拟防火墙绕过技术，输入 "bypass <目标IP>" 开始
+        </div>
+        <div class="terminal">
+            <div class="output" id="firewall-bypass-output">
+                🛡️ 防火墙绕过工具已加载<br>
+                输入 "bypass 192.168.1.100" 开始模拟绕过<br><br>
+            </div>
+            <div class="input-line">
+                <span class="prompt-sign">bypass@tool:~#</span>
+                <input type="text" class="command-input" onkeypress="handleCommand(event, 'firewall-bypass')" placeholder="输入命令...">
+            </div>
+        </div>
+    </div>
+    
+    <!-- SQL注入模拟器 -->
+    <div id="sql-injection" class="command-page">
+        <div class="command-header">
+            <button class="back-btn" onclick="showHome()">返回主页</button>
+            <h2>💉 SQL注入工具</h2>
+        </div>
+        <div class="prompt-box">
+            💡 提示：模拟SQL注入攻击，输入 "inject <URL>" 开始测试
+        </div>
+        <div class="terminal">
+            <div class="output" id="sql-injection-output">
+                💉 SQL注入工具已启动<br>
+                输入 "inject http://vuln-site.com/login" 开始测试<br><br>
+            </div>
+            <div class="input-line">
+                <span class="prompt-sign">injector@tool:~#</span>
+                <input type="text" class="command-input" onkeypress="handleCommand(event, 'sql-injection')" placeholder="输入命令...">
+            </div>
+        </div>
+    </div>
+    
+    <!-- DDoS攻击模拟器 -->
+    <div id="ddos-attack" class="command-page">
+        <div class="command-header">
+            <button class="back-btn" onclick="showHome()">返回主页</button>
+            <h2>⚡ DDoS攻击模拟器</h2>
+        </div>
+        <div class="prompt-box">
+            💡 提示：模拟分布式拒绝服务攻击，输入 "attack <目标>" 开始
+        </div>
+        <div class="terminal">
+            <div class="output" id="ddos-attack-output">
+                ⚡ DDoS攻击模拟器已启动<br>
+                输入 "attack 192.168.1.100" 开始模拟攻击<br><br>
+            </div>
+            <div class="input-line">
+                <span class="prompt-sign">attacker@botnet:~#</span>
+                <input type="text" class="command-input" onkeypress="handleCommand(event, 'ddos-attack')" placeholder="输入命令...">
+            </div>
+        </div>
+    </div>
+    
+    <!-- 木马植入模拟器 -->
+    <div id="malware-upload" class="command-page">
+        <div class="command-header">
+            <button class="back-btn" onclick="showHome()">返回主页</button>
+            <h2>🐎 木马植入工具</h2>
+        </div>
+        <div class="prompt-box">
+            💡 提示：模拟木马病毒植入，输入 "upload <目标IP>" 开始
+        </div>
+        <div class="terminal">
+            <div class="output" id="malware-upload-output">
+                🐎 木马植入工具已加载<br>
+                输入 "upload 192.168.1.50" 开始模拟植入<br><br>
+            </div>
+            <div class="input-line">
+                <span class="prompt-sign">malware@tool:~#</span>
+                <input type="text" class="command-input" onkeypress="handleCommand(event, 'malware-upload')" placeholder="输入命令...">
+            </div>
+        </div>
+    </div>
+    
+    <!-- 数据泄露模拟器 -->
+    <div id="data-breach" class="command-page">
+        <div class="command-header">
+            <button class="back-btn" onclick="showHome()">返回主页</button>
+            <h2>📊 数据泄露模拟器</h2>
+        </div>
+        <div class="prompt-box">
+            💡 提示：模拟数据泄露攻击，输入 "breach <数据库>" 开始
+        </div>
+        <div class="terminal">
+            <div class="output" id="data-breach-output">
+                📊 数据泄露模拟器已启动<br>
+                输入 "breach customer_db" 开始模拟数据窃取<br><br>
+            </div>
+            <div class="input-line">
+                <span class="prompt-sign">breacher@tool:~#</span>
+                <input type="text" class="command-input" onkeypress="handleCommand(event, 'data-breach')" placeholder="输入命令...">
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // 矩阵背景动画
+        function createMatrixBg() {
+            const chars = "01";
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const container = document.getElementById('matrixBg');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            container.appendChild(canvas);
+            
+            const fontSize = 14;
+            const columns = canvas.width / fontSize;
+            const drops = [];
+            for(let i = 0; i < columns; i++) {
+                drops[i] = 1;
+            }
+            
+            function draw() {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#00ff41';
+                ctx.font = fontSize + 'px monospace';
+                
+                for(let i = 0; i < drops.length; i++) {
+                    const text = chars.charAt(Math.floor(Math.random() * chars.length));
+                    ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+                    if(drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+                        drops[i] = 0;
+                    }
+                    drops[i]++;
+                }
+            }
+            
+            setInterval(draw, 33);
+        }
+        
+        // 页面切换函数
+        function showHome() {
+            document.querySelectorAll('.command-page').forEach(page => {
+                page.style.display = 'none';
+            });
+            document.getElementById('home-page').style.display = 'flex';
+        }
+        
+        function showCommand(commandId) {
+            document.getElementById('home-page').style.display = 'none';
+            document.querySelectorAll('.command-page').forEach(page => {
+                page.style.display = 'none';
+            });
+            document.getElementById(commandId).style.display = 'block';
+            
+            // 清空输入框并聚焦
+            const input = document.querySelector(`#${commandId} .command-input`);
+            if(input) {
+                input.value = '';
+                setTimeout(() => input.focus(), 100);
+            }
+        }
+        
+        // 命令处理函数
+        function handleCommand(event, commandType) {
+            if(event.key !== 'Enter') return;
+            
+            const input = event.target;
+            const command = input.value.trim();
+            const outputDiv = document.getElementById(`${commandType}-output`);
+            
+            if(!command) return;
+            
+            // 添加命令到输出
+            outputDiv.innerHTML += `<span style="color: #00ff41;">${getPromptSign(commandType)}</span> ${command}<br>`;
+            
+            // 处理命令
+            let response = processCommand(command, commandType);
+            
+            // 特殊处理清屏命令
+            if(response === '') {
+                outputDiv.innerHTML = '';
+            } else {
+                outputDiv.innerHTML += response + '<br><br>';
+            }
+            
+            // 清空输入框
+            input.value = '';
+            
+            // 滚动到底部
+            outputDiv.parentElement.scrollTop = outputDiv.parentElement.scrollHeight;
+        }
+        
+        function getPromptSign(commandType) {
+            const signs = {
+                'delete-db': 'root@hacker:~#',
+                'port-scan': 'scanner@tool:~#',
+                'password-crack': 'cracker@tool:~#',
+                'network-scan': 'scanner@net:~#',
+                'firewall-bypass': 'bypass@tool:~#',
+                'sql-injection': 'injector@tool:~#',
+                'ddos-attack': 'attacker@botnet:~#',
+                'malware-upload': 'malware@tool:~#',
+                'data-breach': 'breacher@tool:~#'
+            };
+            return signs[commandType] || 'user@terminal:~#';
+        }
+        
+        function processCommand(command, type) {
+            const cmd = command.toLowerCase();
+            switch(type) {
+                case 'delete-db':
+                    return processDeleteDbCommand(cmd);
+                case 'port-scan':
+                    return processPortScanCommand(cmd);
+                case 'password-crack':
+                    return processPasswordCrackCommand(cmd);
+                case 'network-scan':
+                    return processNetworkScanCommand(cmd);
+                case 'firewall-bypass':
+                    return processFirewallBypassCommand(cmd);
+                case 'sql-injection':
+                    return processSqlInjectionCommand(cmd);
+                case 'ddos-attack':
+                    return processDdosAttackCommand(cmd);
+                case 'malware-upload':
+                    return processMalwareUploadCommand(cmd);
+                case 'data-breach':
+                    return processDataBreachCommand(cmd);
+                default:
+                    return '命令未识别';
+            }
+        }
+        
+        // 删库跑路命令处理
+        function processDeleteDbCommand(command) {
+            if(command === 'help' || command === '?') {
+                return `🗑️ 删库跑路模拟器 - 可用命令：
+
+📋 系统命令：
+  help, ?, ? - 显示帮助信息
+  clear      - 清空屏幕
+  version    - 显示版本信息
+  exit, quit - 退出程序
+
+🔌 连接管理：
+  connect [服务器]     - 连接数据库服务器
+  disconnect          - 断开连接
+  status              - 查看连接状态
+  show servers        - 显示可用服务器
+
+🗄️ 数据库操作：
+  show databases      - 显示所有数据库
+  use <dbname>        - 选择/切换数据库
+  show tables         - 显示当前数据库的表
+  describe <table>    - 显示表结构
+  backup <dbname>     - 备份数据库
+
+⚠️ 危险操作：
+  drop database <name>    - 删除数据库
+  drop table <name>       - 删除表
+  delete from <table>     - 删除表中数据
+  truncate <table>        - 清空表数据
+
+🔍 信息查询：
+  show variables      - 显示数据库变量
+  show processlist    - 显示连接进程
+  show status         - 显示数据库状态
+
+💡 示例：
+  connect db.server.com
+  show databases
+  use company_db
+  show tables
+  drop database company_db`;
+            } else if(command === 'clear') {
+                return ''; // 清空屏幕
+            } else if(command === 'version' || command === '--version') {
+                return `MySQL Command Line Client v8.0.25
+Copyright (c) 2025 Mock DB Technologies
+模拟环境版本 v2.1.3`;
+            } else if(command === 'status' || command === '\s') {
+                return `-------------------
+Current connection: Connected to db.server.com:3306
+Current database: None
+Current user: root@% (authenticated)
+SSL: Cipher in use is TLS_AES_256_GCM_SHA384
+Using delimiter: ;
+Server version: 8.0.25 MySQL Community Server - GPL
+Connection id: 123456
+Current charset: utf8mb4`;
+            } else if(command.startsWith('connect')) {
+                const target = command.split(' ')[1] || 'db.server.com';
+                return `连接中... ${target}:3306
+🔄 正在验证连接...
+🔄 正在加载数据库配置...
+✅ 连接成功！MySQL服务器版本: 8.0.25
+🌐 已连接至 MySQL 服务器
+💡 提示：输入 'show databases' 查看可用数据库`;
+            } else if(command === 'disconnect' || command === '\q') {
+                return `正在断开连接...
+✅ 连接已断开`;
+            } else if(command === 'show databases' || command === 'show dbs') {
+                return `+--------------------+
+| Database           |
++--------------------+
+| information_schema |
+| mysql              |
+| performance_schema |
+| sys                |
+| company_db         |
+| user_data          |
+| financial_records  |
+| admin_panel        |
+| customer_records   |
++--------------------+
+9 rows in set (0.01 sec)`;
+            } else if(command.startsWith('use ')) {
+                const db = command.split(' ')[1];
+                return `Database changed
+💾 已切换到数据库: ${db}
+💡 提示：输入 'show tables' 查看此数据库的表`;
+            } else if(command.startsWith('show tables')) {
+                const db = command.includes(' ') ? command.split(' ')[2] : null;
+                const tableName = db || 'current_database';
+                return `+------------------------------+
+| Tables_in_${tableName}     |
++------------------------------+
+| users                      |
+| passwords                  |
+| sessions                   |
+| audit_logs                 |
+| system_config              |
+| financial_data             |
++------------------------------+
+6 rows in set (0.00 sec)`;
+            } else if(command.startsWith('describe ') || command.startsWith('desc ')) {
+                const table = command.split(' ')[1];
+                return `+----------+--------------+------+-----+-------------------+-------------------+
+| Field    | Type         | Null | Key | Default           | Extra             |
++----------+--------------+------+-----+-------------------+-------------------+
+| id       | int(11)      | NO   | PRI | NULL              | auto_increment    |
+| username | varchar(50)  | NO   |     | NULL              |                   |
+| password | varchar(255) | NO   |     | NULL              |                   |
+| email    | varchar(100) | YES  |     | NULL              |                   |
+| created  | datetime     | YES  |     | CURRENT_TIMESTAMP |                   |
++----------+--------------+------+-----+-------------------+-------------------+
+5 rows in set (0.01 sec)`;
+            } else if(command.startsWith('drop database')) {
+                const parts = command.split(' ');
+                if(parts.length < 3) {
+                    return `❌ 错误：缺少数据库名称
+💡 用法：drop database <database_name>`;
+                }
+                const db = parts.slice(2).join(' ');
+                return `🚨 危险操作警告！
+⚠️ 即将永久删除数据库 "${db}" 及所有数据！
+💀 这个操作不可逆转！
+
+🔐 安全检查：
+[INFO] 验证数据库存在: ✓
+[INFO] 检查备份状态: ✗ (未备份)
+[INFO] 权限检查: ✓ (root用户)
+
+💡 要确认删除，请输入：
+confirm drop database ${db}
+
+🛑 取消操作：输入任何其他命令`;
+            } else if(command.startsWith('confirm drop database')) {
+                const db = command.split('confirm drop database ')[1];
+                return `⚠️ 执行数据库删除...
+🔄 正在备份元数据...
+🔄 正在刷新表缓存...
+🔄 正在删除数据文件...
+
+🗑️ 数据库 "${db}" 已被永久删除！
+
+💨 跑路模式启动中...
+🏃 正在清理操作日志...
+🏃 正在清除审计跟踪...
+🏃 正在删除临时文件...
+
+✅ 所有痕迹已清除！
+💀 操作完成，系统离线
+
+⚠️ 这只是模拟演示！
+🛑 请勿在真实环境中尝试此类操作！`;
+            } else if(command === 'exit' || command === 'quit') {
+                return `Bye`;
+            } else if(command.startsWith('show processlist') || command === 'show processes') {
+                return `+----+------+-----------------+-----------+---------+------+----------+------------------+
+| Id | User | Host            | db        | Command | Time | State    | Info             |
++----+------+-----------------+-----------+---------+------+----------+------------------+
+|  1 | root | localhost:12345 | company_db | Query   |    0 | starting | show databases   |
+|  2 | app  | 192.168.1.100:0 | NULL      | Sleep   |  245 |          | NULL             |
+|  3 | root | localhost:54321 | NULL      | Query   |   12 | updating | DELETE FROM users |
++----+------+-----------------+-----------+---------+------+----------+------------------+
+3 rows in set (0.00 sec)`;
+            } else if(command === 'show status') {
+                return `+-----------------------------------+----------+
+| Variable_name                   | Value     |
++-----------------------------------+----------+
+| Uptime                          | 12345     |
+| Threads_connected               | 3         |
+| Threads_running                 | 1         |
+| Connections                     | 1234      |
+| Bytes_received                  | 9876543   |
+| Bytes_sent                      | 5432109   |
+| Queries                         | 56789     |
+| Slow_queries                    | 12        |
++-----------------------------------+----------+
+8 rows in set (0.01 sec)`;
+            } else if(command.startsWith('delete from ') || command.startsWith('drop table ')) {
+                const table = command.split(' ')[command.startsWith('delete from ') ? 2 : 2];
+                return `🚨 危险操作警告！
+⚠️ 将要删除表 "${table}" 中的所有数据！
+
+🔐 安全检查：
+[INFO] 验证表存在: ✓
+[INFO] 检查备份状态: ✗ (未备份)
+[INFO] 记录数检查: 1,234,567 条记录将丢失
+
+💡 要确认删除，请输入：
+confirm delete from ${table}`;
+            } else if(command.startsWith('confirm delete from ')) {
+                const table = command.split('confirm delete from ')[1];
+                return `⚠️ 执行数据删除...
+🔄 正在锁定表 "${table}"...
+🔄 正在删除记录...
+🔄 正在释放存储空间...
+
+🗑️ 表 "${table}" 中的 ${Math.floor(Math.random() * 1000000)} 条记录已删除！
+
+✅ 操作完成！
+⚠️ 这只是模拟演示，请勿在真实环境中尝试！`;
+            } else {
+                return `❌ 命令未识别: ${command}\n💡 输入 "help" 查看可用命令\n💡 输入 "clear" 清空屏幕\n💡 输入 "version" 查看版本信息`;
+            }
+        }
+        
+        // 端口扫描命令处理
+        function processPortScanCommand(command) {
+            if(command === 'help' || command === '?') {
+                return `🔍 端口扫描工具 - 可用命令：
+
+📋 系统命令：
+  help, ?           - 显示帮助信息
+  clear             - 清空屏幕
+  version           - 显示版本信息
+  exit              - 退出程序
+
+🎯 扫描模式：
+  scan <ip>         - 扫描指定IP的所有端口
+  quick <ip>        - 快速扫描常用端口
+  deep <ip>         - 深度扫描（包括服务和版本）
+  range <start-end> - 扫描端口范围
+
+🔧 扫描选项：
+  set timeout <sec>    - 设置超时时间
+  set threads <num>    - 设置线程数
+  set port <port>      - 设置扫描端口
+  show options         - 显示当前配置
+
+📈 报告功能：
+  export <ip>       - 导出扫描报告
+  history           - 查看扫描历史
+  stats             - 显示扫描统计
+
+💡 示例：
+  scan 192.168.1.1
+  quick 10.0.0.1
+  deep 172.16.1.100
+  export 192.168.1.1`;
+            } else if(command === 'clear') {
+                return ''; // 清空屏幕
+            } else if(command === 'version' || command === '--version') {
+                return `Nmap Scanner v7.94 (Mock Version)
+Mock Port Scanner 3.2.1
+Copyright (c) 2025 Mock Security Labs
+模拟端口扫描工具`;
+            } else if(command === 'show options' || command === 'options') {
+                return `📈 当前扫描配置：
+┌─────────────────┬─────────┐
+│ 选项            │ 值      │
+├─────────────────┼─────────┤
+│ 超时时间        │ 3秒     │
+│ 线程数          │ 100     │
+│ 默认端口        │ 1-65535 │
+│ 扫描模式        │ SYN     │
+│ 重试次数        │ 2       │
+│ 包延迟          │ 0ms     │
+└─────────────────┴─────────┘`;
+            } else if(command.startsWith('set timeout')) {
+                const timeout = command.split(' ')[2];
+                return `✅ 超时时间已设置为: ${timeout}秒\n💡 输入 'scan <ip>' 开始扫描`;
+            } else if(command.startsWith('set threads')) {
+                const threads = command.split(' ')[2];
+                return `✅ 线程数已设置为: ${threads}\n💡 输入 'scan <ip>' 开始扫描`;
+            } else if(command.startsWith('quick ')) {
+                const ip = command.split(' ')[1];
+                return `🚀 快速扫描 ${ip} 的常用端口...
+
+🔍 扫描进度: ██████████ 100%
+
+快速扫描结果：
+┌─────────┬─────────┬─────────────────┐
+│ Port    │ State   │ Service         │
+├─────────┼─────────┼─────────────────┤
+│ 21/tcp  │ OPEN    │ FTP             │
+│ 22/tcp  │ OPEN    │ SSH             │
+│ 23/tcp  │ OPEN    │ Telnet          │
+│ 80/tcp  │ OPEN    │ HTTP            │
+│ 443/tcp │ OPEN    │ HTTPS           │
+│ 3306/tcp│ OPEN    │ MySQL           │
+│ 3389/tcp│ OPEN    │ RDP             │
+└─────────┴─────────┴─────────────────┘
+📊 发现 ${Math.floor(Math.random() * 10) + 3} 个开放端口`;
+            } else if(command.startsWith('deep ')) {
+                const ip = command.split(' ')[1];
+                return `🔍 开始深度扫描 ${ip}...
+
+🔍 阶段 1/4: 端口扫描... ████████░░ 80%
+🔍 阶段 2/4: 服务识别... ██████████ 100%
+🔍 阶段 3/4: 版本检测... ██████████ 100%
+🔍 阶段 4/4: 漏洞扫描... ██████████ 100%
+
+📊 深度扫描完成！\n\n详细扫描结果：\n${getDetailedScanResult(ip)}`;
+            } else if(command.startsWith('range ')) {
+                const range = command.split(' ')[1];
+                return `🎯 扫描端口范围 ${range}...
+
+📈 扫描进度: ██████████ 100%
+
+端口范围扫描结果：\n${getRangeScanResult(range)}`;
+            } else if(command.startsWith('scan ')) {
+                const ip = command.split(' ')[1];
+                return `🔍 开始全面扫描 ${ip}...
+
+🔄 正在初始化扫描引擎...
+🔄 正在解析目标IP...
+🔄 正在加载端口列表...
+
+扫描中... [扫描速度: 1000端口/秒]
+🔍 扫描进度: ██████████ 100%
+
+扫描完成！开放端口：
+┌─────────┬─────────┬─────────────────┬──────────────┐
+│ Port    │ State   │ Service         │ Version      │
+├─────────┼─────────┼─────────────────┼──────────────�
+│ 22/tcp  │ OPEN    │ SSH             │ OpenSSH 8.0  │
+│ 80/tcp  │ OPEN    │ HTTP            │ Apache 2.4   │
+│ 443/tcp │ OPEN    │ HTTPS           │ Nginx 1.18   │
+│ 3306/tcp│ OPEN    │ MySQL           │ 8.0.25       │
+│ 8080/tcp│ OPEN    │ HTTP-Alt        │ Tomcat 9.0   │
+└─────────┴─────────┴─────────────────┴──────────────┘
+
+📊 扫描统计：
+• 总端口数: 65535
+• 扫描时间: 12.3秒
+• 发现开放端口: 5个
+• 过滤端口: 1234个
+• 关闭端口: 54296个
+
+⚠️ 发现潜在安全问题：
+- 端口22 (SSH) 可能存在弱密码漏洞
+- 端口3306 (MySQL) 建议限制访问
+- 端口8080 (Tomcat) 存在默认配置风险`;
+            } else if(command === 'history') {
+                return `📈 扫描历史记录：\n┌────────────────────────────────────┬─────────┬────────────┬──────────┐\n│ 目标IP                  │ 时间            │ 端口数   │ 结果      │\n├────────────────────────────────────┼─────────┼────────────┼──────────┤\n│ 192.168.1.1            │ 2025-11-28 12:30│ 5        │ 完成      │\n│ 10.0.0.1               │ 2025-11-28 11:45│ 12       │ 完成      │\n│ 172.16.1.100           │ 2025-11-28 10:20│ 3        │ 完成      │\n│ 8.8.8.8                │ 2025-11-28 09:15│ 8        │ 完成      │\n└────────────────────────────────────┴─────────┴────────────┴──────────┘\n💾 共保存了 4 条扫描记录`;
+            } else if(command === 'stats') {
+                return `📈 扫描统计信息：\n┌─────────────────┬───────────┐\n│ 统计项目        │ 数值      │\n├─────────────────┼───────────┤\n│ 总扫描次数      │ 127       │\n│ 成功扫描次数    │ 124       │\n│ 失败扫描次数    │ 3         │\n│ 成功率          │ 97.6%     │\n│ 平均扫描时间    │ 8.2秒     │\n│ 总扫描端口数    │ 2,456,789 │\n│ 发现开放端口    │ 15,432    │\n│ 扫描速度        │ 856/秒    │\n└─────────────────┴───────────┘`;
+            } else if(command.startsWith('export ')) {
+                const ip = command.split(' ')[1];
+                return `📁 正在导出扫描报告...
+
+✅ 扫描报告已生成：
+📄 scan_report_${ip.replace(/\./g, '_')}_20251128.txt
+📄 scan_report_${ip.replace(/\./g, '_')}_20251128.json
+
+📈 报告包含：\n• 开放的端口列表\n• 服务版本信息\n• 安全漏洞评估\n• 修复建议\n• 原始扫描数据\n\n💾 报告已保存至模拟文件系统`;
+            } else if(command === 'exit') {
+                return `正在退出端口扫描工具...\n✅ 程序已安全退出`;
+            } else {
+                return `❌ 命令未识别: ${command}\n💡 输入 "help" 查看可用命令\n💡 输入 "clear" 清空屏幕\n💡 输入 "scan 192.168.1.1" 开始扫描`;
+            }
+        }
+        
+        function getDetailedScanResult(ip) {
+            const services = [
+                { port: 21, service: 'FTP', version: 'vsftpd 3.0.3' },
+                { port: 22, service: 'SSH', version: 'OpenSSH 8.0' },
+                { port: 80, service: 'HTTP', version: 'Apache 2.4.41' },
+                { port: 443, service: 'HTTPS', version: 'Apache 2.4.41' },
+                { port: 3306, service: 'MySQL', version: '8.0.25' },
+                { port: 3389, service: 'RDP', version: 'Microsoft Terminal Services' }
+            ];
+            
+            let result = `┌─────────┬─────────┬─────────────────┬──────────────┐\n│ Port    │ State   │ Service         │ Version      │\n├─────────┼─────────┼─────────────────┼──────────────┤\n`;
+            
+            services.forEach(svc => {
+                result += `│ ${svc.port}/tcp  │ OPEN    │ ${svc.service.padEnd(15)} │ ${svc.version.padEnd(12)} │\n`;
+            });
+            
+            result += `└─────────┴─────────┴─────────────────┴──────────────┘\n\n`;
+            
+            result += `🔍 详细分析结果：\n`;
+            result += `• 服务横幅: "${ip}: SSH-2.0-OpenSSH_8.0"\n`;
+            result += `• 操作系统: Linux 5.4+ (基于Nmap指纹)\n`;
+            result += `• 网络延迟: 1.2ms\n`;
+            result += `• 建议: 限制SSH访问，启用防火墙规则\n`;
+            
+            return result;
+        }
+        
+        function getRangeScanResult(range) {
+            const openPorts = [22, 80, 443, 3306, 8080];
+            const totalPorts = range.split('-');
+            const start = parseInt(totalPorts[0]);
+            const end = parseInt(totalPorts[1]);
+            const total = end - start + 1;
+            
+            let result = `端口范围 ${range} 扫描结果：\n\n`;
+            result += `📈 扫描统计：\n`;
+            result += `• 扫描范围: ${total} 个端口\n`;
+            result += `• 开放端口: ${openPorts.length} 个\n`;
+            result += `• 扫描时间: 2.1秒\n\n`;
+            result += `🔍 开放端口详情：\n`;
+            
+            openPorts.forEach(port => {
+                if(port >= start && port <= end) {
+                    result += `  ✓ 端口 ${port}/tcp - OPEN\n`;
+                }
+            });
+            
+            return result;
+        }
+        
+        // 密码破解命令处理
+        function processPasswordCrackCommand(command) {
+            if(command === 'help' || command === '?') {
+                return `🔑 密码破解工具 - 可用命令：
+
+📋 系统命令：
+  help, ?       - 显示帮助信息
+  clear         - 清空屏幕
+  version       - 显示版本信息
+  exit          - 退出程序
+
+🎯 攻击模式：
+  crack <target>    - 破解指定目标密码
+  dict <target>     - 使用字典攻击
+  brute <target>    - 使用暴力破解
+  hybrid <target>   - 混合攻击模式
+  rainbow <target>  - 使用彩虹表攻击
+
+🔧 攻击选项：
+  set wordlist <file>  - 设置字典文件
+  set minlen <num>     - 设置最小密码长度
+  set maxlen <num>     - 设置最大密码长度
+  set charset <chars>  - 设置字符集
+  show options         - 显示当前配置
+
+📁 字典管理：
+  show lists           - 显示可用字典
+  add word <word>      - 添加单词到字典
+  import list <file>   - 导入字典文件
+  export list <file>   - 导出字典文件
+
+💼 任务管理：
+  jobs                 - 显示当前任务
+  stop <jobid>         - 停止指定任务
+  resume <jobid>       - 恢复指定任务
+  history              - 显示破解历史
+
+📈 报告功能：
+  report <target>      - 生成破解报告
+  stats                - 显示统计信息
+
+💡 示例：
+  crack admin
+  dict john_doe
+  brute user123
+  set wordlist /usr/share/wordlists/rockyou.txt`;
+            } else if(command === 'clear') {
+                return ''; // 清空屏幕
+            } else if(command === 'version' || command === '--version') {
+                return `Hashcat v6.2.6 (Mock Version)
+Mock Password Cracker 4.1.0
+Copyright (c) 2025 Mock Security Labs
+支持的攻击模式: 8 (字典、暴力、混合等)`;
+            } else if(command === 'show options' || command === 'options') {
+                return `📈 当前攻击配置：
+┌─────────────────┬─────────────────────┐
+│ 选项            │ 值                  │
+├─────────────────┼─────────────────────┤
+│ 攻击模式        │ 字典攻击            │
+│ 字典文件        │ rockyou.txt         │
+│ 最小长度        │ 1                   │
+│ 最大长度        │ 64                  │
+│ 字符集          │ abcdefghijklmnopqr  │
+│ 线程数          │ 8                   │
+│ 延迟时间        │ 0ms                 │
+│ 超时时间        │ 3600秒              │
+└─────────────────┴─────────────────────┘`;
+            } else if(command === 'show lists' || command === 'lists') {
+                return `📁 可用字典文件：
+┌─────────────────┬────────────┬──────────────┐
+│ 名称            │ 大小       │ 描述         │
+├─────────────────┼────────────┼──────────────┤
+│ rockyou.txt     │ 14.3 GB   │ 常用密码字典 │
+│ common.txt      │ 245 MB    │ 常用单词     │
+│ dates.txt       │ 89 MB     │ 日期密码     │
+│ names.txt       │ 156 MB    │ 姓名密码     │
+│ keyboard.txt    │ 67 MB     │ 键盘序列     │
+│ passwords.txt   │ 412 MB    │ 密码组合     │
+│ top100.txt      │ 2.1 MB    │ TOP 100密码 │
+└─────────────────┴────────────┴──────────────┘
+💾 共加载了 7 个字典文件`;
+            } else if(command === 'jobs') {
+                return `💼 当前运行的任务：
+┌────┬──────────┬────────────┬─────────────┬──────────┐
+│ ID │ 目标     │ 攻击模式   │ 进度        │ 状态     │
+├────┼──────────┼────────────┼─────────────┼──────────┤
+│ 1  │ admin    │ 字典攻击   │ ████████░░ 80%│ 正在运行 │
+│ 2  │ user123  │ 暴力破解   │ ████░░░░░░ 40%│ 正在运行 │
+└────┴──────────┴────────────┴─────────────┴──────────┘
+💡 输入 'stop 1' 停止任务，或 'resume 2' 恢复任务`;
+            } else if(command === 'history') {
+                return `📈 破解历史记录：
+┌────────────────────────────────┬────────────┬────────────┬──────────┐
+│ 目标              │ 时间            │ 攻击方式   │ 结果      │
+├────────────────────────────────┼────────────┼────────────┼──────────┤
+│ john_doe          │ 2025-11-28 12:30│ 字典攻击   │ 成功      │
+│ test_user         │ 2025-11-28 11:45│ 暴力破解   │ 成功      │
+│ admin_panel       │ 2025-11-28 10:20│ 混合攻击   │ 失败      │
+│ db_user           │ 2025-11-28 09:15│ 字典攻击   │ 成功      │
+│ system_admin      │ 2025-11-28 08:30│ 暴力破解   │ 成功      │
+└────────────────────────────────┴────────────┴────────────┴──────────┘
+💾 共保存了 5 条破解记录`;
+            } else if(command === 'stats') {
+                return `📈 破解统计信息：
+┌─────────────────┬───────────┐
+│ 统计项目        │ 数值      │
+├─────────────────┼───────────┤
+│ 总破解次数      │ 2,847     │
+│ 成功破解次数    │ 1,923     │
+│ 失败破解次数    │ 924       │
+│ 成功率          │ 67.5%     │
+│ 平均破解时间    │ 15.2秒    │
+│ 总尝试次数      │ 12,456,789│
+│ 字典命中率      │ 45.2%     │
+│ 暴力破解成功率  │ 23.8%     │
+└─────────────────┴───────────┘`;
+            } else if(command.startsWith('set wordlist')) {
+                const wordlist = command.split(' ')[2];
+                return `✅ 字典文件已设置为: ${wordlist}\n💡 输入 'crack <target>' 开始破解`;
+            } else if(command.startsWith('set minlen')) {
+                const minlen = command.split(' ')[2];
+                return `✅ 最小密码长度已设置为: ${minlen}\n💡 输入 'crack <target>' 开始破解`;
+            } else if(command.startsWith('set maxlen')) {
+                const maxlen = command.split(' ')[2];
+                return `✅ 最大密码长度已设置为: ${maxlen}\n💡 输入 'crack <target>' 开始破解`;
+            } else if(command.startsWith('dict ')) {
+                const target = command.split(' ')[1];
+                return `📜 开始字典攻击 ${target}...
+
+🔄 正在加载字典文件: rockyou.txt (14.3 GB)
+🔄 正在解析目标密码哈希...
+🔄 正在初始化攻击引擎...
+
+字典攻击进行中... [已尝试: 1,234,567 / 8,547,891]
+🔓 攻击进度: ████████░░ 80%
+
+🔍 正在尝试密码:
+  • password123...失败
+  • 123456...失败  
+  • admin...失败
+  • 123456789...失败
+  • qwerty...失败
+  • abc123...失败
+  • password...失败
+  • 111111...失败
+  • 12345678...失败
+
+🔓 攻击进度: ██████████ 100%
+
+✅ 字典攻击完成！
+🎯 目标: ${target}
+🔓 破解状态: 成功
+🔑 破解密码: ${generateRandomPassword()}
+⏱️ 破解用时: 2分34秒
+📈 尝试次数: 2,456,789 次
+
+⚠️ 安全建议:
+- 立即更改弱密码
+- 启用强密码策略
+- 实施多因素认证
+- 定期更换密码`;
+            } else if(command.startsWith('brute ')) {
+                const target = command.split(' ')[1];
+                return `💪 开始暴力破解 ${target}...
+
+💪 暴力破解进行中...
+
+🔄 正在生成密码组合...
+🔄 正在设置字符集: abcdefghijklmnopqrstuvwxyz0123456789
+🔄 正在计算总可能性: ~7.2万亿个组合
+
+暴力破解进度:
+密码长度 1: ██████████ 100% (26个密码)
+密码长度 2: ██████████ 100% (1,296个密码)
+密码长度 3: ██████████ 100% (46,656个密码)
+密码长度 4: ██████████ 100% (1,679,616个密码)
+密码长度 5: ██████████ 100% (60,466,176个密码)
+密码长度 6: ██████████ 100% (2,176,782,336个密码)
+密码长度 7: ████████░░ 80% (17,248,000,000个密码)
+
+🔓 破解进度: ████████░░ 80%
+
+🔍 正在尝试密码组合:
+  • aaaaaa...失败
+  • aaaaab...失败
+  • aaaaac...失败
+  • ...
+  • 密码空间过大，预计需要数年时间
+  • 建议使用更高效的破解方法
+
+⚠️ 暴力破解警告：
+由于密码空间庞大，暴力破解可能需要很长时间。建议使用字典攻击或混合攻击。`;
+            } else if(command.startsWith('hybrid ')) {
+                const target = command.split(' ')[1];
+                return `🌊 开始混合攻击 ${target}...
+
+🌊 混合攻击结合了字典攻击和变异密码...
+
+🔄 正在加载基础字典: common.txt
+🔄 正在设置变异规则...
+
+变异规则:
+  • 末尾添加数字 (0-9999)
+  • 首字母大写
+  • 添加特殊字符 (!@#$)
+  • 键盘序列组合
+
+混合攻击进行中...
+🔓 攻击进度: ██████████ 100%
+
+🔍 正在尝试变异密码:
+  • password123...失败
+  • Password...失败
+  • password!...失败
+  • qwerty123...失败
+  • admin1234...失败
+  • letmein1...失败
+  • password1...✅ 成功！
+
+🎉 混合攻击成功！
+🎯 目标: ${target}
+🔓 破解密码: password1
+⏱️ 破解用时: 45.2秒
+📈 尝试次数: 1,234 个变异组合
+
+📊 变异统计:
+  • 基础字典: 50,000 个单词
+  • 成功变异: 2,156 个密码
+  • 最终匹配: password1 (password + 1)
+
+⚠️ 建议: 避免使用简单的密码组合`;
+            } else if(command.startsWith('rainbow ')) {
+                const target = command.split(' ')[1];
+                return `🌈 开始彩虹表攻击 ${target}...
+
+🌈 彩虹表包含预计算的密码哈希值...
+
+🔄 正在加载彩虹表: NT LM Rainbow Tables (4.7 GB)
+🔄 正在初始化哈希查承表...
+🔄 正在准备索引结构...
+
+彩虹表攻击进行中...
+🔓 搜索进度: ██████████ 100%
+
+🔍 正在查承哈希值:
+  • 0x1a2b3c4d...查承中...
+  • 0x5e6f7g8h...查承中...
+  • 0x9i0j1k2l...查承中...
+  • 0x3m4n5o6p...匹配成功！
+
+✅ 彩虹表攻击成功！
+🎯 目标: ${target}
+🔓 破解密码: administrator
+⏱️ 破解用时: 0.03秒
+📈 尝试次数: 1 次查承操作
+
+⚡ 彩虹表优势:
+  • 极快的查承速度
+  • 预计算哈希值
+  • 无需实时计算
+  • 适合常见密码哈希
+
+⚠️ 限制: 仅对弱密码有效，无法破解强密码`;
+            } else if(command.startsWith('crack ')) {
+                const target = command.split(' ')[1];
+                return `🔓 开始破解 ${target} 的密码...
+
+🔄 正在检测密码哈希类型...
+🔄 正在选择最佳攻击策略...
+🔄 正在初始化破解引擎...
+
+🎯 检测结果:
+  • 哈希类型: MD5
+  • 密码长度: 11位
+  • 字符集: 数字 + 小写字母
+  • 复杂度: 中等
+
+🔓 开始混合攻击模式...
+
+🔍 阶段 1/3: 字典攻击... ██████████ 100%
+🔍 阶段 2/3: 暴力破解... ████░░░░░ 40%
+🔍 阶段 3/3: 混合攻击... ██████████ 100%
+
+🔍 正在尝试密码:
+  • admin123...失败
+  • password123...失败
+  • ${target}_2025...失败
+  • welcome1...失败
+  • ${target}001...失败
+  • ${generateRandomPassword()}...✅ 成功！
+
+🎉 密码破解成功！
+🎯 目标: ${target}
+🔓 破解密码: ${generateRandomPassword()}
+⏱️ 破解用时: ${Math.floor(Math.random() * 300) + 30}秒
+📈 尝试次数: ${Math.floor(Math.random() * 1000000) + 50000}次
+
+🔑 密码强度分析:
+  • 熵值: 45.2 bits
+  • 安全性: 中等
+  • 可被破解: 是
+  • 建议强度: 强
+
+⚠️ 安全建议:
+  • 立即更改弱密码
+  • 使用密码管理器
+  • 启用双因素认证
+  • 定期更换密码`;
+            } else if(command.startsWith('report ')) {
+                const target = command.split(' ')[1];
+                return `📁 正在生成破解报告...
+
+✅ 报告已生成: crack_report_${target}_20251128.txt
+
+📈 报告内容:
+• 破解目标: ${target}
+• 攻击方式: 混合攻击
+• 破解状态: 成功
+• 破解密码: ${generateRandomPassword()}
+• 攻击时间: ${new Date().toLocaleString()}
+• 尝试次数: ${Math.floor(Math.random() * 100000) + 10000}
+• 成功率: 100%
+• 安全评估: 中等风险
+
+📄 报告已保存至模拟文件系统`;
+            } else if(command.startsWith('stop ')) {
+                const jobId = command.split(' ')[1];
+                return `🛑 正在停止任务 ${jobId}...
+
+✅ 任务 ${jobId} 已成功停止
+💡 输入 'resume ${jobId}' 可恢复任务`;
+            } else if(command.startsWith('resume ')) {
+                const jobId = command.split(' ')[1];
+                return `🔄 正在恢复任务 ${jobId}...
+
+✅ 任务 ${jobId} 已成功恢复
+🔄 攻击正在继续...`;
+            } else if(command === 'exit') {
+                return `正在退出密码破解工具...
+✅ 程序已安全退出`;
+            } else {
+                return `❌ 命令未识别: ${command}\n💡 输入 "help" 查看可用命令\n💡 输入 "clear" 清空屏幕\n💡 输入 "crack admin" 开始破解`;
+            }
+        }
+        
+        function generateRandomPassword() {
+            const passwords = [
+                'password123', 'admin123', 'welcome1', 'qwerty123', 
+                'letmein1', 'monkey123', 'dragon123', 'football123',
+                'baseball123', 'master123', 'hello123', 'freedom123'
+            ];
+            return passwords[Math.floor(Math.random() * passwords.length)];
+        }
+        
+        // 网络扫描命令处理
+        function processNetworkScanCommand(command) {
+            if(command.startsWith('scan ')) {
+                const network = command.split(' ')[1];
+                return `开始扫描网络 ${network}...
+🌐 扫描进度: ██████████ 100%
+
+发现活动主机：
+┌─────────────────┬─────────┬─────────────────┐
+│ IP Address      │ Status  │ Hostname        │
+├─────────────────┼─────────┼─────────────────┤
+│ 192.168.1.1     │ UP      │ Router          │
+│ 192.168.1.100   │ UP      │ Desktop-PC      │
+│ 192.168.1.150   │ UP      │ Android-Phone   │
+│ 192.168.1.200   │ UP      │ Laptop          │
+└─────────────────┴─────────┴─────────────────┘
+📊 扫描完成，发现 4 台活动设备`;
+            } else if(command === 'help') {
+                return `可用命令：
+scan <网段>: 扫描指定网段的活动主机
+help: 显示帮助信息`;
+            } else {
+                return `命令未识别: ${command}`;
+            }
+        }
+        
+        // 防火墙绕过命令处理
+        function processFirewallBypassCommand(command) {
+            if(command.startsWith('bypass ')) {
+                const target = command.split(' ')[1];
+                return `开始绕过防火墙 ${target}...
+🛡️ 分析防火墙规则...
+🛡️ 尝试端口转发...
+🛡️ 尝试隧道穿透...
+🛡️ 尝试协议伪装...
+进度: ██████████ 100%
+✅ 防火墙绕过成功！
+🔓 已建立加密隧道
+⚠️ 建议立即加强防火墙配置！`;
+            } else if(command === 'help') {
+                return `可用命令：
+bypass <目标IP>: 尝试绕过目标防火墙
+help: 显示帮助信息`;
+            } else {
+                return `命令未识别: ${command}`;
+            }
+        }
+        
+        // SQL注入命令处理
+        function processSqlInjectionCommand(command) {
+            if(command.startsWith('inject ')) {
+                const url = command.split(' ')[1];
+                return `开始SQL注入测试 ${url}...
+💉 检测输入点...
+💉 测试单引号注入...
+💉 测试UNION查询...
+💉 测试布尔盲注...
+进度: ██████████ 100%
+🎯 SQL注入成功！
+📊 提取数据表结构：
+┌─────────────┐
+│ users       │
+│ passwords   │
+│ emails      │
+│ admin_data  │
+└─────────────┘
+⚠️ 建议立即修复SQL注入漏洞！`;
+            } else if(command === 'help') {
+                return `可用命令：
+inject <URL>: 测试目标URL的SQL注入漏洞
+help: 显示帮助信息`;
+            } else {
+                return `命令未识别: ${command}`;
+            }
+        }
+        
+        // DDoS攻击命令处理
+        function processDdosAttackCommand(command) {
+            if(command.startsWith('attack ')) {
+                const target = command.split(' ')[1];
+                return `启动DDoS攻击 ${target}...
+⚡ 连接僵尸网络...
+⚡ 分发攻击任务...
+⚡ 启动SYN Flood...
+⚡ 启动UDP Flood...
+⚡ 启动HTTP Flood...
+进度: ██████████ 100%
+💥 目标服务器响应变慢！
+📊 攻击统计：
+- 已发送: 1,000,000+ 请求包
+- 目标CPU使用率: 95%
+- 目标内存使用率: 88%
+⚠️ 请注意：这是模拟演示，请勿进行真实攻击！`;
+            } else if(command === 'help') {
+                return `可用命令：
+attack <目标>: 启动DDoS攻击模拟
+help: 显示帮助信息`;
+            } else {
+                return `命令未识别: ${command}`;
+            }
+        }
+        
+        // 木马植入命令处理
+        function processMalwareUploadCommand(command) {
+            if(command.startsWith('upload ')) {
+                const target = command.split(' ')[1];
+                return `开始木马植入 ${target}...
+🐎 生成木马程序...
+🐎 伪造合法签名...
+🐎 绕过杀毒软件...
+🐎 建立持久化机制...
+进度: ██████████ 100%
+✅ 木马植入成功！
+🔓 建立反向shell连接
+📱 目标主机已被控制
+⚠️ 建议立即进行安全审计！`;
+            } else if(command === 'help') {
+                return `可用命令：
+upload <目标IP>: 向目标主机植入木马
+help: 显示帮助信息`;
+            } else {
+                return `命令未识别: ${command}`;
+            }
+        }
+        
+        // 数据泄露命令处理
+        function processDataBreachCommand(command) {
+            if(command.startsWith('breach ')) {
+                const db = command.split(' ')[1];
+                return `开始数据泄露攻击 ${db}...
+📊 定位敏感数据...
+📊 破解访问权限...
+📊 导出用户数据...
+📊 压缩传输文件...
+进度: ██████████ 100%
+💾 数据导出成功！
+📈 泄露数据统计：
+- 用户记录: 1,234,567 条
+- 密码哈希: 987,654 个
+- 信用卡信息: 456,789 张
+- 个人信息: 2,000,000+ 条
+⚠️ 请立即加强数据安全防护！`;
+            } else if(command === 'help') {
+                return `可用命令：
+breach <数据库>: 模拟数据泄露攻击
+help: 显示帮助信息`;
+            } else {
+                return `命令未识别: ${command}`;
+            }
+        }
+        
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            createMatrixBg();
+        });
+        
+        // 响应式调整
+        window.addEventListener('resize', function() {
+            const canvas = document.querySelector('#matrixBg canvas');
+            if(canvas) {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            }
+        });
+    </script>
+</body>
+</html>

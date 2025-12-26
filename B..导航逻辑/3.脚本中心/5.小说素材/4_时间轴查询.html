@@ -1,0 +1,464 @@
+<!DOCTYPE html> 
+<html lang="zh-CN"> 
+<head>
+<meta charset="UTF-8"> 
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>时间轴查询- 穿越古今</title> 
+<style>
+* {
+margin: 0; padding: 0; box-sizing: border-box;
+}
+body {
+font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Microsoft YaHei', sans-serif;
+min-height: 100vh; overflow-x: hidden; position: relative; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+font-size: 12px;
+}
+.container {
+position: relative; z-index: 1; max-width: 1800px; margin: 0 auto; padding: 5px 5px 20px; min-height: 100vh; display: flex; flex-direction: column;
+}
+header {
+text-align: center; color: white; margin-bottom: 8px; position: relative;
+}
+header h1 {
+font-size: 1.4rem; margin-bottom: 4px; background: linear-gradient(45deg, #fff, #ffd700, #fff); background-size: 200% 200%; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-weight: 800; letter-spacing: 1px; text-shadow: 0 0 20px rgba(255, 215, 0, 0.3); animation: shimmer 3s ease-in-out infinite;
+}
+@keyframes shimmer {
+0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; }
+}
+.subtitle {
+font-size: 0.75rem; color: rgba(255, 255, 255, 0.9); font-weight: 300; letter-spacing: 0.5px;
+}
+.category-tabs {
+display: flex; justify-content: center; gap: 6px; margin-bottom: 8px; flex-wrap: wrap;
+}
+.category-tab {
+background: rgba(255, 255, 255, 0.15); border: 2px solid rgba(255, 255, 255, 0.3); border-radius: 15px; padding: 4px 12px; cursor: pointer; font-size: 11px; color: white; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); backdrop-filter: blur(15px); font-weight: 600;
+letter-spacing: 0.3px; position: relative; overflow: hidden;
+}
+.category-tab::before {
+content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+transition: left 0.6s;
+}
+.category-tab:hover::before {
+left: 100%;
+}
+.category-tab:hover {
+background: rgba(255, 255, 255, 0.25); border-color: rgba(255, 255, 255, 0.5); transform: translateY(-1px); box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+}
+.category-tab.active {
+background: linear-gradient(135deg, #ffd700, #ffed4e); color: #333; border-color: #ffd700; box-shadow: 0 5px 25px rgba(255, 215, 0, 0.4); transform: scale(1.02);
+}
+.nav-grid {
+display: grid; 
+grid-template-columns: repeat(2, 1fr); 
+gap: 4px; 
+flex: 1; 
+align-content: start; 
+padding: 5px 0;
+}
+.dual-card {
+background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.85));
+backdrop-filter: blur(20px); 
+border-radius: 6px; 
+padding: 0; 
+cursor: pointer; 
+transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+position: relative; 
+overflow: hidden; 
+border: 1px solid rgba(255, 255, 255, 0.3); 
+box-shadow: 0 2px 10px rgba(31, 38, 135, 0.12); 
+display: flex; 
+min-height: 45px;
+}
+.dual-card::before {
+content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, #667eea, #764ba2, #667eea);
+background-size: 200% 100%; animation: gradient 3s ease infinite;
+}
+@keyframes gradient {
+0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; }
+}
+.dual-card:hover {
+transform: translateY(-1px) scale(1.005); box-shadow: 0 4px 20px rgba(31, 38, 135, 0.2);
+}
+.tool-item {
+flex: 1; 
+padding: 6px 8px; 
+display: flex;
+flex-direction: column; 
+align-items: flex-start; 
+justify-content: center; 
+text-align: left; 
+position: relative; 
+transition: all 0.3s ease;
+}
+.tool-item:first-child {
+border-right: 1px solid rgba(0, 0, 0, 0.08);
+flex: 0.8;
+}
+.tool-item:hover {
+background: rgba(103, 126, 234, 0.05);
+}
+.tool-icon {
+font-size: 0.9rem; 
+margin-bottom: 2px; 
+display: block; 
+background: linear-gradient(135deg, #667eea, #764ba2); 
+-webkit-background-clip: text; 
+-webkit-text-fill-color: transparent; 
+background-clip: text;
+}
+.tool-title {
+font-size: 0.65rem; 
+font-weight: 600; 
+color: #2d3748; 
+line-height: 1.1;
+word-break: break-word;
+}
+.tool-year {
+font-size: 0.55rem; 
+color: #718096; 
+margin-top: 1px; 
+font-weight: 500;
+}
+.pagination {
+display: flex; justify-content: center; align-items: center;
+gap: 6px; margin-top: 10px; padding: 8px 0;
+}
+.pagination button {
+background: rgba(255, 255, 255, 0.9); border: 2px solid rgba(255, 255, 255, 0.3); border-radius: 6px; padding: 4px 12px; cursor: pointer; font-size: 11px; color: #333; transition: all 0.3s ease; font-weight: 600; backdrop-filter: blur(10px);
+}
+.pagination button:hover {
+background: rgba(255, 255, 255, 1); transform: translateY(-1px); box-shadow: 0 3px 15px rgba(0, 0, 0, 0.2);
+}
+.pagination button:disabled {
+opacity: 0.4; cursor: not-allowed; transform: none;
+}
+.pagination .page-info {
+color: white; font-size: 11px; background: rgba(0, 0, 0, 0.4); padding: 4px 12px; border-radius: 6px; font-weight: 600; backdrop-filter: blur(10px);
+}
+.loading {
+text-align: center; color: white; font-size: 0.9rem;
+padding: 20px; background: rgba(0, 0, 0, 0.3); border-radius: 10px; backdrop-filter: blur(15px); margin: 10px auto; max-width: 200px;
+}
+.empty-state {
+text-align: center; color: white; padding: 30px 15px; background: rgba(255, 255, 255, 0.1); border-radius: 15px; backdrop-filter: blur(15px); margin: 10px auto; max-width: 300px;
+}
+.empty-state h2 {
+font-size: 1.2rem; margin-bottom: 6px; color: white;
+}
+.empty-state p {
+font-size: 0.8rem; color: rgba(255, 255, 255, 0.9);
+}
+.dynasty-badge {
+display: inline-block; background: linear-gradient(135deg, #e74c3c, #c0392b); color: white; padding: 1px 3px; border-radius: 4px; font-size: 0.45rem; margin-left: 2px; font-weight: 600;
+}
+@media (max-width: 768px) {
+header h1 { font-size: 1.2rem; } 
+.dual-card { min-height: 40px; }
+.tool-item { padding: 5px 6px; }
+.tool-icon { font-size: 0.8rem; } 
+.tool-title { font-size: 0.6rem; } 
+.category-tabs { gap: 4px; } 
+.category-tab { padding: 4px 10px; font-size: 10px; }
+}
+@media (max-width: 480px) {
+header h1 { font-size: 1rem; } 
+.tool-item { padding: 4px 5px; } 
+.tool-icon { font-size: 0.75rem; } 
+.tool-title { font-size: 0.55rem; }
+.tool-year { font-size: 0.5rem; }
+.dual-card { min-height: 35px; }
+}
+</style> 
+</head> 
+<body>
+<div class="container">
+<header>
+<h1 data-text="时间轴查询">时间轴查询</h1> 
+<div class="subtitle">穿越古今，探索历史长河</div> 
+</header>
+<div class="category-tabs" id="categoryTabs">
+<button class="category-tab active" onclick="switchCategory('universe')">🌌宇宙起源</button>
+<button class="category-tab" onclick="switchCategory('earth')">🌍地球演化</button>
+<button class="category-tab" onclick="switchCategory('human')">🏛️人类文明</button>
+<button class="category-tab" onclick="switchCategory('china')">🐉中华历史</button>
+</div>
+<div class="loading" id="loading" style="display: none;">
+<div>🔄正在加载时间轴数据...</div> 
+</div>
+<div class="nav-grid" id="navGrid">
+</div>
+<div class="pagination" id="pagination">
+<button id="prevBtn" onclick="changePage(-1)"> ⬅️ 上一页</button>
+<span class="page-info" id="pageInfo">1 / 1</span>
+<button id="nextBtn" onclick="changePage(1)"> 下一页 ➡️</button>
+</div>
+<div class="empty-state" id="emptyState" style="display: none;">
+<h2> 暂无数据</h2>
+<p>时间轴数据加载失败</p> 
+</div> 
+</div>
+<script src="/db.js"></script>
+<script src="4_时间轴配置.js"></script> 
+<script>
+// 随机渐变背景数组
+const gradients = [
+'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', 
+'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', 
+'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', 
+'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)', 
+'linear-gradient(135deg, #fa709a 0%, #fee140 100%)', 
+'linear-gradient(135deg, #30cfd0 0%, #330867 100%)', 
+'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)', 
+'linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)', 
+'linear-gradient(135deg, #fbc2eb 0%, #a6c1ee 100%)', 
+'linear-gradient(135deg, #fdcbf1 0%, #e6dee9 100%)' 
+]; 
+// 设置随机背景
+document.body.style.background = gradients[Math.floor(Math.random() * gradients.length)];
+
+// 分页相关变量
+let currentPage = 1;
+let itemsPerPage = 60; // 增加每页显示数量
+let currentCategory = 'universe'; 
+let allData = {};
+let currentData = [];
+
+// 缓存管理
+class CacheManager {
+    static set(key, data) {
+        try {
+            localStorage.setItem(key, JSON.stringify(data)); 
+        } catch (e) {
+            console.log('缓存存储失败');
+        }
+    }
+    static get(key) {
+        try {
+            const data = localStorage.getItem(key); 
+            return data ? JSON.parse(data) : null; 
+        } catch (e) {
+            return null;
+        }
+    }
+}
+
+// 时间排序函数
+function sortByYear(data) {
+    return data.sort((a, b) => {
+        const yearA = parseYear(a.year); 
+        const yearB = parseYear(b.year); 
+        return yearA - yearB; 
+    }); 
+}
+
+// 解析年份字符串为数字
+function parseYear(yearStr) {
+    if (typeof yearStr !== 'string') return 0;
+    // 处理公元前
+    if (yearStr.includes('公元前')) {
+        const num = parseInt(yearStr.replace(/[^\d]/g, '')); 
+        return -num;
+    }
+    // 处理公元后
+    if (yearStr.includes('公元')) {
+        const num = parseInt(yearStr.replace(/[^\d]/g, '')); 
+        return num;
+    }
+    // 处理纯数字年份（如"138 亿年前"）
+    const num = parseInt(yearStr.replace(/[^\d]/g, '')); 
+    return isNaN(num) ? 0 : num;
+}
+
+// 初始化应用
+class TimelineApp {
+    constructor() {
+        this.init();
+    }
+    
+    async init() {
+        // 显示加载状态
+        document.getElementById('loading').style.display = 'block';
+        document.getElementById('navGrid').style.display = 'none';
+        document.getElementById('pagination').style.display = 'none';
+        
+        // 先尝试从数据库加载
+        await this.loadFromDatabase();
+    }
+    
+    async loadFromDatabase() {
+        try {
+            console.log('尝试从数据库加载时间轴配置...');
+            const configData = await IDB.get('E_timelineConfig', 'userdata');
+            
+            if (configData) {
+                console.log('数据库命中，使用缓存配置');
+                allData = configData;
+            } else {
+                console.log('数据库未命中，从配置文件加载');
+                // 从配置文件加载
+                await this.loadFromConfig();
+            }
+            
+            // 缓存到localStorage
+            CacheManager.set('timelineData', allData);
+            
+            // 隐藏加载状态，显示内容
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('navGrid').style.display = 'grid';
+            document.getElementById('pagination').style.display = 'flex';
+            
+            // 切换到默认分类
+            this.switchToCategory('universe');
+            
+        } catch (error) {
+            console.error('加载数据失败:', error);
+            // 如果数据库加载失败，尝试从配置文件加载
+            await this.loadFromConfig();
+        }
+    }
+    
+    async loadFromConfig() {
+        // 等待配置加载完成
+        if (typeof window.timelineConfig === 'undefined') {
+            console.log('等待配置文件加载...');
+            await new Promise(resolve => {
+                const checkConfig = () => {
+                    if (typeof window.timelineConfig !== 'undefined') {
+                        resolve();
+                    } else {
+                        setTimeout(checkConfig, 100);
+                    }
+                };
+                checkConfig();
+            });
+        }
+        
+        console.log('从配置文件加载数据');
+        allData = {
+            universe: window.timelineConfig.getUniverseData(),
+            earth: window.timelineConfig.getEarthData(),
+            human: window.timelineConfig.getHumanData(),
+            china: window.timelineConfig.getChinaData()
+        };
+        
+        // 保存到数据库
+        try {
+            await IDB.put('E_timelineConfig', allData, 'userdata');
+            console.log('配置已保存到数据库');
+        } catch (e) {
+            console.log('保存到数据库失败');
+        }
+    }
+    
+    showError() {
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('navGrid').style.display = 'none';
+        document.getElementById('pagination').style.display = 'none';
+        document.getElementById('emptyState').style.display = 'block';
+    }
+    
+    switchToCategory(category) {
+        currentCategory = category; 
+        currentData = allData[category] || [];
+        
+        // 对数据进行时间排序
+        currentData = sortByYear(currentData);
+        currentPage = 1; 
+        this.renderNavigation();
+        
+        // 更新标签状态
+        document.querySelectorAll('.category-tab').forEach(tab => {
+            tab.classList.remove('active'); 
+        }); 
+        event.target.classList.add('active');
+    }
+    
+    renderNavigation() {
+        const navGrid = document.getElementById('navGrid');
+        
+        // 计算分页
+        const startIndex = (currentPage - 1) * itemsPerPage; 
+        const endIndex = startIndex + itemsPerPage; 
+        const pageData = currentData.slice(startIndex, endIndex);
+        
+        navGrid.innerHTML = pageData.map((item, index) => {
+            if (currentCategory === 'human' || currentCategory === 'china') {
+                // 人类文明和中华历史特殊处理：时间在前，描述在后
+                return `
+                <div class="dual-card">
+                    <div class="tool-item">
+                        <span class="tool-icon">🇨🇳</span> 
+                        <div class="tool-year">${item.year}</div>
+                        <div class="tool-title">${item.china}${item.dynasty ? `<span class="dynasty-badge">${item.dynasty}</span>` : ''}</div>
+                    </div> 
+                    <div class="tool-item">
+                        <span class="tool-icon">🌍</span> 
+                        <div class="tool-year">${item.year}</div>
+                        <div class="tool-title">${item.world}</div>
+                    </div> 
+                </div>`; 
+            } else {
+                // 宇宙和地球部分
+                return `
+                <div class="dual-card">
+                    <div class="tool-item" onclick="navigateToDetail('${item.id}')">
+                        <span class="tool-icon">${item.icon || '📅'}</span>
+                        <div class="tool-year">${item.year}</div>
+                        <div class="tool-title">${item.title}</div>
+                    </div> 
+                </div>`; 
+            }
+        }).join(''); 
+        
+        this.updatePagination();
+    }
+    
+    updatePagination() {
+        const totalPages = Math.ceil(currentData.length / itemsPerPage);
+        const pageInfo = document.getElementById('pageInfo'); 
+        const prevBtn = document.getElementById('prevBtn'); 
+        const nextBtn = document.getElementById('nextBtn');
+        
+        pageInfo.textContent = `${currentPage} / ${totalPages}`; 
+        prevBtn.disabled = currentPage === 1; 
+        nextBtn.disabled = currentPage === totalPages;
+    }
+}
+
+// 切换分类
+function switchCategory(category) {
+    app.switchToCategory(category);
+}
+
+// 切换页面
+function changePage(direction) {
+    const totalPages = Math.ceil(currentData.length / itemsPerPage); 
+    const newPage = currentPage + direction;
+    
+    if (newPage >= 1 && newPage <= totalPages) {
+        currentPage = newPage; 
+        app.renderNavigation();
+    }
+}
+
+// 导航到详情
+function navigateToDetail(id) {
+    console.log('查看详情:', id);
+}
+
+// 启动应用
+let app; 
+document.addEventListener('DOMContentLoaded', () => {
+    app = new TimelineApp();
+});
+
+// 确保配置文件加载完成后再初始化
+window.addEventListener('load', () => {
+    if (!app) {
+        app = new TimelineApp();
+    }
+});
+</script> 
+</body> 
+</html>

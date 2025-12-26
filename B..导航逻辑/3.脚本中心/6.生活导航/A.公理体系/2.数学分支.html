@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数学分支</title>
+    <script src="../A.插件_字体缩放.js"></script>
+    <style>
+        :root {
+            --primary-color: #6366f1;
+            --secondary-color: #8b5cf6;
+            --accent-color: #a78bfa;
+            --text-color: #1e293b;
+            --text-secondary: #64748b;
+            --bg-color: #f0f4ff;
+            --border-color: #e2e8f0;
+            --hover-bg: #e9d5ff;
+            --code-bg: #ffffff;
+            --tree-line: #a78bfa;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+            font-size: 15.6px;  /* 13px * 1.2 = 15.6px */
+            line-height: 1.5;
+            color: #334155;
+            background: linear-gradient(135deg, #f3e7fc 0%, #e0e7ff 50%, #fce7f3 100%);
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: rgba(255, 255, 255, 0.9);
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(99, 102, 241, 0.15);
+            margin: 10px;
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: #fff;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-color);
+            flex-shrink: 0;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        header::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+            animation: shimmer 3s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+        .header-content {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            flex: 1;
+        }
+
+        header h1 {
+            font-size: 21.6px;  /* 18px * 1.2 = 21.6px */
+            font-weight: 600;
+            margin-bottom: 4px;
+            position: relative;
+        }
+
+        header p {
+            opacity: 0.9;
+            font-size: 14.4px;  /* 12px * 1.2 = 14.4px */
+            position: relative;
+        }
+
+        .header-search {
+            position: relative;
+            z-index: 10;
+        }
+
+        #searchInput {
+            padding: 6px 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background-color: rgba(248, 250, 252, 0.8);
+            color: #334155;
+            font-size: 14.4px;  /* 12px * 1.2 = 14.4px */
+            font-family: inherit;
+            width: 180px;
+            transition: all 0.3s;
+        }
+
+        #searchInput:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 2px rgba(167, 139, 250, 0.3);
+        }
+
+        .controls {
+            padding: 10px 16px;
+            background-color: var(--code-bg);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 4px;
+        }
+
+        .controls button {
+            background: linear-gradient(135deg, var(--accent-color), var(--secondary-color));
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 14.4px;  /* 12px * 1.2 = 14.4px */
+            font-family: inherit;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .controls button:hover {
+            background: linear-gradient(135deg, var(--secondary-color), var(--primary-color));
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+
+        .tree-container {
+            flex: 1;
+            padding: 12px;
+            overflow: auto;
+            background-color: rgba(248, 250, 252, 0.3);
+        }
+
+        .tree-container::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .tree-container::-webkit-scrollbar-thumb {
+            background: var(--primary-color);
+            border-radius: 4px;
+        }
+
+        .tree ul {
+            list-style-type: none;
+            padding-left: 16px;
+            margin: 0;
+        }
+
+        .tree li {
+            position: relative;
+            padding: 1px 0;
+            white-space: nowrap;
+        }
+
+        .tree li::before {
+            content: "";
+            position: absolute;
+            left: -10px;
+            top: 8px;
+            width: 10px;
+            height: 1px;
+            background-color: var(--tree-line);
+        }
+
+        .tree li::after {
+            content: "";
+            position: absolute;
+            left: -10px;
+            top: -2px;
+            width: 1px;
+            height: 100%;
+            background-color: var(--tree-line);
+        }
+
+        .tree li:last-child::after {
+            height: 10px;
+        }
+
+        .tree > ul > li::before, .tree > ul > li::after {
+            display: none;
+        }
+
+        .tree-node {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            padding: 2px 4px;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        .tree-node:hover {
+            background-color: var(--hover-bg);
+        }
+
+        .tree-content {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            min-width: 0;
+        }
+
+        .tree-name {
+            font-weight: 500;
+            font-size: 15.6px;  /* 13px * 1.2 = 15.6px */
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: #1e293b;
+        }
+
+        .folder-content .tree-name::before {
+            content: '▼';
+            display: inline-block;
+            width: 12px;
+            margin-right: 6px;
+            font-size: 12px;  /* 10px * 1.2 = 12px */
+            color: var(--primary-color);
+        }
+
+        .collapsed .folder-content .tree-name::before {
+            content: '▶';
+        }
+
+        .file-content .tree-name::before {
+            content: '📐';
+            display: inline-block;
+            width: 12px;
+            margin-right: 6px;
+            font-size: 12px;  /* 10px * 1.2 = 12px */
+        }
+
+        .collapsed > ul {
+            display: none;
+        }
+
+        .highlight {
+            background: linear-gradient(135deg, var(--accent-color), var(--secondary-color));
+            padding: 0 3px;
+            border-radius: 3px;
+            color: #fff;
+        }
+
+        footer {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 8px 16px;
+            text-align: center;
+            font-size: 12px;  /* 10px * 1.2 = 12px */
+            border-top: 1px solid var(--border-color);
+            flex-shrink: 0;
+        }
+
+        @media (max-width: 768px) {
+            body { font-size: 14.4px; }  /* 12px * 1.2 = 14.4px */
+            header h1 { font-size: 19.2px; }  /* 16px * 1.2 = 19.2px */
+            header p { font-size: 13.2px; }  /* 11px * 1.2 = 13.2px */
+            .tree ul { padding-left: 14px; }
+            .tree li { padding: 0.5px 0; }
+            .tree-name { font-size: 14.4px; }  /* 12px * 1.2 = 14.4px */
+            #searchInput { width: 140px; font-size: 13.2px; }  /* 11px * 1.2 = 13.2px */
+            .controls button { font-size: 13.2px; padding: 5px 10px; }  /* 11px * 1.2 = 13.2px */
+        }
+
+        @media (max-width: 480px) {
+            body { font-size: 15.6px; }  /* 13px * 1.2 = 15.6px */
+            header h1 { font-size: 16.8px; }  /* 14px * 1.2 = 16.8px */
+            header p { font-size: 12px; }  /* 10px * 1.2 = 12px */
+            .tree ul { padding-left: 12px; }
+            .tree li { padding: 0; }
+            .tree-node { padding: 1px 3px; }
+            .tree-name { font-size: 13.2px; }  /* 11px * 1.2 = 13.2px */
+            .tree-container { padding: 8px; }
+            .controls { padding: 8px 12px; }
+            #searchInput { width: 120px; font-size: 12px; padding: 4px 8px; }  /* 10px * 1.2 = 12px */
+            .controls button { font-size: 12px; padding: 4px 8px; }  /* 10px * 1.2 = 12px */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <h1>数学分支</h1>
+                <p>Mathematics Knowledge Manual (2025-12-20)</p>
+            </div>
+            <div class="header-search">
+                <input type="text" id="searchInput" placeholder="搜索知识点...">
+            </div>
+        </header>
+        
+        <div class="controls">
+            <div class="action-buttons">
+                <button id="expandAll">展开全部</button>
+                <button id="collapseAll">折叠全部</button>
+            </div>
+        </div>
+        
+        <div class="tree-container">
+            <div class="tree" id="treeContainer"></div>
+        </div>
+        
+        <footer>
+            <p>© 2025 数学知识手册 | Generated by 凉安</p>
+        </footer>
+    </div>
+
+    <script>
+        // 数学知识树形数据
+        const treeData = [
+            {
+                name: "1️⃣代数学(Algebra)",
+                children: [
+                    { name: "1️⃣.1️⃣初等代数(Elementary Algebra)", children: ["实数/复数运算", "方程求解"] },
+                    { name: "1️⃣.2️⃣抽象代数(Abstract Algebra)", children: ["群/环/域理论"] },
+                    { name: "1️⃣.3️⃣变量与函数研究", children: ["变量", "函数", "斜率", "多项式"] },
+                    { name: "1️⃣.4️⃣负数与无理数", children: ["负数运算", "π"] }
+                ]
+            },
+            {
+                name: "2️⃣几何学(Geometry)",
+                children: [
+                    { name: "2️⃣.1️⃣欧几里得几何", children: ["平面/立体几何", "笛卡尔坐标", "数据绘图"] },
+                    { name: "2️⃣.2️⃣非欧几何", children: ["黎曼/罗氏几何"] },
+                    { name: "2️⃣.3️⃣代数几何", children: ["曲线/曲面代数分析"] },
+                    { name: "2️⃣.4️⃣拓扑学", children: ["连续变形不变性", "度量空间", "纽结理论", "四色定理"] },
+                    { name: "2️⃣.5️⃣圆形几何", children: ["单位圆", "弧度制", "三角函数"] }
+                ]
+            },
+            {
+                name: "3️⃣分析学(Mathematical Analysis)",
+                children: [
+                    { name: "3️⃣.1️⃣微积分(Calculus)", children: ["导数/积分", "极限"] },
+                    { name: "3️⃣.2️⃣实分析", children: ["函数连续性/可积性"] },
+                    { name: "3️⃣.3️⃣复分析", children: ["解析函数", "共形映射", "复变函数", "双曲函数"] },
+                    { name: "3️⃣.4️⃣序列与级数", children: ["随机序列外推"] }
+                ]
+            },
+            {
+                name: "4️⃣数论(Number Theory)",
+                children: [
+                    { name: "4️⃣.1️⃣初等数论", children: ["整数性质", "因子分析"] },
+                    { name: "4️⃣.2️⃣解析数论", children: ["素数分布", "黎曼假设"] },
+                    { name: "4️⃣.3️⃣代数数论", children: ["代数方法研究数论"] },
+                    { name: "4️⃣.4️⃣重大猜想", children: ["千年大奖问题", "完美空间"] }
+                ]
+            },
+            {
+                name: "5️⃣离散数学(Discrete Mathematics)",
+                children: [
+                    { name: "5️⃣.1️⃣图论(Graph Theory)", children: [] },
+                    { name: "5️⃣.2️⃣组合数学(Combinatorics)", children: [] },
+                    { name: "5️⃣.3️⃣编码理论(Coding Theory)", children: [] },
+                    { name: "5️⃣.4️⃣数理逻辑(Mathematical Logic)", children: [] }
+                ]
+            },
+            {
+                name: "6️⃣概率与统计(Probability & Statistics)",
+                children: [
+                    { name: "6️⃣.1️⃣概率论", children: ["随机现象规律", "随机序列外推"] },
+                    { name: "6️⃣.2️⃣数理统计", children: ["数据分析与推断", "数据绘图", "统计分布"] }
+                ]
+            },
+            {
+                name: "7️⃣应用数学(Applied Mathematics)",
+                children: [
+                    { name: "7️⃣.1️⃣计算数学", children: ["数值算法设计", "算法优化与效率分析", "高维计算"] },
+                    { name: "7️⃣.2️⃣数学物理", children: ["物理问题建模", "物理系统熵分析"] },
+                    { name: "7️⃣.3️⃣运筹学", children: ["优化方法", "线性规划/排队论", "多维优化"] }
+                ]
+            },
+            {
+                name: "8️⃣交叉学科(Interdisciplinary Applications)",
+                children: [
+                    { name: "8️⃣.1️⃣数据科学", children: ["数据挖掘与知识发现", "高维数据解析"] },
+                    { name: "8️⃣.2️⃣密码学", children: ["加密技术", "数论/代数应用", "一次性密码解密"] },
+                    { name: "8️⃣.3️⃣经济数学", children: ["计量经济学/博弈论", "市场随机序列建模"] },
+                    { name: "8️⃣.4️⃣生物信息学", children: ["基因组学分析", "高维拓扑+数据科学"] },
+                    { name: "8️⃣.5️⃣音乐数学", children: ["音乐结构分析", "节奏数学建模"] },
+                    { name: "8️⃣.6️⃣深度学习", children: ["神经网络核心", "高维计算", "深度数学融合"] }
+                ]
+            }
+        ];
+
+        // 数据转换函数
+        function transformData(data) {
+            return data.map(item => {
+                if (typeof item === 'string') {
+                    return { name: item, type: 'file' };
+                } else if (item.children) {
+                    return {
+                        name: item.name,
+                        type: 'folder',
+                        children: transformData(item.children)
+                    };
+                } else {
+                    return { name: item.name, type: 'file' };
+                }
+            });
+        }
+
+        // 创建树节点
+        function createTreeNode(data) {
+            const li = document.createElement('li');
+            const nodeDiv = document.createElement('div');
+            nodeDiv.className = 'tree-node';
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'tree-content';
+            
+            if (data.type === 'folder') {
+                contentDiv.classList.add('folder-content');
+            } else {
+                contentDiv.classList.add('file-content');
+            }
+            
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'tree-name';
+            nameSpan.textContent = data.name;
+            contentDiv.appendChild(nameSpan);
+            
+            nodeDiv.appendChild(contentDiv);
+            li.appendChild(nodeDiv);
+            
+            if (data.children && data.children.length > 0) {
+                const ul = document.createElement('ul');
+                data.children.forEach(child => {
+                    ul.appendChild(createTreeNode(child));
+                });
+                li.appendChild(ul);
+            }
+            
+            return li;
+        }
+
+        // 初始化树形结构
+        function initTree() {
+            const treeContainer = document.getElementById('treeContainer');
+            treeContainer.innerHTML = '';
+            const ul = document.createElement('ul');
+            const transformedData = transformData(treeData);
+            transformedData.forEach(item => {
+                ul.appendChild(createTreeNode(item));
+            });
+            treeContainer.appendChild(ul);
+            
+            // 默认折叠所有文件夹
+            document.querySelectorAll('.tree li:has(> ul)').forEach(li => {
+                li.classList.add('collapsed');
+            });
+        }
+
+        // 搜索功能
+        document.getElementById('searchInput').addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase();
+            
+            document.querySelectorAll('.highlight').forEach(el => {
+                el.classList.remove('highlight');
+            });
+            
+            if (searchTerm === '') return;
+            
+            document.querySelectorAll('.tree-node').forEach(node => {
+                const text = node.textContent.toLowerCase();
+                if (text.includes(searchTerm)) {
+                    node.querySelector('.tree-name').classList.add('highlight');
+                    
+                    let parent = node.closest('li');
+                    while (parent && !parent.classList.contains('tree')) {
+                        parent.classList.remove('collapsed');
+                        parent = parent.parentElement.closest('li');
+                    }
+                }
+            });
+        });
+
+        // 展开/折叠功能
+        document.getElementById('treeContainer').addEventListener('click', function(e) {
+            const treeNode = e.target.closest('.tree-node');
+            if (!treeNode) return;
+            
+            const folderContent = treeNode.querySelector('.folder-content');
+            if (!folderContent) return;
+            
+            const li = treeNode.parentElement;
+            li.classList.toggle('collapsed');
+        });
+
+        // 展开全部
+        document.getElementById('expandAll').addEventListener('click', function() {
+            document.querySelectorAll('.tree li.collapsed').forEach(li => {
+                li.classList.remove('collapsed');
+            });
+        });
+
+        // 折叠全部
+        document.getElementById('collapseAll').addEventListener('click', function() {
+            document.querySelectorAll('.tree li:has(.folder-content)').forEach(li => {
+                if (!li.parentElement.classList.contains('tree')) {
+                    li.classList.add('collapsed');
+                }
+            });
+        });
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            initTree();
+        });
+    </script>
+</body>
+</html>

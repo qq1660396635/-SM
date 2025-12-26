@@ -1,0 +1,1997 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>窄路挑战- 精美版</title>
+    
+            <!-- 引入数据库管理器 -->
+    <script src="/db.js"></script>
+    
+        <!-- 引入插件工具箱 🏄-->
+    <script src="/A2_全局中心/B_插件工具/toolbox.js"></script>  
+    
+    
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #ffeef8 0%, #ffe0f0 50%, #ffd1e8 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'Arial', sans-serif;
+            overflow: hidden;
+            touch-action: none;
+        }
+        
+        #gameContainer {
+            position: relative;
+            text-align: center;
+        }
+        
+        canvas {
+            border: 3px solid #ff69b4;
+            box-shadow: 0 0 30px rgba(255, 105, 180, 0.4);
+            max-width: 100%;
+            height: auto;
+            display: block;
+            border-radius: 15px;
+        }
+        
+        #info {
+            color: #d63384;
+            margin-top: 20px;
+            font-size: 18px;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.8);
+        }
+        
+        #controls {
+            color: #d63384;
+            margin-top: 10px;
+            font-size: 14px;
+            text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.8);
+        }
+        
+        /* 关卡选择界面- 粉色主题 */
+        #levelSelectLayer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #ffeef8 0%, #ffd1e8 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 4000;
+        }
+        
+        #levelSelectContent {
+            text-align: center;
+            max-width: 90%;
+            padding: 20px;
+        }
+        
+        #levelSelectContent h1 {
+            font-size: 42px;
+            margin-bottom: 30px;
+            background: linear-gradient(45deg, #ff69b4, #ff1493);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 2px 2px 4px rgba(255, 255, 255, 0.5);
+        }
+        
+        .levelGrid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .levelButton {
+            width: 80px;
+            height: 80px;
+            border: 3px solid #ff69b4;
+            background: linear-gradient(135deg, #fff0f5 0%, #ffe4e1 100%);
+            color: #d63384;
+            border-radius: 20px;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(255, 105, 180, 0.3);
+        }
+        
+        .levelButton:hover {
+            background: linear-gradient(135deg, #ff69b4 0%, #ff1493 100%);
+            color: white;
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(255, 105, 180, 0.5);
+        }
+        
+        .levelButton.locked {
+            background: linear-gradient(135deg, #f0f0f0 0%, #e0e0e0 100%);
+            border-color: #ccc;
+            color: #999;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        /* 摇杆样式- 粉色主题 */
+        #joystickContainer {
+            position: fixed;
+            bottom: 50px;
+            left: 50px;
+            width: 150px;
+            height: 150px;
+            z-index: 1000;
+            touch-action: none;
+        }
+        
+        #joystickBase {
+            position: absolute;
+            width: 150px;
+            height: 150px;
+            background: rgba(255, 105, 180, 0.2);
+            border: 2px solid rgba(255, 105, 180, 0.5);
+            border-radius: 50%;
+            touch-action: none;
+        }
+        
+        #joystickKnob {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            background: rgba(255, 105, 180, 0.6);
+            border: 2px solid rgba(255, 105, 180, 0.9);
+            border-radius: 50%;
+            left: 45px;
+            top: 45px;
+            transition: none;
+            touch-action: none;
+        }
+        
+        /* 全屏触摸层 */
+        #touchLayer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 999;
+            touch-action: none;
+        }
+        
+        /* 游戏结束覆盖层 */
+        #gameOverLayer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 105, 180, 0.9);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+        
+        #gameOverContent {
+            text-align: center;
+            color: white;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+        
+        #gameOverContent h2 {
+            font-size: 42px;
+            margin-bottom: 20px;
+            color: #d63384;
+        }
+        
+        #gameOverContent p {
+            font-size: 20px;
+            color: #666;
+            margin-bottom: 30px;
+        }
+        
+        #gameOverContent button {
+            font-size: 20px;
+            padding: 12px 25px;
+            background: linear-gradient(135deg, #ff69b4 0%, #ff1493 100%);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            margin: 10px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(255, 105, 180, 0.3);
+        }
+        
+        #gameOverContent button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 105, 180, 0.4);
+        }
+        
+        /* 通关覆盖层 */
+        #victoryLayer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 105, 180, 0.95);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 3000;
+        }
+        
+        #victoryContent {
+            text-align: center;
+            color: white;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+        
+        #victoryContent h2 {
+            font-size: 42px;
+            margin-bottom: 20px;
+            color: #d63384;
+            animation: pulse 1s ease infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        #victoryContent p {
+            font-size: 20px;
+            color: #666;
+            margin-bottom: 30px;
+        }
+        
+        #victoryContent button {
+            font-size: 18px;
+            padding: 12px 25px;
+            background: linear-gradient(135deg, #ff69b4 0%, #ff1493 100%);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            margin: 10px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(255, 105, 180, 0.3);
+        }
+        
+        #victoryContent button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 105, 180, 0.4);
+        }
+        
+        /* 笑脸覆盖层 */
+        #smileyLayer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 3000;
+            animation: flashRed 0.5s ease-in-out;
+        }
+        
+        @keyframes flashRed {
+            0% { background-color: rgba(255, 0, 0, 0.8); }
+            50% { background-color: rgba(255, 105, 180, 0.9); }
+            100% { background-color: rgba(255, 0, 0, 0.8); }
+        }
+        
+        #smileyContent {
+            text-align: center;
+            color: #ffffff;
+            font-size: 150px;
+            animation: bounce 0.6s ease-in-out;
+        }
+        
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-30px); }
+            60% { transform: translateY(-15px); }
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            #joystickContainer {
+                bottom: 30px;
+                left: 30px;
+                width: 120px;
+                height: 120px;
+            }
+            
+            #joystickBase {
+                width: 120px;
+                height: 120px;
+            }
+            
+            #joystickKnob {
+                width: 48px;
+                height: 48px;
+                left: 36px;
+                top: 36px;
+            }
+            
+            #gameOverContent h2, #victoryContent h2 {
+                font-size: 32px;
+            }
+            
+            #smileyContent {
+                font-size: 100px;
+            }
+            
+            #levelSelectContent h1 {
+                font-size: 32px;
+            }
+            
+            .levelButton {
+                width: 70px;
+                height: 70px;
+                font-size: 20px;
+            }
+            
+            .levelGrid {
+                gap: 10px;
+                max-width: 600px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .levelGrid {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 8px;
+                max-width: 300px;
+            }
+            
+            .levelButton {
+                width: 60px;
+                height: 60px;
+                font-size: 18px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="touchLayer"></div>
+    
+    <!-- 关卡选择界面 -->
+    <div id="levelSelectLayer">
+        <div id="levelSelectContent">
+            <h1>🌸选择关卡🌸</h1>
+            <div class="levelGrid" id="levelGrid"></div>
+        </div>
+    </div>
+    
+    <div id="gameContainer">
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+        <div id="info">
+            使用摇杆移动，<span style="color: #ff1493; font-weight: bold;">碰到墙壁即游戏结束！</span>
+        </div>
+        <div id="controls">
+            <div>起始宽度: <span id="startWidth">100px</span> →最终宽度:<span id="endWidth">10px</span></div>
+            <div>玩家大小: 5×5px</div>
+            <div><span style="color: #ff1493;">提示：到达粉色出口区域即可通关！</span></div>
+        </div>
+    </div>
+    
+    <div id="joystickContainer">
+        <div id="joystickBase"></div>
+        <div id="joystickKnob"></div>
+    </div>
+    
+    <div id="gameOverLayer">
+        <div id="gameOverContent">
+            <h2>游戏结束！</h2>
+            <p>你碰到了墙壁！</p>
+            <button onclick="restartGame()">重新开始</button>
+            <button onclick="backToLevelSelect()">返回选关</button>
+        </div>
+    </div>
+    
+    <div id="victoryLayer">
+        <div id="victoryContent">
+            <h2>🎉恭喜通关！🎉</h2>
+            <p>你成功完成了第<span id="currentLevelNum">1</span> 关！</p>
+            <button onclick="nextLevel()">下一关</button>
+            <button onclick="backToLevelSelect()">返回选关</button>
+        </div>
+    </div>
+    
+    <div id="smileyLayer">
+        <div id="smileyContent">😈</div>
+    </div>
+
+    <script>
+        // 1. 获取画布和上下文
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // 2. 游戏设置
+        const GRID_SIZE = 20;
+        const INITIAL_WIDTH = 100;
+        const WIDTH_REDUCTION = 15;
+        const MIN_WIDTH = 15; // 确保最小宽度为玩家大小的3倍
+        const NARROW_WIDTH_THRESHOLD = 20;
+        const FINAL_SEGMENT_WIDTH = 15;
+        
+        // 3. 玩家设置
+        let player = {
+            x: 100,
+            y: 300,
+            size: 2.5,
+            speed: 2
+        };
+        
+        // 4. 游戏状态
+        let gameOver = false;
+        let victory = false;
+        let smileyTriggers = [];
+        let currentSegmentIndex = -1;
+        let currentLevel = 1;
+        let unlockedLevels = 1;
+        
+        // 5. 路径定义
+        let pathSegments = [];
+        let currentWidth = INITIAL_WIDTH;
+        let pathPoints = [];
+        let exitZone = null; // 出口区域
+        
+        // 6. 键盘状态
+        let keys = {};
+        
+        // 7. 摇杆控制
+        let joystick = {
+            base: document.getElementById('joystickBase'),
+            knob: document.getElementById('joystickKnob'),
+            active: false,
+            centerX: 75,
+            centerY: 75,
+            radius: 60,
+            knobRadius: 24,
+            deltaX: 0,
+            deltaY: 0
+        };
+        
+        // 8. 关卡设计- 20个关卡，难度递增
+        const levels = [
+            // 前两关保持简单
+            {
+                id: 1,
+                name: "入门关",
+                startWidth: 100,
+                endWidth: 90,
+                turns: [
+                    {x: 800, y: 300} // 直线到终点
+                ],
+                exitZone: {x: 750, y: 300, radius: 40}
+            },
+            {
+                id: 2,
+                name: "简单关",
+                startWidth: 95,
+                endWidth: 85,
+                turns: [
+                    {x: 400, y: 300},
+                    {x: 750, y: 300}
+                ],
+                exitZone: {x: 750, y: 300, radius: 35}
+            },
+            
+            // 第三关开始难度递增（前宽后窄）
+            {
+                id: 3,
+                name: "平缓关",
+                startWidth: 90,
+                endWidth: 75,
+                turns: [
+                    {x: 300, y: 300},
+                    {x: 300, y: 200},
+                    {x: 600, y: 200},
+                    {x: 750, y: 200}
+                ],
+                exitZone: {x: 750, y: 200, radius: 30}
+            },
+            {
+                id: 4,
+                name: "转折关",
+                startWidth: 85,
+                endWidth: 65,
+                turns: [
+                    {x: 200, y: 300},
+                    {x: 200, y: 150},
+                    {x: 500, y: 150},
+                    {x: 500, y: 450},
+                    {x: 750, y: 450}
+                ],
+                exitZone: {x: 750, y: 450, radius: 25}
+            },
+            {
+                id: 5,
+                name: "曲折关",
+                startWidth: 80,
+                endWidth: 60,
+                turns: [
+                    {x: 150, y: 300},
+                    {x: 350, y: 300},
+                    {x: 350, y: 100},
+                    {x: 550, y: 100},
+                    {x: 550, y: 500},
+                    {x: 750, y: 500}
+                ],
+                exitZone: {x: 750, y: 500, radius: 25}
+            },
+            
+            // 中期关卡（路径更长）
+            {
+                id: 6,
+                name: "螺旋关",
+                startWidth: 75,
+                endWidth: 50,
+                turns: [
+                    {x: 100, y: 300},
+                    {x: 300, y: 300},
+                    {x: 300, y: 100},
+                    {x: 500, y: 100},
+                    {x: 500, y: 500},
+                    {x: 700, y: 500},
+                    {x: 700, y: 200},
+                    {x: 750, y: 200}
+                ],
+                exitZone: {x: 750, y: 200, radius: 20}
+            },
+            {
+                id: 7,
+                name: "蛇形关",
+                startWidth: 70,
+                endWidth: 45,
+                turns: [
+                    {x: 100, y: 300},
+                    {x: 200, y: 300},
+                    {x: 200, y: 200},
+                    {x: 300, y: 200},
+                    {x: 300, y: 400},
+                    {x: 400, y: 400},
+                    {x: 400, y: 150},
+                    {x: 550, y: 150},
+                    {x: 550, y: 450},
+                    {x: 700, y: 450},
+                    {x: 700, y: 300},
+                    {x: 750, y: 300}
+                ],
+                exitZone: {x: 750, y: 300, radius: 20}
+            },
+            {
+                id: 8,
+                name: "窄道关",
+                startWidth: 65,
+                endWidth: 40,
+                turns: [
+                    {x: 120, y: 300},
+                    {x: 120, y: 120},
+                    {x: 380, y: 120},
+                    {x: 380, y: 480},
+                    {x: 620, y: 480},
+                    {x: 620, y: 200},
+                    {x: 750, y: 200}
+                ],
+                exitZone: {x: 750, y: 200, radius: 20}
+            },
+            {
+                id: 9,
+                name: "魔鬼关",
+                startWidth: 60,
+                endWidth: 35,
+                turns: [
+                    {x: 100, y: 300},
+                    {x: 250, y: 300},
+                    {x: 250, y: 100},
+                    {x: 450, y: 100},
+                    {x: 450, y: 500},
+                    {x: 650, y: 500},
+                    {x: 650, y: 150},
+                    {x: 750, y: 150}
+                ],
+                exitZone: {x: 750, y: 150, radius: 18}
+            },
+            {
+                id: 10,
+                name: "终极关",
+                startWidth: 55,
+                endWidth: 30,
+                turns: [
+                    {x: 80, y: 300},
+                    {x: 200, y: 300},
+                    {x: 200, y: 80},
+                    {x: 400, y: 80},
+                    {x: 400, y: 520},
+                    {x: 600, y: 520},
+                    {x: 600, y: 120},
+                    {x: 720, y: 120},
+                    {x: 720, y: 300},
+                    {x: 750, y: 300}
+                ],
+                exitZone: {x: 750, y: 300, radius: 15}
+            },
+            
+            // 后期关卡（超长路径）
+            {
+                id: 11,
+                name: "超长关",
+                startWidth: 50,
+                endWidth: 28,
+                turns: [
+                    {x: 100, y: 300},
+                    {x: 100, y: 100},
+                    {x: 300, y: 100},
+                    {x: 300, y: 500},
+                    {x: 500, y: 500},
+                    {x: 500, y: 100},
+                    {x: 700, y: 100},
+                    {x: 700, y: 500},
+                    {x: 750, y: 500}
+                ],
+                exitZone: {x: 750, y: 500, radius: 15}
+            },
+            
+            {
+                id: 12,
+                name: "折叠关",
+                startWidth: 48,
+                endWidth: 26,
+                turns: [
+                    {x: 80, y: 300},
+                    {x: 80, y: 80},
+                    {x: 200, y: 80},
+                    {x: 200, y: 520},
+                    {x: 350, y: 520},
+                    {x: 350, y: 80},
+                    {x: 500, y: 80},
+                    {x: 500, y: 520},
+                    {x: 650, y: 520},
+                    {x: 650, y: 80},
+                    {x: 750, y: 80}
+                ],
+                exitZone: {x: 750, y: 80, radius: 15}
+            },
+            
+            {
+                id: 13,
+                name: "迷宫关",
+                startWidth: 46,
+                endWidth: 24,
+                turns: [
+                    {x: 60, y: 300},
+                    {x: 60, y: 100},
+                    {x: 180, y: 100},
+                    {x: 180, y: 500},
+                    {x: 300, y: 500},
+                    {x: 300, y: 100},
+                    {x: 420, y: 100},
+                    {x: 420, y: 500},
+                    {x: 540, y: 500},
+                    {x: 540, y: 100},
+                    {x: 660, y: 100},
+                    {x: 660, y: 500},
+                    {x: 750, y: 500}
+                ],
+                exitZone: {x: 750, y: 500, radius: 15}
+            },
+            
+            {
+                id: 14,
+                name: "回环关",
+                startWidth: 44,
+                endWidth: 22,
+                turns: [
+                    {x: 50, y: 300},
+                    {x: 50, y: 50},
+                    {x: 150, y: 50},
+                    {x: 150, y: 550},
+                    {x: 250, y: 550},
+                    {x: 250, y: 50},
+                    {x: 350, y: 50},
+                    {x: 350, y: 550},
+                    {x: 450, y: 550},
+                    {x: 450, y: 50},
+                    {x: 550, y: 50},
+                    {x: 550, y: 550},
+                    {x: 650, y: 550},
+                    {x: 650, y: 50},
+                    {x: 750, y: 50}
+                ],
+                exitZone: {x: 750, y: 50, radius: 15}
+            },
+            
+            {
+                id: 15,
+                name: "极限关",
+                startWidth: 42,
+                endWidth: 20,
+                turns: [
+                    {x: 40, y: 300},
+                    {x: 40, y: 40},
+                    {x: 140, y: 40},
+                    {x: 140, y: 560},
+                    {x: 240, y: 560},
+                    {x: 240, y: 40},
+                    {x: 340, y: 40},
+                    {x: 340, y: 560},
+                    {x: 440, y: 560},
+                    {x: 440, y: 40},
+                    {x: 540, y: 40},
+                    {x: 540, y: 560},
+                    {x: 640, y: 560},
+                    {x: 640, y: 40},
+                    {x: 740, y: 40},
+                    {x: 740, y: 300},
+                    {x: 750, y: 300}
+                ],
+                exitZone: {x: 750, y: 300, radius: 15}
+            },
+            
+            // 最后5关（极难关卡）
+            {
+                id: 16,
+                name: "地狱关",
+                startWidth: 40,
+                endWidth: 18,
+                turns: [
+                    {x: 30, y: 300},
+                    {x: 30, y: 30},
+                    {x: 130, y: 30},
+                    {x: 130, y: 570},
+                    {x: 230, y: 570},
+                    {x: 230, y: 30},
+                    {x: 330, y: 30},
+                    {x: 330, y: 570},
+                    {x: 430, y: 570},
+                    {x: 430, y: 30},
+                    {x: 530, y: 30},
+                    {x: 530, y: 570},
+                    {x: 630, y: 570},
+                    {x: 630, y: 30},
+                    {x: 730, y: 30},
+                    {x: 730, y: 570},
+                    {x: 750, y: 570}
+                ],
+                exitZone: {x: 750, y: 570, radius: 15}
+            },
+            
+            {
+                id: 17,
+                name: "噩梦关",
+                startWidth: 38,
+                endWidth: 17,
+                turns: [
+                    {x: 20, y: 300},
+                    {x: 20, y: 20},
+                    {x: 120, y: 20},
+                    {x: 120, y: 580},
+                    {x: 220, y: 580},
+                    {x: 220, y: 20},
+                    {x: 320, y: 20},
+                    {x: 320, y: 580},
+                    {x: 420, y: 580},
+                    {x: 420, y: 20},
+                    {x: 520, y: 20},
+                    {x: 520, y: 580},
+                    {x: 620, y: 580},
+                    {x: 620, y: 20},
+                    {x: 720, y: 20},
+                    {x: 720, y: 580},
+                    {x: 750, y: 580}
+                ],
+                exitZone: {x: 750, y: 580, radius: 15}
+            },
+            
+            {
+                id: 18,
+                name: "绝望关",
+                startWidth: 36,
+                endWidth: 16,
+                turns: [
+                    {x: 10, y: 300},
+                    {x: 10, y: 10},
+                    {x: 110, y: 10},
+                    {x: 110, y: 590},
+                    {x: 210, y: 590},
+                    {x: 210, y: 10},
+                    {x: 310, y: 10},
+                    {x: 310, y: 590},
+                    {x: 410, y: 590},
+                    {x: 410, y: 10},
+                    {x: 510, y: 10},
+                    {x: 510, y: 590},
+                    {x: 610, y: 590},
+                    {x: 610, y: 10},
+                    {x: 710, y: 10},
+                    {x: 710, y: 590},
+                    {x: 750, y: 590}
+                ],
+                exitZone: {x: 750, y: 590, radius: 15}
+            },
+            
+            {
+                id: 19,
+                name: "无解关",
+                startWidth: 34,
+                endWidth: 15,
+                turns: [
+                    {x: 5, y: 300},
+                    {x: 5, y: 5},
+                    {x: 105, y: 5},
+                    {x: 105, y: 595},
+                    {x: 205, y: 595},
+                    {x: 205, y: 5},
+                    {x: 305, y: 5},
+                    {x: 305, y: 595},
+                    {x: 405, y: 595},
+                    {x: 405, y: 5},
+                    {x: 505, y: 5},
+                    {x: 505, y: 595},
+                    {x: 605, y: 595},
+                    {x: 605, y: 5},
+                    {x: 705, y: 5},
+                    {x: 705, y: 595},
+                    {x: 750, y: 595}
+                ],
+                exitZone: {x: 750, y: 595, radius: 15}
+            },
+            
+            {
+                id: 20,
+                name: "终结关",
+                startWidth: 32,
+                endWidth: 15,
+                turns: [
+                    {x: 5, y: 300},
+                    {x: 5, y: 5},
+                    {x: 80, y: 5},
+                    {x: 80, y: 595},
+                    {x: 155, y: 595},
+                    {x: 155, y: 5},
+                    {x: 230, y: 5},
+                    {x: 230, y: 595},
+                    {x: 305, y: 595},
+                    {x: 305, y: 5},
+                    {x: 380, y: 5},
+                    {x: 380, y: 595},
+                    {x: 455, y: 595},
+                    {x: 455, y: 5},
+                    {x: 530, y: 5},
+                    {x: 530, y: 595},
+                    {x: 605, y: 595},
+                    {x: 605, y: 5},
+                    {x: 680, y: 5},
+                    {x: 680, y: 595},
+                    {x: 750, y: 595}
+                ],
+                exitZone: {x: 750, y: 595, radius: 15}
+            }
+        ];
+        
+        // 9. 初始化关卡选择界面
+        async function initLevelSelect() {
+            // 从数据库读取已解锁关卡
+            const savedUnlocked = await IDB.get('D_unlockedLevels', 'userdata');
+            if (savedUnlocked) {
+                unlockedLevels = savedUnlocked;
+            }
+            
+            const levelGrid = document.getElementById('levelGrid');
+            levelGrid.innerHTML = '';
+            
+            for (let i = 1; i <= 20; i++) {
+                const button = document.createElement('button');
+                button.className = 'levelButton';
+                button.textContent = i;
+                
+                if (i <= unlockedLevels) {
+                    button.onclick = () => startLevel(i);
+                } else {
+                    button.className += ' locked';
+                    button.textContent = '🔒';
+                }
+                levelGrid.appendChild(button);
+            }
+        }
+        
+        // 10. 保存进度到数据库
+        async function saveProgress() {
+            if (currentLevel >= unlockedLevels) {
+                unlockedLevels = currentLevel + 1;
+                await IDB.put('D_unlockedLevels', unlockedLevels, 'userdata');
+                console.log(`已解锁关卡: ${unlockedLevels}`);
+            }
+        }
+        
+        // 11. 开始指定关卡
+        function startLevel(levelNum) {
+            currentLevel = levelNum;
+            const level = levels[levelNum - 1];
+            
+            // 隐藏关卡选择界面
+            document.getElementById('levelSelectLayer').style.display = 'none';
+            
+            // 重置游戏状态
+            gameOver = false;
+            victory = false;
+            smileyTriggers = [];
+            currentSegmentIndex = -1;
+            
+            // 设置出口区域
+            exitZone = level.exitZone;
+            
+            // 更新显示信息
+            document.getElementById('startWidth').textContent = level.startWidth + 'px';
+            document.getElementById('endWidth').textContent = level.endWidth + 'px';
+            
+            // 初始化路径
+            initPath(level);
+            
+            // 重置玩家位置
+            player.x = 100;
+            player.y = 300;
+            
+            // 隐藏所有覆盖层
+            document.getElementById('gameOverLayer').style.display = 'none';
+            document.getElementById('victoryLayer').style.display = 'none';
+            document.getElementById('smileyLayer').style.display = 'none';
+        }
+        
+        // 12. 初始化摇杆位置
+        function updateJoystickPosition() {
+            const baseRect = joystick.base.getBoundingClientRect();
+            joystick.centerX = baseRect.width / 2;
+            joystick.centerY = baseRect.height / 2;
+            joystick.radius = baseRect.width / 2 - 10;
+            joystick.knobRadius = joystick.knob.offsetWidth / 2;
+        }
+        
+        // 13. 初始化路径
+        function initPath(level) {
+            pathSegments = [];
+            pathPoints = [];
+            
+            let x = 50;
+            let y = 300;
+            let width = level.startWidth;
+            const widthStep = (level.startWidth - level.endWidth) / Math.max(1, level.turns.length - 1);
+            
+            pathPoints.push({x, y});
+            
+            for (let i = 0; i < level.turns.length; i++) {
+                pathPoints.push(level.turns[i]);
+                
+                // 计算当前段的宽度
+                if (i < level.turns.length - 1) {
+                    width = Math.max(level.endWidth, width - widthStep);
+                } else {
+                    width = level.endWidth;
+                }
+                
+                // 创建路径段
+                pathSegments.push({
+                    start: {x: pathPoints[i].x, y: pathPoints[i].y},
+                    end: {x: level.turns[i].x, y: level.turns[i].y},
+                    width: width,
+                    index: i
+                });
+            }
+        }
+        
+        // 14. 绘制路径
+        function drawPath() {
+            ctx.strokeStyle = '#ff69b4';
+            ctx.fillStyle = 'rgba(255, 182, 193, 0.6)';
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            
+            for (let i = 0; i < pathSegments.length; i++) {
+                const segment = pathSegments[i];
+                const halfWidth = segment.width / 2;
+                
+                // 计算路径方向
+                const dx = segment.end.x - segment.start.x;
+                const dy = segment.end.y - segment.start.y;
+                const length = Math.sqrt(dx * dx + dy * dy);
+                const nx = -dy / length;
+                const ny = dx / length;
+                
+                // 绘制路径边界
+                ctx.beginPath();
+                ctx.moveTo(segment.start.x + nx * halfWidth, segment.start.y + ny * halfWidth);
+                ctx.lineTo(segment.end.x + nx * halfWidth, segment.end.y + ny * halfWidth);
+                ctx.lineTo(segment.end.x - nx * halfWidth, segment.end.y - ny * halfWidth);
+                ctx.lineTo(segment.start.x - nx * halfWidth, segment.start.y - ny * halfWidth);
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+                
+                // 绘制入口标识
+                if (i === 0) {
+                    ctx.fillStyle = '#00ff00';
+                    ctx.font = 'bold 20px Arial';
+                    ctx.fillText('入口', segment.start.x - 20, segment.start.y - halfWidth - 10);
+                }
+                
+                // 绘制宽度信息
+                if (i > 0) {
+                    ctx.fillStyle = '#d63384';
+                    ctx.font = 'bold 12px Arial';
+                    ctx.fillText(`${Math.round(segment.width)}px`, (segment.start.x + segment.end.x) / 2 - 15, (segment.start.y + segment.end.y) / 2);
+                }
+                
+                ctx.fillStyle = 'rgba(255, 182, 193, 0.6)';
+            }
+            
+            // 绘制出口区域
+            if (exitZone) {
+                // 绘制出口区域（粉色圆形）
+                ctx.fillStyle = 'rgba(255, 105, 180, 0.8)';
+                ctx.beginPath();
+                ctx.arc(exitZone.x, exitZone.y, exitZone.radius, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // 绘制出口文字
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 18px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('出口', exitZone.x, exitZone.y + 5);
+                ctx.textAlign = 'left';
+            }
+        }
+        
+        // 15. 绘制玩家
+        function drawPlayer() {
+            ctx.fillStyle = '#FFD700';
+            ctx.fillRect(player.x - player.size, player.y - player.size, player.size * 2, player.size * 2);
+            ctx.strokeStyle = '#FFA000';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(player.x - player.size, player.y - player.size, player.size * 2, player.size * 2);
+        }
+        
+        // 16. 检查玩家位置并触发笑脸
+        function checkPlayerPosition() {
+            if (gameOver || victory) return;
+            
+            for (let i = 0; i < pathSegments.length; i++) {
+                const segment = pathSegments[i];
+                
+                // 计算玩家在线段上的位置
+                const dx = segment.end.x - segment.start.x;
+                const dy = segment.end.y - segment.start.y;
+                const length = Math.sqrt(dx * dx + dy * dy);
+                
+                // 计算玩家在线段上的投影
+                const t = Math.max(0, Math.min(1, ((player.x - segment.start.x) * dx + (player.y - segment.start.y) * dy) / (length * length)));
+                const projX = segment.start.x + t * dx;
+                const projY = segment.start.y + t * dy;
+                const dist = Math.sqrt((player.x - projX) * (player.x - projX) + (player.y - projY) * (player.y - projY));
+                
+                // 检查玩家是否在该路径段内
+                if (dist <= segment.width / 2 - player.size - 1) {
+                    // 检查是否需要触发笑脸
+                    checkSmileyTrigger(segment, t, i);
+                }
+            }
+        }
+        
+        // 17. 检查笑脸触发条件
+        function checkSmileyTrigger(segment, position, segmentIndex) {
+            // 检查是否已经触发过这个路段的笑脸
+            const triggerKey = `segment_${segmentIndex}`;
+            if (smileyTriggers.includes(triggerKey)) return;
+            
+            let shouldTrigger = false;
+            
+            // 条件1: 25px路段的中间位置
+            if (segment.width === 25 && position >= 0.4 && position <= 0.6) shouldTrigger = true;
+            
+            // 条件2: ≤20px路段的1/3位置
+            if (segment.width <= NARROW_WIDTH_THRESHOLD && position >= 0.25 && position <= 0.4) {
+                shouldTrigger = true;
+            }
+            
+            // 条件3: 最终路段也触发笑脸
+            if (segment.width <= FINAL_SEGMENT_WIDTH && position >= 0.4 && position <= 0.6) {
+                shouldTrigger = true;
+            }
+            
+            if (shouldTrigger) {
+                showSmiley();
+                smileyTriggers.push(triggerKey);
+            }
+        }
+        
+        // 18. 显示红色笑脸
+        function showSmiley() {
+            const smileyLayer = document.getElementById('smileyLayer');
+            smileyLayer.style.display = 'flex';
+            
+            // 2秒后自动隐藏
+            setTimeout(() => {
+                smileyLayer.style.display = 'none';
+            }, 2000);
+        }
+        
+        // 19. 检查玩家是否在路径内
+        function checkPlayerCollision() {
+            // 检查边界
+            if (player.x - player.size < 0 || player.x + player.size > canvas.width ||
+                player.y - player.size < 0 || player.y + player.size > canvas.height) {
+                return true;
+            }
+            
+            let inPath = false;
+            for (let segment of pathSegments) {
+                const dx = segment.end.x - segment.start.x;
+                const dy = segment.end.y - segment.start.y;
+                const length = Math.sqrt(dx * dx + dy * dy);
+                
+                // 计算玩家在线段上的投影
+                const t = Math.max(0, Math.min(1, ((player.x - segment.start.x) * dx + (player.y - segment.start.y) * dy) / (length * length)));
+                const projX = segment.start.x + t * dx;
+                const projY = segment.start.y + t * dy;
+                const dist = Math.sqrt((player.x - projX) * (player.x - projX) + (player.y - projY) * (player.y - projY));
+                
+                // 使用精确碰撞检测
+                if (dist <= segment.width / 2 - player.size - 1) {
+                    inPath = true;
+                    break;
+                }
+            }
+            
+            return !inPath;
+        }
+        
+        // 20. 检查是否到达出口
+        function checkExitReached() {
+            if (!exitZone) return false;
+            
+            const dist = Math.sqrt(
+                (player.x - exitZone.x) * (player.x - exitZone.x) + 
+                (player.y - exitZone.y) * (player.y - exitZone.y)
+            );
+            
+            return dist <= exitZone.radius;
+        }
+        
+        // 21. 更新玩家位置
+        function updatePlayer() {
+            if (gameOver || victory) return;
+            
+            let newX = player.x;
+            let newY = player.y;
+            
+            // 键盘控制
+            if (keys['ArrowUp']) newY -= player.speed;
+            if (keys['ArrowDown']) newY += player.speed;
+            if (keys['ArrowLeft']) newX -= player.speed;
+            if (keys['ArrowRight']) newX += player.speed;
+            
+            // 摇杆控制
+            if (joystick.active) {
+                newX += joystick.deltaX * player.speed * 0.01;
+                newY += joystick.deltaY * player.speed * 0.01;
+            }
+            
+            // 保存旧位置
+            const oldX = player.x;
+            const oldY = player.y;
+            
+            // 尝试移动
+            player.x = newX;
+            player.y = newY;
+            
+            // 检查碰撞
+            if (checkPlayerCollision()) {
+                gameOver = true;
+                document.getElementById('gameOverLayer').style.display = 'flex';
+                return;
+            }
+            
+            // 检查玩家位置（触发笑脸）
+            checkPlayerPosition();
+            
+            // 检查是否到达出口
+            if (checkExitReached()) {
+                victory = true;
+                document.getElementById('currentLevelNum').textContent = currentLevel;
+                document.getElementById('victoryLayer').style.display = 'flex';
+                
+                // 保存进度
+                saveProgress();
+            }
+        }
+        
+        // 22. 重新开始游戏
+        function restartGame() {
+            startLevel(currentLevel);
+        }
+        
+        // 23. 下一关
+        function nextLevel() {
+            if (currentLevel < 20) {
+                startLevel(currentLevel + 1);
+            } else {
+                backToLevelSelect();
+            }
+        }
+        
+        // 24. 返回关卡选择
+        function backToLevelSelect() {
+            document.getElementById('levelSelectLayer').style.display = 'flex';
+            document.getElementById('gameOverLayer').style.display = 'none';
+            document.getElementById('victoryLayer').style.display = 'none';
+            initLevelSelect();
+        }
+        
+        // 25. 摇杆事件处理
+        function handleJoystickStart(e) {
+            e.preventDefault();
+            joystick.active = true;
+            updateJoystickPosition();
+            handleJoystickMove(e);
+        }
+        
+        function handleJoystickMove(e) {
+            if (!joystick.active) return;
+            e.preventDefault();
+            
+            const touch = e.touches ? e.touches[0] : e;
+            const baseRect = joystick.base.getBoundingClientRect();
+            const centerX = baseRect.left + baseRect.width / 2;
+            const centerY = baseRect.top + baseRect.height / 2;
+            
+            let deltaX = touch.clientX - centerX;
+            let deltaY = touch.clientY - centerY;
+            
+            const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+            const maxDistance = joystick.radius;
+            
+            if (distance > maxDistance) {
+                deltaX = (deltaX / distance) * maxDistance;
+                deltaY = (deltaY / distance) * maxDistance;
+            }
+            
+            joystick.deltaX = deltaX;
+            joystick.deltaY = deltaY;
+            joystick.knob.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
+        }
+        
+        function handleJoystickEnd(e) {
+            e.preventDefault();
+            joystick.active = false;
+            joystick.deltaX = 0;
+            joystick.deltaY = 0;
+            joystick.knob.style.transform = 'translate(0, 0)';
+        }
+        
+        // 26. 游戏循环
+        function gameLoop() {
+            // 清空画布
+            ctx.fillStyle = '#fff5f8';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // 绘制网格
+            ctx.strokeStyle = 'rgba(255, 182, 193, 0.2)';
+            ctx.lineWidth = 0.5;
+            for (let i = 0; i < canvas.width; i += GRID_SIZE) {
+                ctx.beginPath();
+                ctx.moveTo(i, 0);
+                ctx.lineTo(i, canvas.height);
+                ctx.stroke();
+            }
+            for (let i = 0; i < canvas.height; i += GRID_SIZE) {
+                ctx.beginPath();
+                ctx.moveTo(0, i);
+                ctx.lineTo(canvas.width, i);
+                ctx.stroke();
+            }
+            
+            // 绘制路径和玩家
+            drawPath();
+            if (!gameOver && !victory) {
+                drawPlayer();
+            }
+            
+            // 更新玩家
+            updatePlayer();
+            
+            requestAnimationFrame(gameLoop);
+        }
+        
+        // 27. 键盘事件
+        window.addEventListener('keydown', (e) => {
+            keys[e.key] = true;
+        });
+        
+        window.addEventListener('keyup', (e) => {
+            keys[e.key] = false;
+        });
+        
+        // 28. 触摸事件
+        const joystickContainer = document.getElementById('joystickContainer');
+        joystickContainer.addEventListener('touchstart', handleJoystickStart, {passive: false});
+        joystickContainer.addEventListener('touchmove', handleJoystickMove, {passive: false});
+        joystickContainer.addEventListener('touchend', handleJoystickEnd, {passive: false});
+        
+        // 29. 鼠标事件（用于测试）
+        joystickContainer.addEventListener('mousedown', handleJoystickStart);
+        window.addEventListener('mousemove', handleJoystickMove);
+        window.addEventListener('mouseup', handleJoystickEnd);
+        
+        // 30. 窗口大小改变时更新摇杆
+        window.addEventListener('resize', updateJoystickPosition);
+        
+        // 31. 初始化游戏
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                // 初始化数据库
+                await IDB.init();
+                console.log('数据库初始化完成');
+                
+                // 初始化关卡选择界面
+                await initLevelSelect();
+                
+                // 初始化摇杆位置
+                updateJoystickPosition();
+                
+                // 开始游戏循环
+                gameLoop();
+                
+            } catch (error) {
+                console.error('游戏初始化失败:', error);
+            }
+        });
+    </script>
+    
+    <!-- 数据库管理器 -->
+    <script>
+        // ===============================================
+        // ===== 一IndexedDB 数据库管理器=====
+        // 文件所在位置 /db.js
+        // ===============================================
+        window.IDB = {
+            // 数据库配置
+            DB_NAME: 'LiangAnUserCenterDB',
+            VERSION: 1,
+            STORES: {
+                configs: 'configs', // 配置数据区
+                userdata: 'userdata', // 用户数据区
+                official: 'official' // 官方数据区
+            },
+            db: null,
+            initPromise: null,
+            
+            // -----------------------------------------------------
+            // 1. 初始化数据库连接
+            // -----------------------------------------------------
+            async init() {
+                if (this.initPromise) return this.initPromise;
+                
+                this.initPromise = new Promise((resolve, reject) => {
+                    console.log('🚀 开始初始化数据库...');
+                    
+                    const request = indexedDB.open(this.DB_NAME, this.VERSION);
+                    
+                    request.onerror = () => {
+                        const error = request.error;
+                        console.error('❌ 数据库打开失败:', error);
+                        reject(error);
+                    };
+                    
+                    request.onsuccess = () => {
+                        this.db = request.result;
+                        console.log('✅ 数据库初始化完成');
+                        resolve(this.db);
+                    };
+                    
+                    request.onupgradeneeded = (e) => {
+                        console.log('🔄 数据库升级中...');
+                        const db = e.target.result;
+                        
+                        // 创建三个存储区
+                        if (!db.objectStoreNames.contains(this.STORES.configs)) {
+                            db.createObjectStore(this.STORES.configs);
+                            console.log('📁 创建configs存储');
+                        }
+                        
+                        if (!db.objectStoreNames.contains(this.STORES.userdata)) {
+                            db.createObjectStore(this.STORES.userdata);
+                            console.log('📁 创建userdata存储');
+                        }
+                        
+                        if (!db.objectStoreNames.contains(this.STORES.official)) {
+                            db.createObjectStore(this.STORES.official);
+                            console.log('📁 创建official存储');
+                        }
+                        
+                        console.log('✅ 数据库升级完成');
+                    };
+                });
+                
+                return this.initPromise;
+            },
+            
+            // -----------------------------------------------------
+            // 2. 检查数据库是否可用
+            // -----------------------------------------------------
+            async isAvailable() {
+                try {
+                    await this.init();
+                    return true;
+                } catch (error) {
+                    console.error('❌ 数据库不可用:', error);
+                    return false;
+                }
+            },
+            
+            // -----------------------------------------------------
+            // 3. 向数据库存储数据
+            // -----------------------------------------------------
+            async put(key, value, store = 'configs') {
+                try {
+                    await this.init();
+                    console.log(`💾 存储到数据库: ${key} (存储区: ${store})`);
+                    
+                    return new Promise((resolve) => {
+                        const tx = this.db.transaction([this.STORES[store]], 'readwrite');
+                        const objectStore = tx.objectStore(this.STORES[store]);
+                        const request = objectStore.put(value, key);
+                        
+                        request.onsuccess = () => {
+                            console.log(`✅ 数据库存储成功: ${key}`);
+                            resolve();
+                        };
+                        
+                        request.onerror = () => {
+                            console.error(`❌ 数据库存储失败: ${key}`);
+                            resolve();
+                        };
+                    });
+                } catch (error) {
+                    console.error('❌ 数据库存储异常:', error);
+                }
+            },
+            
+            // -----------------------------------------------------
+            // 4. 删除数据库中的数据
+            // -----------------------------------------------------
+            async delete(key, store = 'configs') {
+                try {
+                    await this.init();
+                    console.log(`🗑️ 删除数据库数据: ${key} (存储区: ${store})`);
+                    
+                    return new Promise((resolve) => {
+                        const tx = this.db.transaction([this.STORES[store]], 'readwrite');
+                        const objectStore = tx.objectStore(this.STORES[store]);
+                        const request = objectStore.delete(key);
+                        
+                        request.onsuccess = () => {
+                            console.log(`✅ 数据库删除成功: ${key}`);
+                            resolve(true);
+                        };
+                        
+                        request.onerror = () => {
+                            console.error(`❌ 数据库删除失败: ${key}`);
+                            resolve(false);
+                        };
+                    });
+                } catch (error) {
+                    console.error('❌ 数据库删除异常:', error);
+                    return false;
+                }
+            },
+            
+            // -----------------------------------------------------
+            // 5. 从数据库获取数据
+            // -----------------------------------------------------
+            async get(key, store = 'configs') {
+                try {
+                    await this.init();
+                    console.log(`🔍 查询数据库: ${key} (存储区: ${store})`);
+                    
+                    return new Promise((resolve) => {
+                        const tx = this.db.transaction([this.STORES[store]], 'readonly');
+                        const objectStore = tx.objectStore(this.STORES[store]);
+                        const request = objectStore.get(key);
+                        
+                        request.onsuccess = () => {
+                            const result = request.result;
+                            if (result) {
+                                console.log(`🎯 数据库命中: ${key}`);
+                            } else {
+                                console.log(`❌ 数据库未命中: ${key}`);
+                            }
+                            resolve(result);
+                        };
+                        
+                        request.onerror = () => {
+                            console.error(`❌ 数据库查询失败: ${key}`);
+                            resolve(null);
+                        };
+                    });
+                } catch (error) {
+                    console.error('❌ 数据库获取异常:', error);
+                    return null;
+                }
+            }
+        };
+        
+        // ===============================================
+        // ===== 二Base64 加密解密工具=====
+        // ===============================================
+        const Base64 = {
+            // -----------------------------------------------------
+            // 6. Base64 编码
+            // -----------------------------------------------------
+            encode: function(str) {
+                try {
+                    return btoa(unescape(encodeURIComponent(str)));
+                } catch (error) {
+                    console.error('❌ Base64编码失败:', error);
+                    return null;
+                }
+            },
+            
+            // -----------------------------------------------------
+            // 7. Base64 解码
+            // -----------------------------------------------------
+            decode: function(str) {
+                try {
+                    return decodeURIComponent(escape(atob(str)));
+                } catch (error) {
+                    console.error('❌ Base64解码失败:', error);
+                    return null;
+                }
+            }
+        };
+        
+        // ===============================================
+        // ===== 三数据导入导出管理器=====
+        // ===============================================
+        IDB.DataManager = {
+            // -----------------------------------------------------
+            // 8. 导出数据
+            // -----------------------------------------------------
+            async exportData(account, password, includeUserData = true, includeConfigs = false) {
+                try {
+                    console.log('📤 开始导出数据...');
+                    
+                    // 验证账号密码
+                    if (!account || !password) {
+                        throw new Error('账号和密码不能为空');
+                    }
+                    
+                    // 获取用户数据
+                    const exportData = {
+                        account: Base64.encode(account),
+                        password: Base64.encode(password),
+                        exportDate: new Date().toISOString(),
+                        version: '1.0',
+                        data: {}
+                    };
+                    
+                    // 导出用户数据
+                    if (includeUserData) {
+                        const userData = await this.getAllStoreData('userdata');
+                        exportData.data.userdata = userData;
+                    }
+                    
+                    // 导出配置数据
+                    if (includeConfigs) {
+                        const configData = await this.getAllStoreData('configs');
+                        exportData.data.configs = configData;
+                    }
+                    
+                    console.log('✅ 数据导出成功');
+                    return exportData;
+                } catch (error) {
+                    console.error('❌ 数据导出失败:', error);
+                    throw error;
+                }
+            },
+            
+            // -----------------------------------------------------
+            // 9. 导入数据
+            // -----------------------------------------------------
+            async importData(jsonData, account, password, overwrite = false) {
+                try {
+                    console.log('📥 开始导入数据...');
+                    
+                    // 验证账号密码
+                    if (!account || !password) {
+                        throw new Error('账号和密码不能为空');
+                    }
+                    
+                    // 解析JSON数据
+                    let importData;
+                    if (typeof jsonData === 'string') {
+                        importData = JSON.parse(jsonData);
+                    } else {
+                        importData = jsonData;
+                    }
+                    
+                    // 验证导入数据格式
+                    if (!importData.account || !importData.password || !importData.data) {
+                        throw new Error('导入数据格式错误');
+                    }
+                    
+                    // 验证账号密码
+                    const decodedAccount = Base64.decode(importData.account);
+                    const decodedPassword = Base64.decode(importData.password);
+                    
+                    if (decodedAccount !== account || decodedPassword !== password) {
+                        throw new Error('账号或密码不正确');
+                    }
+                    
+                    // 导入用户数据
+                    if (importData.data.userdata) {
+                        await this.importStoreData('userdata', importData.data.userdata, overwrite);
+                    }
+                    
+                    // 导入配置数据
+                    if (importData.data.configs) {
+                        await this.importStoreData('configs', importData.data.configs, overwrite);
+                    }
+                    
+                    console.log('✅ 数据导入成功');
+                    return true;
+                } catch (error) {
+                    console.error('❌ 数据导入失败:', error);
+                    throw error;
+                }
+            },
+            
+            // -----------------------------------------------------
+            // 10. 获取存储区所有数据
+            // -----------------------------------------------------
+            async getAllStoreData(store) {
+                try {
+                    await IDB.init();
+                    
+                    return new Promise((resolve) => {
+                        const tx = IDB.db.transaction([IDB.STORES[store]], 'readonly');
+                        const objectStore = tx.objectStore(IDB.STORES[store]);
+                        const request = objectStore.getAll();
+                        
+                        request.onsuccess = () => {
+                            const items = request.result;
+                            const data = {};
+                            
+                            // 使用游标获取键值对
+                            const cursorRequest = objectStore.openCursor();
+                            
+                            cursorRequest.onsuccess = (e) => {
+                                const cursor = e.target.result;
+                                if (cursor) {
+                                    // 直接存储键值对，不存储JavaScript代码
+                                    data[cursor.key] = cursor.value;
+                                    cursor.continue();
+                                } else {
+                                    console.log(`📋 ${store}存储区数据:`, data);
+                                    resolve(data);
+                                }
+                            };
+                            
+                            cursorRequest.onerror = () => {
+                                console.error(`❌ 获取${store}数据失败`);
+                                resolve({});
+                            };
+                        };
+                        
+                        request.onerror = () => {
+                            console.error(`❌ 获取${store}数据失败`);
+                            resolve({});
+                        };
+                    });
+                } catch (error) {
+                    console.error('❌ 获取存储区数据异常:', error);
+                    return {};
+                }
+            },
+            
+            // -----------------------------------------------------
+            // 11. 导入存储区数据
+            // -----------------------------------------------------
+            async importStoreData(store, data, overwrite = false) {
+                try {
+                    await IDB.init();
+                    
+                    for (const [key, value] of Object.entries(data)) {
+                        // 检查是否已存在
+                        if (!overwrite) {
+                            const existing = await IDB.get(key, store);
+                            if (existing) {
+                                console.log(`⚠️ 跳过已存在的键: ${key}`);
+                                continue;
+                            }
+                        }
+                        
+                        // 直接存储JSON对象，不包装为JavaScript代码
+                        await IDB.put(key, value, store);
+                        console.log(`✅ 已导入${key}到${store}存储区`);
+                    }
+                    
+                    console.log(`✅ ${store}数据导入完成`);
+                } catch (error) {
+                    console.error(`❌ ${store}数据导入异常:`, error);
+                    throw error;
+                }
+            },
+            
+            // -----------------------------------------------------
+            // 12. 下载导出文件
+            // -----------------------------------------------------
+            downloadExportFile(exportData, filename) {
+                try {
+                    const dataStr = JSON.stringify(exportData);
+                    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(dataBlob);
+                    link.download = filename || `export_${Date.now()}.json`;
+                    link.click();
+                    console.log('✅ 导出文件下载成功');
+                } catch (error) {
+                    console.error('❌ 下载导出文件失败:', error);
+                    throw error;
+                }
+            },
+            
+            // -----------------------------------------------------
+            // 13. 读取导入文件
+            // -----------------------------------------------------
+            readImportFile(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    
+                    reader.onload = (e) => {
+                        try {
+                            const jsonData = JSON.parse(e.target.result);
+                            resolve(jsonData);
+                        } catch (error) {
+                            reject(new Error('文件格式错误，不是有效的JSON'));
+                        }
+                    };
+                    
+                    reader.onerror = () => {
+                        reject(new Error('文件读取失败'));
+                    };
+                    
+                    reader.readAsText(file);
+                });
+            }
+        };
+        
+        // ===============================================
+        // ===== 四缓存管理器=====
+        // ===============================================
+        IDB.cacheLocalFile = function(fileName, store = 'configs') {
+            // -----------------------------------------------------
+            // 14. 缓存本地文件
+            // -----------------------------------------------------
+            if (!fileName) {
+                console.warn('⚠️ 文件名为空');
+                return;
+            }
+            
+            console.log(`📁 开始缓存文件: ${fileName}`);
+            
+            try {
+                const xhr = new XMLHttpRequest();
+                xhr.open('GET', fileName, false); // 同步
+                
+                xhr.onreadystatechange = function() {
+                    if (xhr.readyState === 4) {
+                        if (xhr.status === 200 || xhr.status === 0) {
+                            // 存储到数据库
+                            IDB.put(fileName, xhr.responseText, store).then(() => {
+                                console.log(`✅ 文件缓存成功: ${fileName}`);
+                            }).catch(error => {
+                                console.error(`❌ 文件缓存失败: ${fileName}`, error);
+                            });
+                        } else {
+                            console.error(`❌ 文件读取失败: ${fileName} (状态: ${xhr.status})`);
+                        }
+                    }
+                };
+                
+                xhr.onerror = function() {
+                    console.error(`❌ 文件请求失败: ${fileName}`);
+                };
+                
+                xhr.send();
+            } catch (error) {
+                console.error(`❌ 文件缓存异常: ${fileName}`, error);
+            }
+        };
+        
+        // ===============================================
+        // ===== 五离线缓存管理器=====
+        // ===============================================
+        IDB.CacheMgr = {
+            // -----------------------------------------------------
+            // 15. 获取文件（优先从缓存）
+            // -----------------------------------------------------
+            async get(file) {
+                console.log(`🔍 尝试加载文件: ${file}`);
+                
+                try {
+                    // ①优先读库
+                    const txt = await IDB.get(file, 'configs');
+                    if (txt) {
+                        console.log(`⚡ 数据库命中: ${file}`);
+                        return txt;
+                    }
+                    
+                    console.log(`❌ 数据库未命中，开始网络请求: ${file}`);
+                    
+                    // ②库没有才fetch
+                    const resp = await fetch(file);
+                    if (!resp.ok) {
+                        const errorMsg = `文件加载失败: ${file} (状态: ${resp.status})`;
+                        console.error(`❌ ${errorMsg}`);
+                        throw new Error(errorMsg);
+                    }
+                    
+                    const text = await resp.text();
+                    console.log(`✅ 文件加载成功，大小: ${text.length}字符`);
+                    
+                    // ③立即写库
+                    await IDB.put(file, text, 'configs');
+                    console.log(`💾 文件已缓存到数据库: ${file}`);
+                    
+                    return text;
+                } catch (error) {
+                    console.error(`❌ 文件加载失败: ${file}`, error);
+                    throw error;
+                }
+            }
+        };
+        
+        // ===============================================
+        // ===== 六自动初始化和错误处理=====
+        // ===============================================
+        // -----------------------------------------------------
+        // 16. 自动初始化和错误处理
+        // -----------------------------------------------------
+        (async function() {
+            try {
+                console.log('🚀 开始自动初始化数据库...');
+                await IDB.init();
+                console.log('✅ 数据库公共库加载完成');
+                
+                // 检查数据库状态
+                const isAvailable = await IDB.isAvailable();
+                if (isAvailable) {
+                    console.log('✅ 数据库状态正常');
+                } else {
+                    console.warn('⚠️ 数据库状态异常');
+                }
+            } catch (error) {
+                console.error('❌ 数据库公共库加载失败:', error);
+                console.error('❌ 错误详情:', error.message);
+                console.error('❌ 错误堆栈:', error.stack);
+                
+                // 向页面传递错误信息
+                if (typeof window !== 'undefined') {
+                    window.IDB_ERROR = {
+                        message: error.message,
+                        stack: error.stack,
+                        timestamp: new Date().toISOString()
+                    };
+                }
+            }
+        })();
+        
+        // ===============================================
+        // ===== 七调试工具=====
+        // ===============================================
+        IDB.debug = {
+            // -----------------------------------------------------
+            // 17. 获取数据库信息
+            // -----------------------------------------------------
+            async getInfo() {
+                try {
+                    await IDB.init();
+                    return {
+                        name: IDB.DB_NAME,
+                        version: IDB.VERSION,
+                        stores: Object.keys(IDB.STORES),
+                        db: IDB.db ? '已连接' : '未连接'
+                    };
+                } catch (error) {
+                    return { error: error.message };
+                }
+            },
+            
+            // -----------------------------------------------------
+            // 18. 清空数据库
+            // -----------------------------------------------------
+            async clear(store = 'configs') {
+                try {
+                    await IDB.init();
+                    const tx = IDB.db.transaction([IDB.STORES[store]], 'readwrite');
+                    const objectStore = tx.objectStore(IDB.STORES[store]);
+                    await objectStore.clear();
+                    console.log(`🗑️ ${store}数据库已清空`);
+                    return true;
+                } catch (error) {
+                    console.error(`❌ 清空${store}数据库失败:`, error);
+                    return false;
+                }
+            },
+            
+            // -----------------------------------------------------
+            // 19. 列出所有缓存
+            // -----------------------------------------------------
+            async listAll(store = 'configs') {
+                try {
+                    await IDB.init();
+                    const tx = IDB.db.transaction([IDB.STORES[store]], 'readonly');
+                    const objectStore = tx.objectStore(IDB.STORES[store]);
+                    
+                    return new Promise((resolve) => {
+                        const cursorRequest = objectStore.openCursor();
+                        const items = [];
+                        
+                        cursorRequest.onsuccess = (e) => {
+                            const cursor = e.target.result;
+                            if (cursor) {
+                                items.push({
+                                    key: cursor.key,
+                                    value: cursor.value
+                                });
+                                cursor.continue();
+                            } else {
+                                console.log(`📋 ${store}数据库内容:`, items);
+                                resolve(items);
+                            }
+                        };
+                        
+                        cursorRequest.onerror = () => {
+                            console.error(`❌ 获取${store}数据库内容失败`);
+                            resolve([]);
+                        };
+                    });
+                } catch (error) {
+                    console.error(`❌ 列出${store}缓存失败:`, error);
+                    return [];
+                }
+            }
+        };
+        
+        // ===============================================
+        // ===== 导出到全局，便于调试=====
+        // ===============================================
+        if (typeof window !== 'undefined') {
+            window.IDB_DEBUG = IDB.debug;
+            window.IDB_DataManager = IDB.DataManager;
+        }
+    </script>
+</body>
+</html>

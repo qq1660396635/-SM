@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>C 代码调用树分析 - 命令行</title>
+    <style>
+        * { box-sizing: border-box; }
+        
+        body { 
+            margin: 0; 
+            padding: 0; 
+            background: #000; 
+            font-family: 'Courier New', monospace; 
+            color: #0f0; 
+            height: 100vh; 
+            display: flex; 
+            flex-direction: column; 
+            overflow: hidden;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        .header { 
+            background: #111; 
+            padding: 10px; 
+            border-bottom: 1px solid #333; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            flex-wrap: wrap; 
+            gap: 10px; 
+            min-height: 50px;
+        }
+        
+        .header h2 { margin: 0; color: #0f0; font-size: 16px; }
+        .status { display: flex; align-items: center; gap: 5px; font-size: 12px; }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #666; }
+        .status.connected .status-dot { background: #0f0; }
+        .status.disconnected .status-dot { background: #f00; }
+        .status.testing .status-dot { background: #ff0; animation: blink 1s infinite; }
+        @keyframes blink { 0%, 50% { opacity: 1; } 51%, 100% { opacity: 0; } }
+        
+        #terminal { 
+            flex: 1; 
+            background: #000; 
+            color: #fff; 
+            padding: 10px; 
+            overflow-y: auto; 
+            font-family: 'Courier New', monospace; 
+            font-size: 14px; 
+            line-height: 1.4; 
+            white-space: pre-wrap; 
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        .terminal-line { margin: 2px 0; word-wrap: break-word; }
+        .command-line { color: #0f0; }
+        .output-line { color: #fff; }
+        .error-line { color: #f00; }
+        .status-line { color: #ff0; font-style: italic; }
+        .success-line { color: #0f0; }
+        .ai-line { color: #00ffff; }
+        
+        .input-container { 
+            background: #111; 
+            padding: 10px; 
+            border-top: 1px solid #333; 
+            display: flex; 
+            align-items: center; 
+            min-height: 40px;
+        }
+        
+        .prompt { color: #0f0; margin-right: 8px; }
+        
+        #command-input { 
+            flex: 1; 
+            background: #000; 
+            border: 1px solid #333; 
+            color: #0f0; 
+            padding: 8px; 
+            font-family: 'Courier New', monospace; 
+            font-size: 14px; 
+            outline: none; 
+            border-radius: 4px;
+        }
+        
+        #command-input:focus { border-color: #0f0; }
+        
+        .button-container { 
+            background: #111; 
+            padding: 10px; 
+            text-align: center; 
+            border-top: 1px solid #333; 
+            display: flex; 
+            justify-content: center; 
+            gap: 10px; 
+            flex-wrap: wrap; 
+            min-height: 50px;
+        }
+        
+        .btn { 
+            color: white; 
+            border: none; 
+            padding: 8px 16px; 
+            border-radius: 4px; 
+            cursor: pointer; 
+            font-family: monospace; 
+            font-size: 12px; 
+            transition: all 0.3s; 
+            touch-action: manipulation;
+        }
+        
+        .btn:hover { transform: translateY(-1px); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        .test-btn { background: #2196F3; }
+        .test-btn:hover { background: #1976D2; }
+        .analyze-btn { background: #4CAF50; }
+        .analyze-btn:hover { background: #45a049; }
+        .clear-btn { background: #f44336; }
+        .clear-btn:hover { background: #d32f2f; }
+        .settings-btn { background: #FF9800; }
+        .settings-btn:hover { background: #F57C00; }
+        
+        .server-info { 
+            background: #333; 
+            padding: 5px 10px; 
+            border-radius: 3px; 
+            font-size: 11px; 
+            color: #ccc; 
+            display: flex; 
+            align-items: center; 
+            gap: 5px; 
+        }
+        
+        /* 控制面板样式 - 适配手机 */
+        .settings-panel {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 20px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.3);
+        }
+        
+        .settings-panel.active {
+            display: block;
+        }
+        
+        .settings-header {
+            color: #0f0;
+            margin-bottom: 15px;
+            font-size: 16px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 10px;
+        }
+        
+        .settings-item {
+            margin-bottom: 15px;
+        }
+        
+        .settings-label {
+            color: #0f0;
+            font-size: 12px;
+            margin-bottom: 5px;
+            display: block;
+        }
+        
+        .settings-input {
+            width: 100%;
+            background: #000;
+            border: 1px solid #333;
+            color: #0f0;
+            padding: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            outline: none;
+            border-radius: 4px;
+        }
+        
+        .settings-input:focus {
+            border-color: #0f0;
+        }
+        
+        .settings-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+        
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 999;
+            display: none;
+            touch-action: none;
+        }
+        
+        .overlay.active {
+            display: block;
+        }
+        
+        /* AI设置区域 */
+        .ai-settings {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #333;
+        }
+        
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        
+        .checkbox-container input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+        
+        .checkbox-container label {
+            color: #0f0;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        
+        /* 加载动画 */
+        .loading {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border: 2px solid #0f0;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s linear infinite;
+            margin-left: 8px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* AI iframe容器样式 - 响应式优化 */
+        .ai-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 2000;
+            display: none;
+            flex-direction: column;
+        }
+        
+        .ai-container.active {
+            display: flex;
+        }
+        
+        .ai-header {
+            background: #222;
+            padding: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #444;
+            min-height: 50px;
+        }
+        
+        .ai-title {
+            color: #0f0;
+            font-size: 14px;
+        }
+        
+        .ai-close {
+            background: #f44336;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            touch-action: manipulation;
+        }
+        
+        .ai-close:hover {
+            background: #d32f2f;
+        }
+        
+        .ai-iframe-wrapper {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .ai-iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+            transform-origin: 0 0;
+            transition: transform 0.3s ease;
+        }
+        
+        /* 缩放控制按钮 - 响应式优化 */
+        .zoom-controls {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 10;
+        }
+        
+        .zoom-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: none;
+            background: rgba(0, 255, 0, 0.8);
+            color: #000;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        .zoom-btn:hover {
+            background: rgba(0, 255, 0, 1);
+            transform: scale(1.1);
+        }
+        
+        .zoom-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .zoom-level {
+            position: fixed;
+            bottom: 180px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            color: #0f0;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: bold;
+            border: 1px solid #0f0;
+            min-width: 60px;
+            text-align: center;
+        }
+        
+        /* 手机适配 */
+        @media (max-width: 768px) {
+            .header h2 { font-size: 14px; }
+            .server-info { font-size: 10px; }
+            .btn { padding: 8px 12px; font-size: 11px; }
+            #terminal { font-size: 12px; }
+            #command-input { font-size: 12px; padding: 6px; }
+            .settings-panel { width: 95%; padding: 15px; }
+            
+            .zoom-btn {
+                width: 45px;
+                height: 45px;
+                font-size: 20px;
+            }
+            
+            .zoom-level {
+                bottom: 160px;
+                right: 15px;
+                font-size: 12px;
+                padding: 6px 10px;
+            }
+            
+            .zoom-controls {
+                bottom: 15px;
+                right: 15px;
+                gap: 8px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .header { padding: 8px; }
+            .header h2 { font-size: 12px; }
+            .btn { padding: 6px 10px; font-size: 10px; }
+            .ai-title { font-size: 12px; }
+            .ai-close { padding: 6px 12px; font-size: 10px; }
+            
+            .zoom-btn {
+                width: 40px;
+                height: 40px;
+                font-size: 18px;
+            }
+            
+            .zoom-level {
+                bottom: 140px;
+                font-size: 11px;
+            }
+        }
+        
+        /* 横屏优化 */
+        @media (orientation: landscape) and (max-height: 500px) {
+            .ai-header {
+                padding: 5px 10px;
+                min-height: 40px;
+            }
+            
+            .zoom-controls {
+                bottom: 10px;
+                right: 10px;
+                gap: 5px;
+            }
+            
+            .zoom-btn {
+                width: 35px;
+                height: 35px;
+                font-size: 16px;
+            }
+            
+            .zoom-level {
+                bottom: 120px;
+                right: 10px;
+                font-size: 10px;
+                padding: 4px 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h2>C 代码调用树分析器</h2>
+        <div style="display: flex; align-items: center; gap: 15px;">
+            <div class="server-info">
+                <span>服务器:</span>
+                <span id="server-url">检测中...</span>
+            </div>
+            <div id="status" class="status disconnected">
+                <span class="status-dot"></span>
+                <span>未连接</span>
+            </div>
+            <button class="btn settings-btn" onclick="openSettings()" style="padding: 5px 10px; font-size: 11px;">⚙️</button>
+        </div>
+    </div>
+    
+    <div id="terminal"></div>
+    
+    <div class="button-container">
+        <button class="btn test-btn" onclick="testConnection()" id="test-btn">🔍测试连接</button>
+        <button class="btn analyze-btn" onclick="analyzeCode()" id="analyze-btn" disabled>🚀分析调用树</button>
+        <button class="btn clear-btn" onclick="clearTerminal()">🗑️ 清 空</button>
+    </div>
+    
+    <div class="input-container">
+        <span class="prompt">$</span>
+        <input type="text" id="command-input" placeholder="粘贴C 源代码后 按Enter 或点击分析按钮..." autocomplete="off">
+    </div>
+
+    <!-- 设置面板 -->
+    <div class="overlay" id="overlay" onclick="closeSettings()"></div>
+    <div class="settings-panel" id="settings-panel">
+        <div class="settings-header">⚙️ 设置</div>
+        
+        <div class="settings-item">
+            <label class="settings-label">服务器地址:</label>
+            <input type="text" class="settings-input" id="server-url-input" placeholder="http://127.0.0.1:8080">
+        </div>
+        
+        <div class="ai-settings">
+            <div class="settings-header">🤖 AI 分析设置</div>
+            
+            <div class="checkbox-container">
+                <input type="checkbox" id="enable-ai" checked>
+                <label for="enable-ai">启用 AI 分析（iframe嵌入）</label>
+            </div>
+            
+            <div class="checkbox-container">
+                <input type="checkbox" id="auto-landscape" checked>
+                <label for="auto-landscape">自动横屏（移动端）</label>
+            </div>
+            
+            <div class="settings-item">
+                <label class="settings-label">AI 提示词模板:</label>
+                <textarea class="settings-input" id="ai-prompt" rows="6" style="resize: vertical;">请分析以下C代码调用树结果：
+
+1. 请把全部英文函数名和变量名后面加上中文注释，一行一个
+2. 虽然cflow分析的格式不太准确，但请给我系统梳理一下内容，然后画出mermaid时序图
+
+调用树分析结果：
+{RESULT}</textarea>
+            </div>
+        </div>
+        
+        <div class="settings-buttons">
+            <button class="btn clear-btn" onclick="closeSettings()">取消</button>
+            <button class="btn analyze-btn" onclick="saveSettings()">保存</button>
+        </div>
+    </div>
+    
+    <!-- AI iframe容器 -->
+    <div class="ai-container" id="ai-container">
+        <div class="ai-header">
+            <div class="ai-title">🤖 百度AI 分析助手</div>
+            <button class="ai-close" onclick="closeAIContainer()">关闭</button>
+        </div>
+        <div class="ai-iframe-wrapper">
+            <iframe class="ai-iframe" id="ai-iframe" src=""></iframe>
+            <div class="zoom-level" id="zoom-level">100%</div>
+            <div class="zoom-controls">
+                <button class="zoom-btn" onclick="zoomIn()">+</button>
+                <button class="zoom-btn" onclick="zoomOut()">-</button>
+                <button class="zoom-btn" onclick="resetZoom()">⟲</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 提示词常量 - 只发送结果，不发送原始代码
+        const AI_PROMPT_TEMPLATE = `请分析以下C代码调用树结果：
+
+1. 请把全部英文函数名和变量名后面加上中文注释，一行一个
+2. 虽然cflow分析的格式不太准确，但请给我系统梳理一下内容，然后画出mermaid时序图
+
+调用树分析结果：
+{RESULT}`;
+
+        const terminal = document.getElementById('terminal');
+        const input = document.getElementById('command-input');
+        const statusEl = document.getElementById('status');
+        const testBtn = document.getElementById('test-btn');
+        const analyzeBtn = document.getElementById('analyze-btn');
+        const serverUrlEl = document.getElementById('server-url');
+        let commandHistory = [];
+        let historyIndex = -1;
+        let currentCode = '';
+        let isServerConnected = false;
+        let lastAnalysisResult = null;
+        let lastCode = null;
+        let currentZoom = 1;
+
+        // 获取服务器地址
+        function getServerUrl() {
+            const cachedUrl = localStorage.getItem('serverUrl');
+            if (cachedUrl) {
+                return cachedUrl;
+            }
+
+            if (window.location.protocol === 'file:' || window.cordova || window.Capacitor) {
+                const inputUrl = prompt('请输入服务器地址（如 http://192.168.1.100:8080）');
+                if (inputUrl) {
+                    localStorage.setItem('serverUrl', inputUrl);
+                    return inputUrl;
+                }
+            }
+
+            if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+                return `${window.location.protocol}//${window.location.host}`;
+            }
+            
+            return 'http://127.0.0.1:8080';
+        }
+
+        // 自动横屏
+        async function requestLandscape() {
+            if (localStorage.getItem('autoLandscape') === 'false') {
+                return;
+            }
+            
+            if (screen.orientation && screen.orientation.lock) {
+                try {
+                    await screen.orientation.lock('landscape');
+                    addLine('📱 已切换到横屏模式', 'status-line');
+                } catch (error) {
+                    console.log('无法自动横屏:', error);
+                }
+            }
+        }
+
+        // 恢复竖屏
+        async function requestPortrait() {
+            if (screen.orientation && screen.orientation.lock) {
+                try {
+                    await screen.orientation.lock('portrait');
+                } catch (error) {
+                    console.log('无法恢复竖屏:', error);
+                }
+            }
+        }
+
+        // 打开设置面板
+        function openSettings() {
+            document.getElementById('overlay').classList.add('active');
+            document.getElementById('settings-panel').classList.add('active');
+            document.getElementById('server-url-input').value = localStorage.getItem('serverUrl') || getServerUrl();
+            document.getElementById('enable-ai').checked = localStorage.getItem('enableAI') !== 'false';
+            document.getElementById('auto-landscape').checked = localStorage.getItem('autoLandscape') !== 'false';
+            document.getElementById('ai-prompt').value = localStorage.getItem('aiPrompt') || AI_PROMPT_TEMPLATE;
+        }
+
+        // 关闭设置面板
+        function closeSettings() {
+            document.getElementById('overlay').classList.remove('active');
+            document.getElementById('settings-panel').classList.remove('active');
+        }
+
+        // 保存设置
+        function saveSettings() {
+            const serverUrl = document.getElementById('server-url-input').value.trim();
+            if (serverUrl) {
+                localStorage.setItem('serverUrl', serverUrl);
+                serverUrlEl.textContent = serverUrl;
+                updateStatus(false);
+                addLine(`服务器地址已更新为: ${serverUrl}`, 'status-line');
+                addLine('请重新测试连接。', 'status-line');
+            }
+            
+            localStorage.setItem('enableAI', document.getElementById('enable-ai').checked);
+            localStorage.setItem('autoLandscape', document.getElementById('auto-landscape').checked);
+            localStorage.setItem('aiPrompt', document.getElementById('ai-prompt').value);
+            
+            closeSettings();
+            addLine('设置已保存', 'success-line');
+        }
+
+        function addLine(text, className = '') {
+            const line = document.createElement('div');
+            line.className = `terminal-line ${className}`;
+            line.textContent = text;
+            terminal.appendChild(line);
+            terminal.scrollTop = terminal.scrollHeight;
+        }
+
+        function updateStatus(connected, status = '') {
+            const statusText = statusEl.querySelector('span:last-child');
+            if (connected === 'testing') {
+                statusEl.className = 'status testing';
+                statusText.textContent = '测试中...';
+            } else if (connected) {
+                statusEl.className = 'status connected';
+                statusText.textContent = '已连接';
+                isServerConnected = true;
+                analyzeBtn.disabled = false;
+            } else {
+                statusEl.className = 'status disconnected';
+                statusText.textContent = '未连接';
+                isServerConnected = false;
+                analyzeBtn.disabled = true;
+            }
+        }
+
+        async function testConnection() {
+            const serverUrl = getServerUrl();
+            updateStatus('testing');
+            testBtn.disabled = true;
+            testBtn.textContent = ' 测试中...';
+            addLine(`🔍测试连接: ${serverUrl}`, 'command-line');
+            try {
+                const response = await fetch(`${serverUrl}/test`, {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' },
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    addLine(`✅ 连接成功: ${data.message}`, 'success-line');
+                    addLine(`📅 服务器时间: ${new Date(data.timestamp * 1000).toLocaleString()}`, 'status-line');
+                    updateStatus(true);
+                } else {
+                    addLine(`❌ 连接失败: HTTP ${response.status}`, 'error-line');
+                    updateStatus(false);
+                }
+            } catch (error) {
+                addLine(`❌ 网络错误: ${error.message}`, 'error-line');
+                addLine('💡请检查服务器是否运行在 ' + serverUrl, 'status-line');
+                updateStatus(false);
+            } finally {
+                testBtn.disabled = false;
+                testBtn.textContent = '🔍测试连接';
+            }
+        }
+
+        // 使用iframe嵌入百度AI - 只发送服务器返回的结果
+        async function sendToBaiduAI(result) {
+            if (localStorage.getItem('enableAI') === 'false') {
+                return;
+            }
+
+            addLine('🤖 正在准备AI分析内容...', 'ai-line');
+            
+            const promptTemplate = localStorage.getItem('aiPrompt') || AI_PROMPT_TEMPLATE;
+            const prompt = promptTemplate.replace('{RESULT}', result);
+
+            try {
+                // 请求横屏
+                await requestLandscape();
+                
+                // 复制到剪切板作为备用
+                await navigator.clipboard.writeText(prompt);
+                addLine('✅ 已复制分析结果到剪切板', 'ai-line');
+                
+                // 显示iframe容器
+                const aiContainer = document.getElementById('ai-container');
+                const aiIframe = document.getElementById('ai-iframe');
+                
+                // 构建百度AI URL
+                const baiduUrl = 'https://chat.baidu.com/search?pd=csaitab&setype=csaitab&word=百度&sa=vs_tab&enterType=vs_tab&conversationLogId=17624310952652301347&pageType=landing&browserID=1022282z';
+                
+                aiIframe.src = baiduUrl;
+                aiContainer.classList.add('active');
+                
+                addLine('🌐 已打开百度AI页面，请在iframe中粘贴内容进行分析', 'ai-line');
+                addLine('💡 使用右下角按钮可以缩放页面', 'ai-line');
+                
+            } catch (err) {
+                addLine('❌ 准备失败，请手动复制以下内容：', 'error-line');
+                addLine(prompt, 'output-line');
+            }
+        }
+
+        // 关闭AI容器
+        function closeAIContainer() {
+            document.getElementById('ai-container').classList.remove('active');
+            document.getElementById('ai-iframe').src = '';
+            resetZoom();
+            // 恢复竖屏
+            requestPortrait();
+        }
+
+        // 缩放功能 - 响应式优化
+        function zoomIn() {
+            if (currentZoom < 3) {
+                currentZoom += 0.2;
+                updateZoom();
+            }
+        }
+
+        function zoomOut() {
+            if (currentZoom > 0.3) {
+                currentZoom -= 0.2;
+                updateZoom();
+            }
+        }
+
+        function resetZoom() {
+            currentZoom = 1;
+            updateZoom();
+        }
+
+        function updateZoom() {
+            const iframe = document.getElementById('ai-iframe');
+            const wrapper = document.getElementById('ai-container').querySelector('.ai-iframe-wrapper');
+            
+            // 获取实际视口尺寸
+            const viewportWidth = wrapper.clientWidth;
+            const viewportHeight = wrapper.clientHeight;
+            
+            // 应用缩放
+            iframe.style.transform = `scale(${currentZoom})`;
+            
+            // 调整iframe基础尺寸以适应缩放
+            const baseWidth = viewportWidth / currentZoom;
+            const baseHeight = viewportHeight / currentZoom;
+            
+            iframe.style.width = baseWidth + 'px';
+            iframe.style.height = baseHeight + 'px';
+            
+            // 更新缩放显示
+            document.getElementById('zoom-level').textContent = Math.round(currentZoom * 100) + '%';
+            
+            // 添加日志
+            console.log(`缩放更新: ${currentZoom}, 视口: ${viewportWidth}x${viewportHeight}, iframe: ${baseWidth}x${baseHeight}`);
+        }
+
+        // 监听窗口大小变化
+        window.addEventListener('resize', () => {
+            if (document.getElementById('ai-container').classList.contains('active')) {
+                updateZoom();
+            }
+        });
+
+        // 监听屏幕方向变化
+        window.addEventListener('orientationchange', () => {
+            setTimeout(() => {
+                if (document.getElementById('ai-container').classList.contains('active')) {
+                    updateZoom();
+                }
+            }, 100);
+        });
+
+        async function analyzeCode() {
+            if (!isServerConnected) {
+                addLine('❌ 请先测试连接', 'error-line');
+                return;
+            }
+            const sourceCode = input.value.trim();
+            if (!sourceCode) {
+                addLine('❌ 错误：请先输入C 源代码', 'error-line');
+                return;
+            }
+            currentCode = sourceCode;
+            addLine('$ 开始分析C 代码...', 'command-line');
+            analyzeBtn.disabled = true;
+            analyzeBtn.innerHTML = ' 分析中...<span class="loading"></span>';
+            
+            try {
+                const serverUrl = getServerUrl();
+                const response = await fetch(`${serverUrl}/cflow`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+                    body: sourceCode
+                });
+                const result = await response.json();
+                if (response.ok && result.status === 'success') {
+                    addLine('✅ 分析完成：', 'status-line');
+                    if (result.result) {
+                        const lines = result.result.split('\n');
+                        lines.forEach(line => { if (line.trim()) { addLine(line, 'output-line'); } });
+                        
+                        // 保存结果用于发送给AI
+                        lastAnalysisResult = result.result;
+                        lastCode = sourceCode;
+                        
+                        // 自动发送到百度AI - 只发送结果，不发送代码
+                        setTimeout(() => {
+                            sendToBaiduAI(result.result);
+                        }, 1000);
+                    } else {
+                        addLine('⚠️服务器返回空结果', 'error-line');
+                    }
+                } else {
+                    addLine(`❌ 分析失败：`, 'error-line');
+                    if (result.error) {
+                        result.error.split('\n').forEach(line => { if (line.trim()) { addLine(line, 'error-line'); } });
+                    }
+                }
+            } catch (error) {
+                addLine(`❌ 网络错误：${error.message}`, 'error-line');
+            } finally {
+                analyzeBtn.disabled = false;
+                analyzeBtn.innerHTML = '🚀分析调用树';
+            }
+        }
+
+        function clearTerminal() {
+            terminal.innerHTML = '';
+            input.value = '';
+            currentCode = '';
+            lastAnalysisResult = null;
+            lastCode = null;
+        }
+
+        input.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                const code = input.value;
+                if (code.trim()) {
+                    commandHistory.push(code);
+                    historyIndex = commandHistory.length;
+                    analyzeCode();
+                }
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                if (historyIndex > 0) {
+                    historyIndex--;
+                    input.value = commandHistory[historyIndex];
+                }
+            } else if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                if (historyIndex < commandHistory.length - 1) {
+                    historyIndex++;
+                    input.value = commandHistory[historyIndex];
+                } else {
+                    historyIndex = commandHistory.length;
+                    input.value = '';
+                }
+            }
+        });
+
+        terminal.addEventListener('click', function() { input.focus(); });
+
+        window.addEventListener('load', function() {
+            const serverUrl = getServerUrl();
+            serverUrlEl.textContent = serverUrl;
+            updateStatus(false);
+            input.focus();
+            
+            addLine('欢迎使用C 代码调用树分析器 (APP版)', 'status-line');
+            addLine('如果连接失败，请点击右上角⚙️设置服务器地址', 'status-line');
+            addLine('');
+            
+            const exampleCode = `#include <stdio.h>\n#include <stdlib.h>\n\nvoid helper() {\n    printf("Helper function\\n");\n}\n\nvoid process() {\n    helper();\n    printf("Processing\\n");\n}\n\nint main() {\n    printf("Start\\n");\n    process();\n    helper();\n    printf("End\\n");\n    return 0;\n}`;
+            addLine('示例代码（可直接使用）：', 'status-line');
+            addLine(exampleCode, 'output-line');
+            addLine('');
+            input.value = exampleCode;
+        });
+    </script>
+</body>
+</html>

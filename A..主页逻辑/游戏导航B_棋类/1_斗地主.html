@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>竖屏斗地主- AI 对战</title>
+    
+        <!-- 引入数据库管理器 -->
+    <script src="/db.js"></script>
+    
+        <!-- 引入插件工具箱 🏄-->
+    <script src="/A2_全局中心/B_插件工具/toolbox.js"></script>  
+       
+    <script src="1_斗地主logic.js"></script>
+      <script src="1_斗地主style.js"></script>
+</head>
+<body>
+    <!-- 横屏提示-->
+    <div class="landscape-notice" id="landscapeNotice">
+        <div class="rotate-icon">↻</div>
+        <h2>横屏体验更好</h2>
+        <p>建议旋转手机至横屏，获得更佳游戏体验</p>
+        <p>竖屏也可正常游戏</p>
+        <button class="continue-btn" id="continueBtn">继续游戏</button>
+    </div>
+
+    <!-- 发牌动画-->
+    <div class="dealing-animation" id="dealingAnimation">
+        <div class="dealing-text" id="dealingText">发牌中...</div>
+    </div>
+
+    <!-- 状态消息-->
+    <div class="status-message" id="statusMessage"></div>
+
+    <!-- 游戏主容器-->
+    <div class="game-container">
+        <!-- 游戏标题栏-->
+        <header class="game-header">
+            <div class="game-title">
+                <h1>竖屏斗地主</h1>
+            </div>
+            <div class="game-info">
+                <div class="current-turn" id="currentTurn">等待开始</div>
+                <div class="dizhu-info" id="dizhuInfo">地主: 未定</div>
+            </div>
+        </header>
+
+        <!-- 主游戏区域-->
+        <main class="game-area">
+            <!-- AI 玩家1 (顶部) -->
+            <div class="ai-player ai-player-top" id="aiPlayer1">
+                <div class="player-avatar ai-avatar-1">AI1</div>
+                <div class="player-details">
+                    <div class="player-name">AI 玩家1</div>
+                    <div class="player-status" id="ai1Status">等待中</div>
+                </div>
+                <div class="player-cards" id="ai1Cards">
+                    <!-- AI1 的牌背显示-->
+                </div>
+            </div>
+
+            <!-- 中心区域-->
+            <div class="center-area">
+                <div class="dizhu-section">
+                    <div class="section-title">地主牌</div>
+                    <div class="dizhu-cards" id="dizhuCards">
+                        <!-- 底牌显示-->
+                    </div>
+                </div>
+                <div class="current-cards-area">
+                    <div class="section-title">当前出牌</div>
+                    <div class="current-cards" id="currentCards">
+                        <!-- 当前出牌显示-->
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI 玩家2 (底部) -->
+            <div class="ai-player ai-player-bottom" id="aiPlayer2">
+                <div class="player-avatar ai-avatar-2">AI2</div>
+                <div class="player-details">
+                    <div class="player-name">AI 玩家2</div>
+                    <div class="player-status" id="ai2Status">等待中</div>
+                </div>
+                <div class="player-cards" id="ai2Cards">
+                    <!-- AI2 的牌背显示-->
+                </div>
+            </div>
+
+            <!-- 玩家区域-->
+            <div class="player-area">
+                <div class="player-header">
+                    <div class="player-avatar">您</div>
+                    <div class="player-details">
+                        <div class="player-name">您的手牌</div>
+                        <div class="player-status" id="playerStatus">0 张</div>
+                    </div>
+                </div>
+                <!-- 玩家手牌-->
+                <div class="player-hand" id="playerCards">
+                    <!-- 玩家手牌显示-->
+                </div>
+                <!-- 控制按钮-->
+                <div class="controls">
+                    <button class="game-btn btn-start" id="startBtn">开始游戏</button>
+                    <button class="game-btn btn-bid btn-disabled" id="bidBtn" disabled>抢地主</button>
+                    <button class="game-btn btn-bid btn-disabled" id="noBidBtn" disabled>不抢</button>
+                    <button class="game-btn btn-play btn-disabled" id="playBtn" disabled>出牌</button>
+                    <button class="game-btn btn-pass btn-disabled" id="passBtn" disabled>不出</button>
+                    <button class="game-btn btn-reset" id="resetBtn">重置</button>
+                </div>
+            </div>
+        </main>
+    </div>
+</body>
+</html>

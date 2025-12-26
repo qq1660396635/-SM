@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>年龄与常见病症分组</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            background-color: #f0f0f0;
+            color: #333;
+            line-height: 1.2; /* 极致紧凑行高 */
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .header {
+            width: 100%;
+            background-color: #1a73e8;
+            color: white;
+            text-align: center;
+            padding: 8px 4px; /* 极小头部内边距 */
+            font-size: 1rem;
+            font-weight: 600;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+            flex-shrink: 0;
+            z-index: 10;
+        }
+        .container {
+            width: 100%;
+            max-width: 100%;
+            padding: 4px 3px; /* 容器极小内边距 */
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            gap: 3px; /* 列之间极小间隙 */
+            flex: 1;
+            overflow: hidden;
+        }
+        .age-column {
+            flex: 1;
+            background-color: #ffffff;
+            border-radius: 4px; /* 小圆角 */
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+            padding: 2px 2px; /* 列内无内边距 */
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .column-header {
+            font-size: 0.75rem;
+            font-weight: 700;
+            margin-bottom: 3px; /* 标题下极小间距 */
+            padding: 4px 2px;
+            text-align: center;
+            border-radius: 3px;
+            position: sticky;
+            top: 0;
+            z-index: 2;
+            flex-shrink: 0;
+            line-height: 1.2;
+        }
+        .age-list {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 2px; /* 列表项之间极小间隙 */
+            overflow-y: auto;
+            padding: 0 1px 10px 1px; /* 极小左右内边距 */
+            scroll-behavior: smooth;
+        }
+        .age-item {
+            background-color: #f8f9fa;
+            border-radius: 3px;
+            padding: 3px 4px; /* 列表项极小内边距 */
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.75rem; /* 调小字体 */
+            transition: background-color 0.1s;
+            border: 1px solid #eee;
+            cursor: pointer;
+            min-height: 28px; /* 减小最小高度 */
+            user-select: none;
+        }
+        
+        .age-text {
+            font-weight: 600;
+            color: #333;
+            font-size: 0.8rem;
+        }
+        
+        .disease-name {
+            font-size: 0.7rem;
+            color: #666;
+            font-weight: 400;
+            text-align: right;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 60%; /* 限制最大宽度防止挤出 */
+        }
+        
+        .age-item:active {
+            background-color: #e0e0e0;
+        }
+        .age-item.selected {
+            border-color: transparent;
+        }
+        .age-item.selected .age-text, .age-item.selected .disease-name {
+            font-weight: 600;
+        }
+
+        /* 三列不同颜色主题 - 更加淡雅紧凑 */
+        .column-1 .column-header { background-color: #e6f4ea; color: #137333; }
+        .column-2 .column-header { background-color: #feefdc; color: #a35c00; }
+        .column-3 .column-header { background-color: #fce8e6; color: #c5221f; }
+        
+        .column-1 .age-item.selected { background-color: #ceead6; color: #0d652d; }
+        .column-2 .age-item.selected { background-color: #fce8b3; color: #a35c00; }
+        .column-3 .age-item.selected { background-color: #fad2cf; color: #c5221f; }
+
+        .footer {
+            width: 100%;
+            text-align: center;
+            padding: 4px;
+            font-size: 0.65rem;
+            color: #888;
+            background-color: #ffffff;
+            border-top: 1px solid #e0e0e0;
+            flex-shrink: 0;
+        }
+
+        /* 极致紧凑滚动条 */
+        .age-list::-webkit-scrollbar {
+            width: 2px;
+        }
+        .age-list::-webkit-scrollbar-thumb {
+            background: #ccc;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">年龄与常见病症</div>
+    
+    <div class="container">
+        <!-- 第一列：1-30岁 -->
+        <div class="age-column column-1">
+            <div class="column-header">1-30岁</div>
+            <div class="age-list" id="list1">
+                <!-- 动态生成 -->
+            </div>
+        </div>
+        
+        <!-- 第二列：31-60岁 -->
+        <div class="age-column column-2">
+            <div class="column-header">31-60岁</div>
+            <div class="age-list" id="list2">
+                <!-- 动态生成 -->
+            </div>
+        </div>
+        
+        <!-- 第三列：61-90岁 -->
+        <div class="age-column column-3">
+            <div class="column-header">61-90岁</div>
+            <div class="age-list" id="list3">
+                <!-- 动态生成 -->
+            </div>
+        </div>
+    </div>
+    
+    <div class="footer">点击选中 | 键盘操作</div>
+
+    <script>
+        // 90个常见病症数据
+        const diseaseData = [
+            // 1-10岁：婴幼儿常见病
+            "新生儿黄疸", "婴儿湿疹", "肠绞痛", "佝偻病", "小儿肺炎", 
+            "手足口病", "水痘", "腮腺炎", "小儿贫血", "哮喘性支气管炎",
+            
+            // 11-20岁：青少年常见病
+            "龋齿", "近视眼", "过敏性鼻炎", "扁桃体炎", "流行性感冒", 
+            "消化不良", "蛔虫症", "特发性关节炎", "青春期贫血", "脊柱侧弯",
+            
+            // 21-30岁：青年常见病
+            "痤疮", "痛经", "乳腺增生", "颈椎病", "腰肌劳损", 
+            "慢性胃炎", "偏头痛", "焦虑症", "失眠症", "尿路感染",
+            
+            // 31-40岁：中青年常见病
+            "脂肪肝", "胆结石", "肾结石", "高血压", "高血脂", 
+            "甲状腺结节", "子宫肌瘤", "卵巢囊肿", "痛风", "痔疮",
+            
+            // 41-50岁：中年常见病
+            "2型糖尿病", "冠心病", "慢性咽炎", "颈椎病", "腰椎间盘突出", 
+            "肩周炎", "胃溃疡", "十二指肠溃疡", "乙肝", "慢性结肠炎",
+            
+            // 51-60岁：中老年常见病
+            "更年期综合征", "前列腺增生", "骨质疏松", "白内障早期", "青光眼", 
+            "脑供血不足", "心律失常", "慢性支气管炎", "肺气肿", "膝关节退化",
+            
+            // 61-70岁：老年常见病
+            "老年性白内障", "老年性耳聋", "高血压", "冠心病", "脑梗塞", 
+            "脑出血", "老年性便秘", "慢性心衰", "老慢支", "肺心病",
+            
+            // 71-80岁：高龄常见病
+            "阿尔茨海默病", "帕金森病", "老年性痴呆", "骨质疏松症", "髋部骨折", 
+            "糖尿病并发症", "肾功能不全", "退行性瓣膜病", "老年性抑郁", "睡眠障碍",
+            
+            // 81-90岁：长寿老人常见病
+            "极度虚弱", "跌倒风险", "吞咽困难", "营养不良", "肺部感染", 
+            "尿失禁", "压疮", "多器官衰退", "恶性肿瘤", "临终关怀"
+        ];
+
+        // 生成年龄项的函数
+        function generateAgeItems(start, end, containerId) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            
+            for (let age = start; age <= end; age++) {
+                const disease = diseaseData[age - 1] || "未知";
+                
+                const ageItem = document.createElement('div');
+                ageItem.className = 'age-item';
+                ageItem.dataset.age = age;
+                
+                // 创建年龄文本
+                const ageText = document.createElement('span');
+                ageText.className = 'age-text';
+                ageText.textContent = age + '岁';
+                
+                // 创建疾病文本
+                const diseaseText = document.createElement('span');
+                diseaseText.className = 'disease-name';
+                diseaseText.textContent = disease;
+                
+                // 组装 DOM
+                ageItem.appendChild(ageText);
+                ageItem.appendChild(diseaseText);
+                
+                // 点击事件
+                ageItem.addEventListener('click', function() {
+                    document.querySelectorAll('.age-item.selected').forEach(item => {
+                        item.classList.remove('selected');
+                    });
+                    this.classList.add('selected');
+                });
+                
+                container.appendChild(ageItem);
+            }
+        }
+        
+        // 页面加载后执行
+        document.addEventListener('DOMContentLoaded', function() {
+            generateAgeItems(1, 30, 'list1');
+            generateAgeItems(31, 60, 'list2');
+            generateAgeItems(61, 90, 'list3');
+            
+            // 默认选中每列的中间位置
+            const selectDefault = (listId, offset = 10) => {
+                const list = document.getElementById(listId);
+                const items = list.querySelectorAll('.age-item');
+                if(items.length > offset) {
+                    items[offset].classList.add('selected');
+                    items[offset].scrollIntoView({block: "center"});
+                } else if (items.length > 0) {
+                    items[0].classList.add('selected');
+                }
+            };
+
+            selectDefault('list1', 5);  
+            selectDefault('list2', 15); 
+            selectDefault('list3', 15); 
+            
+            // 键盘导航支持
+            document.addEventListener('keydown', function(e) {
+                const selectedItem = document.querySelector('.age-item.selected');
+                if (!selectedItem) return;
+                
+                const column = selectedItem.closest('.age-column');
+                const allItems = Array.from(column.querySelectorAll('.age-item'));
+                const currentIndex = allItems.indexOf(selectedItem);
+                
+                switch(e.key) {
+                    case 'ArrowUp':
+                        e.preventDefault();
+                        if (currentIndex > 0) {
+                            selectedItem.classList.remove('selected');
+                            allItems[currentIndex - 1].classList.add('selected');
+                            allItems[currentIndex - 1].scrollIntoView({behavior: 'smooth', block: 'center'});
+                        }
+                        break;
+                    case 'ArrowDown':
+                        e.preventDefault();
+                        if (currentIndex < allItems.length - 1) {
+                            selectedItem.classList.remove('selected');
+                            allItems[currentIndex + 1].classList.add('selected');
+                            allItems[currentIndex + 1].scrollIntoView({behavior: 'smooth', block: 'center'});
+                        }
+                        break;
+                    case 'ArrowLeft':
+                        e.preventDefault();
+                        const prevColumn = column.previousElementSibling;
+                        if (prevColumn && prevColumn.classList.contains('age-column')) {
+                            selectedItem.classList.remove('selected');
+                            const prevItems = prevColumn.querySelectorAll('.age-item');
+                            const targetIndex = Math.min(currentIndex, prevItems.length - 1);
+                            if (prevItems[targetIndex]) {
+                                prevItems[targetIndex].classList.add('selected');
+                                prevItems[targetIndex].scrollIntoView({behavior: 'smooth', block: 'center'});
+                            }
+                        }
+                        break;
+                    case 'ArrowRight':
+                        e.preventDefault();
+                        const nextColumn = column.nextElementSibling;
+                        if (nextColumn && nextColumn.classList.contains('age-column')) {
+                            selectedItem.classList.remove('selected');
+                            const nextItems = nextColumn.querySelectorAll('.age-item');
+                            const targetIndex = Math.min(currentIndex, nextItems.length - 1);
+                            if (nextItems[targetIndex]) {
+                                nextItems[targetIndex].classList.add('selected');
+                                nextItems[targetIndex].scrollIntoView({behavior: 'smooth', block: 'center'});
+                            }
+                        }
+                        break;
+                }
+            });
+        });
+    </script>
+</body>
+</html>

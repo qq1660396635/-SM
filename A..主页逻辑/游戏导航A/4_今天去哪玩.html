@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>今天去哪玩</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: #000;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            color: #fff;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* 星空背景 */
+        .stars-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: -1;
+        }
+
+        .stars {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .star {
+            position: absolute;
+            background-color: #fff;
+            border-radius: 50%;
+            animation: twinkle 4s infinite;
+        }
+
+        @keyframes twinkle {
+            0% { opacity: 0.2; }
+            50% { opacity: 1; }
+            100% { opacity: 0.2; }
+        }
+
+        /* 流星效果 */
+        .meteor {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100px;
+            height: 2px;
+            background: linear-gradient(to right, transparent, #fff, transparent);
+            transform: rotate(45deg);
+            animation: meteor 3s linear infinite;
+            opacity: 0;
+        }
+
+        @keyframes meteor {
+            0% {
+                transform: translateX(-100px) translateY(-100px) rotate(45deg);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            20% {
+                transform: translateX(300px) translateY(300px) rotate(45deg);
+                opacity: 0;
+            }
+            100% {
+                opacity: 0;
+            }
+        }
+
+        /* 主容器 */
+        .main-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* 标题 */
+        .title {
+            font-size: 3rem;
+            font-weight: bold;
+            margin-bottom: 40px;
+            text-align: center;
+            background: linear-gradient(135deg, #ffd700 0%, #ff6b6b 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+            animation: pulse 2s infinite;
+            position: relative;
+        }
+
+        .title::before {
+            content: '';
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, #ffd700, transparent);
+            animation: scan 3s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes scan {
+            0% { width: 0; opacity: 0; }
+            50% { width: 100%; opacity: 1; }
+            100% { width: 0; opacity: 0; }
+        }
+
+        /* 抽奖容器 */
+        .lottery-container {
+            background: rgba(20, 20, 40, 0.8);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            border: 1px solid rgba(100, 100, 255, 0.3);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 50px rgba(100, 100, 255, 0.2);
+            max-width: 500px;
+            width: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .lottery-container::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(100, 100, 255, 0.1) 0%, transparent 70%);
+            animation: rotate 20s linear infinite;
+        }
+
+        @keyframes rotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* 旋转显示区域 */
+        .slot-display {
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            min-height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(100, 100, 255, 0.3);
+            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .slot-display::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, transparent 30%, rgba(100, 100, 255, 0.1) 50%, transparent 70%);
+            animation: shine 3s infinite;
+        }
+
+        @keyframes shine {
+            0% { transform: translateX(-100%); }
+            20% { transform: translateX(100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .slot-text {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #ffd700;
+            transition: all 0.3s ease;
+            position: relative;
+            z-index: 2;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+        }
+
+        .slot-text.spinning {
+            animation: slotSpin 0.1s linear infinite;
+        }
+
+        @keyframes slotSpin {
+            0% { transform: translateY(0); opacity: 1; }
+            50% { transform: translateY(-10px); opacity: 0.5; }
+            100% { transform: translateY(0); opacity: 1; }
+        }
+
+        /* 抽奖按钮 */
+        .lottery-btn {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ff8e53 100%);
+            border: none;
+            border-radius: 50px;
+            padding: 20px 50px;
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
+            position: relative;
+            overflow: hidden;
+            margin: 10px;
+            z-index: 2;
+        }
+
+        .lottery-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(255, 107, 107, 0.6);
+        }
+
+        .lottery-btn:active {
+            transform: translateY(0);
+        }
+
+        .lottery-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .lottery-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: left 0.5s;
+        }
+
+        .lottery-btn:hover::before {
+            left: 100%;
+        }
+
+        /* 控制按钮组 */
+        .control-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .control-btn {
+            background: rgba(100, 100, 255, 0.2);
+            border: 1px solid rgba(100, 100, 255, 0.3);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .control-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(100, 100, 255, 0.3);
+            transform: scale(0);
+            border-radius: 50%;
+            transition: transform 0.5s;
+        }
+
+        .control-btn:hover::before {
+            transform: scale(1);
+        }
+
+        .control-btn:hover {
+            background: rgba(100, 100, 255, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(100, 100, 255, 0.3);
+        }
+
+        .control-btn span {
+            position: relative;
+            z-index: 1;
+        }
+
+        /* 结果显示 */
+        .result-display {
+            margin-top: 30px;
+            padding: 20px;
+            background: rgba(255, 215, 0, 0.1);
+            border-radius: 15px;
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            display: none;
+            animation: fadeIn 0.5s ease;
+            position: relative;
+            z-index: 2;
+        }
+
+        .result-display.show {
+            display: block;
+        }
+
+        .result-name {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #ffd700;
+            margin-bottom: 10px;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+        }
+
+        .result-distance {
+            font-size: 1.1rem;
+            color: #87ceeb;
+            margin-bottom: 15px;
+        }
+
+        .result-features {
+            font-size: 1rem;
+            color: #e0e0e0;
+            line-height: 1.6;
+            text-align: left;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 3px solid #ffd700;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 移动端适配 */
+        @media (max-width: 768px) {
+            .title {
+                font-size: 2rem;
+            }
+            
+            .lottery-container {
+                padding: 20px;
+                margin: 10px;
+            }
+            
+            .lottery-btn {
+                padding: 15px 30px;
+                font-size: 1rem;
+            }
+            
+            .slot-text {
+                font-size: 1.2rem;
+            }
+        }
+
+        /* 粒子效果 */
+        .particles {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            animation: float 5s linear infinite;
+        }
+
+        @keyframes float {
+            0% {
+                transform: translateY(100vh) translateX(0);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100vh) translateX(100px);
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 星空背景 -->
+    <div class="stars-container">
+        <div class="stars" id="stars"></div>
+        <div class="particles" id="particles"></div>
+    </div>
+
+    <!-- 流星效果 -->
+    <div class="meteor" id="meteor"></div>
+
+    <!-- 主容器 -->
+    <div class="main-container">
+        <h1 class="title">🚀 今天去哪玩</h1>
+        
+        <div class="lottery-container">
+            <div class="slot-display">
+                <div class="slot-text" id="slotText">点击按钮开始抽奖</div>
+            </div>
+            
+            <button class="lottery-btn" id="lotteryBtn" onclick="startLottery()">
+                🎲 开始抽奖
+            </button>
+            
+            <div class="control-buttons">
+                <button class="control-btn" onclick="loadFromDatabase()"><span>从数据库加载</span></button>
+                <button class="control-btn" onclick="loadFromConfig()"><span>从配置文件加载</span></button>
+            </div>
+            
+            <div class="result-display" id="resultDisplay">
+                <div class="result-name" id="resultName"></div>
+                <div class="result-distance" id="resultDistance"></div>
+                <div class="result-features" id="resultFeatures"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 引入数据库管理器 -->
+    <script src="/db.js"></script>
+    <!-- 引入配置文件 -->
+    <script src="4_planet_destinations.js"></script>
+    
+    <script>
+        // 全局变量
+        let destinations = [];
+        let isLotteryRunning = false;
+        
+        // 从数据库加载数据
+        async function loadFromDatabase() {
+            try {
+                // 初始化数据库
+                await IDB.init();
+                
+                // 从数据库获取数据
+                const data = await IDB.get('planet_destinations', 'userdata');
+                
+                if (data && Array.isArray(data) && data.length > 0) {
+                    destinations = data;
+                    updateSlotText('数据库加载完成，可以开始抽奖');
+                } else {
+                    updateSlotText('数据库中没有数据，请从配置文件加载');
+                }
+            } catch (error) {
+                updateSlotText('数据库加载失败');
+            }
+        }
+        
+        // 从配置文件加载数据
+        function loadFromConfig() {
+            try {
+                if (window.planetDestinations && Array.isArray(window.planetDestinations)) {
+                    destinations = window.planetDestinations;
+                    updateSlotText('配置文件加载完成，可以开始抽奖');
+                    
+                    // 同时保存到数据库
+                    saveToDatabase();
+                } else {
+                    updateSlotText('配置文件加载失败');
+                }
+            } catch (error) {
+                updateSlotText('配置文件加载失败');
+            }
+        }
+        
+        // 保存数据到数据库
+        async function saveToDatabase() {
+            try {
+                await IDB.init();
+                await IDB.put('planet_destinations', destinations, 'userdata');
+            } catch (error) {
+                // 静默处理错误，不影响用户体验
+            }
+        }
+        
+        // 更新老虎机显示文本
+        function updateSlotText(text) {
+            document.getElementById('slotText').textContent = text;
+        }
+        
+        // 开始抽奖
+        async function startLottery() {
+            if (isLotteryRunning) {
+                return;
+            }
+            
+            if (destinations.length === 0) {
+                updateSlotText('请先加载数据');
+                return;
+            }
+            
+            isLotteryRunning = true;
+            const btn = document.getElementById('lotteryBtn');
+            const slotText = document.getElementById('slotText');
+            const resultDisplay = document.getElementById('resultDisplay');
+            
+            // 禁用按钮
+            btn.disabled = true;
+            btn.textContent = '🎲 抽奖中...';
+            
+            // 隐藏之前的结果
+            resultDisplay.classList.remove('show');
+            
+            // 添加旋转动画
+            slotText.classList.add('spinning');
+            
+            // 快速切换显示
+            let spinCount = 0;
+            const maxSpins = 20;
+            
+            const spinInterval = setInterval(() => {
+                const randomIndex = Math.floor(Math.random() * destinations.length);
+                const destination = destinations[randomIndex];
+                slotText.textContent = destination.name;
+                spinCount++;
+                
+                if (spinCount >= maxSpins) {
+                    clearInterval(spinInterval);
+                    
+                    // 最终选择
+                    const finalIndex = Math.floor(Math.random() * destinations.length);
+                    const finalDestination = destinations[finalIndex];
+                    
+                    // 移除动画
+                    slotText.classList.remove('spinning');
+                    slotText.textContent = finalDestination.name;
+                    
+                    // 显示结果
+                    showResult(finalDestination);
+                    
+                    // 重新启用按钮
+                    btn.disabled = false;
+                    btn.textContent = '🎲 再抽一次';
+                    isLotteryRunning = false;
+                }
+            }, 100);
+        }
+        
+        // 显示结果
+        function showResult(destination) {
+            const resultDisplay = document.getElementById('resultDisplay');
+            const resultName = document.getElementById('resultName');
+            const resultDistance = document.getElementById('resultDistance');
+            const resultFeatures = document.getElementById('resultFeatures');
+            
+            resultName.textContent = destination.name;
+            resultDistance.textContent = `📍 ${destination.distance}`;
+            resultFeatures.innerHTML = `<strong>🌟 特色：</strong><br>${destination.features}`;
+            
+            resultDisplay.classList.add('show');
+        }
+        
+        // 创建星空背景
+        function createStars() {
+            const starsContainer = document.getElementById('stars');
+            const starCount = 200;
+            
+            for (let i = 0; i < starCount; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                
+                // 随机位置
+                star.style.left = `${Math.random() * 100}%`;
+                star.style.top = `${Math.random() * 100}%`;
+                
+                // 随机大小
+                const size = Math.random() * 3;
+                star.style.width = `${size}px`;
+                star.style.height = `${size}px`;
+                
+                // 随机动画延迟
+                star.style.animationDelay = `${Math.random() * 4}s`;
+                
+                starsContainer.appendChild(star);
+            }
+        }
+        
+        // 创建粒子效果
+        function createParticles() {
+            const particlesContainer = document.getElementById('particles');
+            const particleCount = 30;
+            
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                
+                // 随机位置
+                particle.style.left = `${Math.random() * 100}%`;
+                
+                // 随机动画延迟和持续时间
+                particle.style.animationDelay = `${Math.random() * 5}s`;
+                particle.style.animationDuration = `${5 + Math.random() * 5}s`;
+                
+                particlesContainer.appendChild(particle);
+            }
+        }
+        
+        // 创建流星效果
+        function createMeteor() {
+            const meteor = document.getElementById('meteor');
+            
+            // 随机位置
+            meteor.style.left = `${Math.random() * 100}%`;
+            meteor.style.top = `${Math.random() * 50}%`;
+            
+            // 随机动画延迟
+            meteor.style.animationDelay = `${Math.random() * 10}s`;
+            
+            // 动画结束后重新设置
+            meteor.addEventListener('animationend', () => {
+                meteor.style.left = `${Math.random() * 100}%`;
+                meteor.style.top = `${Math.random() * 50}%`;
+                meteor.style.animationDelay = `${Math.random() * 10}s`;
+            });
+        }
+        
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', async () => {
+            // 创建星空背景
+            createStars();
+            createParticles();
+            createMeteor();
+            
+            // 优先尝试从数据库加载
+            await loadFromDatabase();
+            
+            // 如果数据库没有数据，检查配置文件
+            if (destinations.length === 0) {
+                loadFromConfig();
+            }
+        });
+    </script>
+</body>
+</html>

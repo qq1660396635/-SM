@@ -1,0 +1,73 @@
+一  数据库加载
+序1 首次打开页面
+   浏览器干了什么
+   ① 读 IndexedDB（userdata 分区）→ 未命中  
+   ② fetch 同目录下的 at指令配置.js  
+   ③ eval 文本得到 window.atCommandConfig  
+   ④ 把原文本整段写回 IndexedDB，key = E_at指令配置.js  
+   关键代码
+   const txt = await fetch('at指令配置.js').then(r => r.text());
+   eval(txt);
+   await IDB.put('userdata', 'E_at指令配置.js', txt);
+   通行证
+   - 文件必须与 html 同目录（或相对路径正确）  
+   - 协议不能是 file://（否则 fetch 被当跨域拦截）  
+   翻车点
+   - 404：大小写、路径拼错  
+   - CORS：直接双击 html 走 file:// 再 fetch 子文件会被浏览器拒  
+
+2 第二次及以后
+   浏览器干了什么
+   ① 直接 IDB.get('userdata', 'E_at指令配置.js') 拿文本  
+   ② eval 后得到配置对象  
+   ③ 全程不走网络，毫秒级  
+   关键代码
+   const txt = await IDB.get('userdata', 'E_at指令配置.js');
+   eval(txt);
+   通行证
+   - 数据库已初始化且 key 完全一致（含 E_ 前缀）  
+   翻车点
+   - 用户清掉站点数据 → 回退到场景 1  
+   - 升级 VERSION 忘记迁移旧 key → 读不到配置  
+
+3 Cordova / 油猴 环境
+   浏览器干了什么
+   跑在“本地超域”里，无 CORS 限制  
+   Cordova：file://android_asset/www/ 目录内任意读  
+   油猴：GM_xmlhttpRequest 可绕浏览器同源策略  
+   关键代码
+   // 油猴示例
+   GM_xmlhttpRequest({
+     url: './at指令配置.js',
+     onload: r => eval(r.responseText)
+   });
+   通行证
+   - 无跨域限制  
+   - 可直接同步读 www/ 目录  
+   翻车点
+   - 换到普通浏览器瞬间 404 → 提醒自己“这是特权环境”  
+
+4 普通浏览器 file:// 打开
+   浏览器干了什么
+   禁止 fetch('./at指令配置.js')，浏览器判定跨源  
+   关键代码
+   // 同一段 fetch 代码直接抛错
+   await fetch('./at指令配置.js');
+   通行证
+   - 必须走 http(s) 协议，哪怕 localhost  
+   翻车点
+   - 控制台出现 Failed to fetch / Cross-origin → 立刻明白“要起本地服务器”  
+
+5 安卓 10+ content:// 路径
+   浏览器干了什么
+   路径看起来像本地，实则受存储沙盒管制；fetch(content://) 直接 404  
+   关键代码
+   无（fetch 不可用）  
+   通行证
+   - 必须先把文件“导入”到 IndexedDB（凉安用户中心做法）  
+   翻车点
+   - 以为“文件就在手机目录”就能读 → 被系统拒绝  
+
+
+
+

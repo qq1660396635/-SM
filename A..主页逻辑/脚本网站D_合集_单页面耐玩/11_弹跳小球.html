@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>弹跳小球游戏</title>
+    <style>
+        body { margin: 0; padding: 0; overflow: hidden; font-family: Arial, sans-serif; user-select: none; -webkit-user-select: none; touch-action: none; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        #topBar { position: fixed; top: 0; left: 0; right: 0; height: 50px; background: linear-gradient(90deg, #4a5568 0%, #2d3748 100%); display: flex; justify-content: space-between; align-items: center; padding: 0 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.3); z-index: 100; }
+        #title { color: white; font-size: 18px; font-weight: bold; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); }
+        #gameInfo { display: flex; align-items: center; gap: 15px; }
+        #score { color: #ffd700; font-size: 16px; font-weight: bold; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); }
+        #level { color: #00ff00; font-size: 16px; font-weight: bold; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); }
+        #highScore { color: #ff69b4; font-size: 14px; font-weight: bold; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); }
+        #helpButton { background: linear-gradient(45deg, #667eea, #764ba2); color: white; border: none; padding: 6px 12px; border-radius: 5px; cursor: pointer; font-size: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.3); transition: all 0.3s; }
+        #helpButton:hover { background: linear-gradient(45deg, #5a67d8, #6b46c1); transform: translateY(-1px); }
+        #toolBar { position: fixed; top: 50px; left: 0; right: 0; height: 40px; background: linear-gradient(90deg, #4a5568 0%, #2d3748 100%); display: flex; align-items: center; padding: 0 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); z-index: 99; }
+        .tool { display: flex; align-items: center; margin-right: 15px; color: white; font-size: 12px; }
+        .color-option { width: 22px; height: 22px; margin-left: 6px; border: 2px solid transparent; cursor: pointer; border-radius: 3px; transition: all 0.3s; }
+        .color-option:hover { transform: scale(1.1); }
+        .color-option.active { border-color: #fff; box-shadow: 0 0 10px rgba(255,255,255,0.8); transform: scale(1.15); }
+        .color-white { background: linear-gradient(45deg, #ffffff, #f0f0f0); border: 1px solid #ccc; }
+        .color-orange { background: linear-gradient(45deg, #ff8c00, #ff6347); }
+        .color-gray { background: linear-gradient(45deg, #696969, #808080); border: 1px solid #999; }
+        #gameCanvas { display: block; margin-top: 90px; cursor: crosshair; border: 1px solid rgba(255,255,255,0.3); }
+        #zoomControls { position: fixed; bottom: 15px; right: 15px; z-index: 101; display: flex; flex-direction: column; gap: 8px; }
+        .zoom-btn { width: 35px; height: 35px; border-radius: 50%; background: linear-gradient(45deg, #667eea, #764ba2); color: white; border: none; font-size: 18px; cursor: pointer; box-shadow: 0 3px 10px rgba(0,0,0,0.3); transition: all 0.3s; display: flex; align-items: center; justify-content: center; }
+        .zoom-btn:hover { transform: scale(1.1); box-shadow: 0 4px 15px rgba(0,0,0,0.4); }
+        .zoom-btn:active { transform: scale(0.95); }
+        #zoomLevel { background: rgba(0,0,0,0.7); color: white; padding: 4px 8px; border-radius: 12px; font-size: 11px; text-align: center; }
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); backdrop-filter: blur(5px); }
+        .modal-content { background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); margin: 5% auto; padding: 20px; border: none; width: 90%; max-width: 450px; height: 70vh; border-radius: 15px; position: relative; display: flex; flex-direction: column; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+        .modal-header { flex-shrink: 0; margin-bottom: 15px; border-bottom: 2px solid #dee2e6; padding-bottom: 10px; }
+        .modal-body { flex-grow: 1; overflow-y: auto; padding-right: 10px; }
+        .modal-body::-webkit-scrollbar { width: 6px; }
+        .modal-body::-webkit-scrollbar-track { background: #f1f3f4; border-radius: 3px; }
+        .modal-body::-webkit-scrollbar-thumb { background: #888; border-radius: 3px; }
+        .modal-body::-webkit-scrollbar-thumb:hover { background: #555; }
+        .close { color: #aaa; float: right; font-size: 24px; font-weight: bold; cursor: pointer; line-height: 18px; transition: color 0.3s; }
+        .close:hover { color: #e74c3c; }
+        .modal h2 { margin-top: 0; color: #2c3e50; font-size: 20px; }
+        .modal p { line-height: 1.6; color: #495057; margin: 8px 0; font-size: 13px; }
+        .modal strong { color: #2c3e50; }
+        #levelUpNotification { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: linear-gradient(45deg, #ffd700, #ffed4e); color: #333; padding: 20px 40px; border-radius: 15px; font-size: 24px; font-weight: bold; box-shadow: 0 10px 30px rgba(0,0,0,0.5); z-index: 1001; display: none; animation: levelUpPulse 2s ease-in-out; }
+        @keyframes levelUpPulse { 0% { transform: translate(-50%, -50%) scale(0); opacity: 0; } 50% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; } 100% { transform: translate(-50%, -50%) scale(1); opacity: 0; } }
+    </style>
+</head>
+<body>
+    <div id="topBar">
+        <div id="title">弹跳小球游戏</div>
+        <div id="gameInfo">
+            <div id="level">关卡: 1</div>
+            <div id="score">得分: 0</div>
+            <div id="highScore">最高分: 0</div>
+            <button id="helpButton">玩法说明</button>
+        </div>
+    </div>
+    <div id="toolBar">
+        <div class="tool">
+            画笔颜色： 
+            <div class="color-option color-white active" data-color="white" title="白色-碰撞反弹"></div>
+            <div class="color-option color-orange" data-color="orange" title="橙色-碰撞消失"></div>
+            <div class="color-option color-gray" data-color="gray" title="灰色-无效果"></div>
+        </div>
+    </div>
+    <canvas id="gameCanvas"></canvas>
+    
+    <div id="zoomControls">
+        <button class="zoom-btn" id="zoomIn">+</button>
+        <div id="zoomLevel">100%</div>
+        <button class="zoom-btn" id="zoomOut">-</button>
+        <button class="zoom-btn" id="zoomReset">⟲</button>
+    </div>
+    
+    <div id="levelUpNotification">🎉 恭喜过关！进入下一关！</div>
+    
+    <div id="helpModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="close">&times;</span>
+                <h2>游戏玩法</h2>
+            </div>
+            <div class="modal-body">
+                <p><strong>基础规则：</strong></p>
+                <p>• 小球会在屏幕中弹跳，碰到边缘会反弹</p>
+                <p>• 背景由可交互的像素格子组成</p>
+                <p><strong>关卡系统：</strong></p>
+                <p>• 每获得50分进入下一关</p>
+                <p>• 关卡越高，小球速度越快</p>
+                <p>• 挑战自己的最高分记录！</p>
+                <p><strong>计分规则：</strong></p>
+                <p>• <span style="display:inline-block;width:12px;height:12px;background:#ffd700;vertical-align:middle;"></span> 黄色目标点：碰到得1分</p>
+                <p>• 目标点为2格大小，更容易触碰</p>
+                <p>• 得分后目标点会在新位置重新生成</p>
+                <p><strong>画笔工具：</strong></p>
+                <p>• <span style="display:inline-block;width:12px;height:12px;background:#ffffff;vertical-align:middle;border:1px solid #ccc;"></span> 白色：可碰撞反弹</p>
+                <p>• <span style="display:inline-block;width:12px;height:12px;background:#ff8c00;vertical-align:middle;"></span> 橙色：碰撞后消失</p>
+                <p>• <span style="display:inline-block;width:12px;height:12px;background:#696969;vertical-align:middle;border:1px solid #999;"></span> 灰色：无碰撞效果</p>
+                <p><strong>Buff 格子：</strong></p>
+                <p>• <span style="display:inline-block;width:12px;height:12px;background:#00bfff;vertical-align:middle;"></span> 蓝色：产生2-4 个分身</p>
+                <p>• <span style="display:inline-block;width:12px;height:12px;background:#ff1493;vertical-align:middle;"></span> 红色：速度变为3 倍，10 秒后恢复</p>
+                <p><strong>分身规则：</strong></p>
+                <p>• 分身大小为母体的一半</p>
+                <p>• 分身颜色与母体一致</p>
+                <p>• 分身寿命10 秒</p>
+                <p>• 分身不能与buff 格子互动</p>
+                <p>• 分身其他特性与母体一致</p>
+                <p><strong>操作方式：</strong></p>
+                <p>• 选择画笔颜色后，点击或滑动来改变格子</p>
+                <p>• 所有画笔都可以在任何格子上覆盖</p>
+                <p>• 蓝色和红色buff 格子循环随机生成</p>
+                <p><strong>缩放控制：</strong></p>
+                <p>• 使用右下角的 + / - 按钮缩放游戏画面</p>
+                <p>• 点击 ⟲ 按钮重置为100%缩放</p>
+                <p><strong>特效说明：</strong></p>
+                <p>• 母体小球有白色残影效果（长度约2 倍）</p>
+                <p>• 所有小球都有阴影效果</p>
+                <p>• 所有buff 格子有白色发光效果</p>
+                <p>• 目标点有黄色发光效果</p>
+                <p><strong>分数记录：</strong></p>
+                <p>• 游戏自动保存最高分记录</p>
+                <p>• 每次打开游戏都会显示历史最高分</p>
+                <p><strong>背景说明：</strong></p>
+                <p>• 每次刷新页面棋盘内背景都会随机变化</p>
+                <p>• 棋盘外背景保持固定不变</p>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const helpModal = document.getElementById('helpModal');
+        const helpButton = document.getElementById('helpButton');
+        const closeModal = document.querySelector('.close');
+        const scoreElement = document.getElementById('score');
+        const levelElement = document.getElementById('level');
+        const highScoreElement = document.getElementById('highScore');
+        const levelUpNotification = document.getElementById('levelUpNotification');
+        const zoomInBtn = document.getElementById('zoomIn');
+        const zoomOutBtn = document.getElementById('zoomOut');
+        const zoomResetBtn = document.getElementById('zoomReset');
+        const zoomLevelDisplay = document.getElementById('zoomLevel');
+
+        let currentZoom = 1;
+        const MIN_ZOOM = 0.5;
+        const MAX_ZOOM = 2;
+        const ZOOM_STEP = 0.1;
+
+        // 随机渐变背景颜色数组
+        const gradientColors = [
+            ['#667eea', '#764ba2'],
+            ['#f093fb', '#f5576c'],
+            ['#4facfe', '#00f2fe'],
+            ['#43e97b', '#38f9d7'],
+            ['#fa709a', '#fee140'],
+            ['#30cfd0', '#330867'],
+            ['#a8edea', '#fed6e3'],
+            ['#ff9a9e', '#fecfef'],
+            ['#fbc2eb', '#a6c1ee'],
+            ['#fdcbf1', '#e6dee9'],
+            ['#a1c4fd', '#c2e9fb'],
+            ['#d299c2', '#fef9d7'],
+            ['#89f7fe', '#66a6ff'],
+            ['#fddb92', '#d1fdff'],
+            ['#9890e3', '#b1f4cf']
+        ];
+
+        // 随机选择一个棋盘内背景颜色
+        let selectedGradient = gradientColors[Math.floor(Math.random() * gradientColors.length)];
+
+        // 游戏状态管理
+        let score = 0;
+        let level = 1;
+        let highScore = 0;
+        const SCORE_PER_LEVEL = 50;
+
+        // 从localStorage加载最高分
+        function loadHighScore() {
+            const saved = localStorage.getItem('bounceGameHighScore');
+            if (saved) {
+                highScore = parseInt(saved);
+                highScoreElement.textContent = '最高分: ' + highScore;
+            }
+        }
+
+        // 保存最高分
+        function saveHighScore() {
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem('bounceGameHighScore', highScore.toString());
+                highScoreElement.textContent = '最高分: ' + highScore;
+            }
+        }
+
+        // 检查并更新关卡
+        function checkLevelUp() {
+            const newLevel = Math.floor(score / SCORE_PER_LEVEL) + 1;
+            if (newLevel > level) {
+                level = newLevel;
+                levelElement.textContent = '关卡: ' + level;
+                showLevelUpNotification();
+                // 增加小球速度
+                balls.forEach(ball => {
+                    if (!ball.isClone) {
+                        const speedIncrease = 1 + (level - 1) * 0.1;
+                        ball.vx *= speedIncrease;
+                        ball.vy *= speedIncrease;
+                    }
+                });
+            }
+        }
+
+        // 显示过关通知
+        function showLevelUpNotification() {
+            levelUpNotification.style.display = 'block';
+            setTimeout(() => {
+                levelUpNotification.style.display = 'none';
+            }, 2000);
+        }
+
+        function updateZoom() {
+            currentZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, currentZoom));
+            canvas.style.transform = `scale(${currentZoom})`;
+            canvas.style.transformOrigin = 'top left';
+            zoomLevelDisplay.textContent = Math.round(currentZoom * 100) + '%';
+        }
+
+        zoomInBtn.addEventListener('click', () => {
+            currentZoom += ZOOM_STEP;
+            updateZoom();
+        });
+
+        zoomOutBtn.addEventListener('click', () => {
+            currentZoom -= ZOOM_STEP;
+            updateZoom();
+        });
+
+        zoomResetBtn.addEventListener('click', () => {
+            currentZoom = 1;
+            updateZoom();
+        });
+
+        function resizeCanvas() {
+            const screenWidth = window.innerWidth;
+            const screenHeight = window.innerHeight;
+            const availableHeight = screenHeight - 90;
+            
+            canvas.width = Math.min(screenWidth, 800);
+            canvas.height = Math.min(availableHeight, 600);
+            
+            const leftMargin = (screenWidth - canvas.width) / 2;
+            canvas.style.marginLeft = leftMargin + 'px';
+        }
+        
+        resizeCanvas();
+        updateZoom();
+        loadHighScore();
+
+        // 游戏配置
+        const GRID_SIZE = 20;
+        let COLS = Math.ceil(canvas.width / GRID_SIZE);
+        let ROWS = Math.ceil(canvas.height / GRID_SIZE);
+        const BUFF_SPAWN_INTERVAL = 3000;
+        const SPEED_BUFF_MULTIPLIER = 3;
+        const SPEED_BUFF_DURATION = 10000;
+        const TRAIL_LENGTH = 0.5;
+        const CLONE_LIFETIME = 10000;
+
+        // 格子状态
+        const CELL_TYPES = {
+            NORMAL: 'normal',
+            WHITE: 'white',
+            ORANGE: 'orange',
+            BUFF_BLUE: 'buff_blue',
+            BUFF_RED: 'buff_red'
+        };
+
+        // 当前画笔颜色
+        let currentBrush = 'white';
+
+        // 目标点类
+        class Target {
+            constructor() {
+                this.respawn();
+            }
+
+            respawn() {
+                let attempts = 0;
+                do {
+                    this.col = Math.floor(Math.random() * (COLS - 2));
+                    this.row = Math.floor(Math.random() * (ROWS - 2));
+                    attempts++;
+                } while (attempts < 100 && (this.col === 0 || this.row === 0 || this.col >= COLS - 2 || this.row >= ROWS - 2));
+                this.x = this.col * GRID_SIZE;
+                this.y = this.row * GRID_SIZE;
+                this.glowIntensity = 0.5 + Math.sin(Date.now() * 0.003) * 0.3;
+            }
+
+            draw() {
+                ctx.save();
+                ctx.shadowColor = 'rgba(255, 215, 0, ' + this.glowIntensity + ')';
+                ctx.shadowBlur = 20;
+                ctx.fillStyle = '#ffd700';
+                ctx.fillRect(this.x, this.y, GRID_SIZE * 2 - 1, GRID_SIZE * 2 - 1);
+                ctx.restore();
+            }
+
+            checkBallCollision(ball) {
+                const targetLeft = this.x;
+                const targetRight = this.x + GRID_SIZE * 2;
+                const targetTop = this.y;
+                const targetBottom = this.y + GRID_SIZE * 2;
+                const closestX = Math.max(targetLeft, Math.min(ball.x, targetRight));
+                const closestY = Math.max(targetTop, Math.min(ball.y, targetBottom));
+                const distanceX = ball.x - closestX;
+                const distanceY = ball.y - closestY;
+                const distance = Math.sqrt(distanceX * distanceX + distanceY * distanceY);
+                return distance < ball.radius + 8;
+            }
+        }
+
+        // 格子类
+        class Cell {
+            constructor(row, col) {
+                this.row = row;
+                this.col = col;
+                this.type = CELL_TYPES.NORMAL;
+                this.x = col * GRID_SIZE;
+                this.y = row * GRID_SIZE;
+                this.glowIntensity = 0;
+            }
+
+            update(deltaTime) {
+                if (this.type === CELL_TYPES.BUFF_BLUE || this.type === CELL_TYPES.BUFF_RED) {
+                    this.glowIntensity = 0.5 + Math.sin(Date.now() * 0.005) * 0.3;
+                } else {
+                    this.glowIntensity = 0;
+                }
+            }
+
+            draw() {
+                if (this.glowIntensity > 0) {
+                    ctx.save();
+                    ctx.shadowColor = 'rgba(255, 255, 255, ' + this.glowIntensity + ')';
+                    ctx.shadowBlur = 15;
+                    ctx.shadowOffsetX = 0;
+                    ctx.shadowOffsetY = 0;
+                    switch(this.type) {
+                        case CELL_TYPES.BUFF_BLUE:
+                            ctx.fillStyle = '#00bfff';
+                            break;
+                        case CELL_TYPES.BUFF_RED:
+                            ctx.fillStyle = '#ff1493';
+                            break;
+                    }
+                    ctx.fillRect(this.x, this.y, GRID_SIZE - 1, GRID_SIZE - 1);
+                    ctx.restore();
+                } else {
+                    switch(this.type) {
+                        case CELL_TYPES.NORMAL:
+                            ctx.fillStyle = 'rgba(105, 105, 105, 0.3)';
+                            break;
+                        case CELL_TYPES.WHITE:
+                            ctx.fillStyle = '#ffffff';
+                            break;
+                        case CELL_TYPES.ORANGE:
+                            ctx.fillStyle = '#ff8c00';
+                            break;
+                        case CELL_TYPES.BUFF_BLUE:
+                            ctx.fillStyle = '#00bfff';
+                            break;
+                        case CELL_TYPES.BUFF_RED:
+                            ctx.fillStyle = '#ff1493';
+                            break;
+                    }
+                    ctx.fillRect(this.x, this.y, GRID_SIZE - 1, GRID_SIZE - 1);
+                }
+                
+                // 绘制网格线
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+                ctx.lineWidth = 0.5;
+                ctx.strokeRect(this.x, this.y, GRID_SIZE, GRID_SIZE);
+            }
+
+            setType(type) {
+                this.type = type;
+            }
+
+            checkBallCollision(ball) {
+                if (this.type === CELL_TYPES.NORMAL) return false;
+                if ((this.type === CELL_TYPES.BUFF_BLUE || this.type === CELL_TYPES.BUFF_RED) && ball.isClone) return false;
+                const cellLeft = this.x;
+                const cellRight = this.x + GRID_SIZE;
+                const cellTop = this.y;
+                const cellBottom = this.y + GRID_SIZE;
+                const closestX = Math.max(cellLeft, Math.min(ball.x, cellRight));
+                const closestY = Math.max(cellTop, Math.min(ball.y, cellBottom));
+                const distanceX = ball.x - closestX;
+                const distanceY = ball.y - closestY;
+                const distance = Math.sqrt(distanceX * distanceX + distanceY * distanceY);
+                if (distance < ball.radius) {
+                    if (this.type === CELL_TYPES.BUFF_BLUE && !ball.isClone) {
+                        this.type = CELL_TYPES.NORMAL;
+                        return 'buff_blue';
+                    }
+                    if (this.type === CELL_TYPES.BUFF_RED && !ball.isClone) {
+                        this.type = CELL_TYPES.NORMAL;
+                        return 'buff_red';
+                    }
+                    if (this.type === CELL_TYPES.WHITE) {
+                        const angle = Math.atan2(distanceY, distanceX);
+                        const targetX = ball.x + Math.cos(angle) * (ball.radius - distance);
+                        const targetY = ball.y + Math.sin(angle) * (ball.radius - distance);
+                        ball.x = targetX;
+                        ball.y = targetY;
+                        if (Math.abs(distanceX) > Math.abs(distanceY)) {
+                            ball.vx = -ball.vx;
+                        } else {
+                            ball.vy = -ball.vy;
+                        }
+                        return 'collision';
+                    }
+                    if (this.type === CELL_TYPES.ORANGE) {
+                        this.type = CELL_TYPES.NORMAL;
+                        const angle = Math.atan2(distanceY, distanceX);
+                        const targetX = ball.x + Math.cos(angle) * (ball.radius - distance);
+                        const targetY = ball.y + Math.sin(angle) * (ball.radius - distance);
+                        ball.x = targetX;
+                        ball.y = targetY;
+                        if (Math.abs(distanceX) > Math.abs(distanceY)) {
+                            ball.vx = -ball.vx;
+                        } else {
+                            ball.vy = -ball.vy;
+                        }
+                        return 'collision';
+                    }
+                }
+                return false;
+            }
+        }
+
+        // 小球类 - 恢复原始速度逻辑
+        class Ball {
+            constructor(x, y, isClone = false) {
+                this.radius = isClone ? 5 : 10;
+                this.x = x;
+                this.y = y;
+                this.baseSpeed = 3; // 恢复原始速度
+                this.vx = (Math.random() - 0.5) * this.baseSpeed;
+                this.vy = (Math.random() - 0.5) * this.baseSpeed;
+                this.color = '#00ff00';
+                this.isClone = isClone;
+                this.trail = [];
+                this.shadowBlur = 10;
+                this.isSpeedBuffed = false;
+            }
+
+            update(deltaTime, cells) {
+                if (this.isClone) {
+                    const age = Date.now() - this.birthTime;
+                    if (age >= CLONE_LIFETIME) {
+                        return false;
+                    }
+                }
+                
+                // 更新位置
+                this.x += this.vx;
+                this.y += this.vy;
+                
+                // 更新残影
+                this.trail.push({ x: this.x, y: this.y, time: Date.now() });
+                const cutoff = Date.now() - (TRAIL_LENGTH * 1000);
+                this.trail = this.trail.filter(point => point.time > cutoff);
+                
+                // 边界碰撞检测 - 恢复原始逻辑
+                if (this.x - this.radius < 0 || this.x + this.radius > canvas.width) {
+                    this.vx = -this.vx;
+                    this.x = Math.max(this.radius, Math.min(canvas.width - this.radius, this.x));
+                }
+                
+                if (this.y - this.radius < 0 || this.y + this.radius > canvas.height) {
+                    this.vy = -this.vy;
+                    this.y = Math.max(this.radius, Math.min(canvas.height - this.radius, this.y));
+                }
+                
+                // 检查与格子的碰撞
+                const startCol = Math.max(0, Math.floor((this.x - this.radius) / GRID_SIZE));
+                const endCol = Math.min(COLS - 1, Math.floor((this.x + this.radius) / GRID_SIZE));
+                const startRow = Math.max(0, Math.floor((this.y - this.radius) / GRID_SIZE));
+                const endRow = Math.min(ROWS - 1, Math.floor((this.y + this.radius) / GRID_SIZE));
+                
+                for (let row = startRow; row <= endRow; row++) {
+                    for (let col = startCol; col <= endCol; col++) {
+                        const result = cells[row][col].checkBallCollision(this);
+                        if (result === 'buff_blue' && !this.isClone) {
+                            return 'buff_blue';
+                        }
+                        if (result === 'buff_red' && !this.isClone) {
+                            if (!this.isSpeedBuffed) {
+                                this.vx *= SPEED_BUFF_MULTIPLIER;
+                                this.vy *= SPEED_BUFF_MULTIPLIER;
+                                this.isSpeedBuffed = true;
+                                setTimeout(() => {
+                                    this.vx /= SPEED_BUFF_MULTIPLIER;
+                                    this.vy /= SPEED_BUFF_MULTIPLIER;
+                                    this.isSpeedBuffed = false;
+                                }, SPEED_BUFF_DURATION);
+                            }
+                            return 'buff_red';
+                        }
+                    }
+                }
+                return true;
+            }
+
+            draw() {
+                // 绘制残影
+                if (!this.isClone && this.trail.length > 1) {
+                    for (let i = 0; i < this.trail.length - 1; i++) {
+                        const alpha = (i / (this.trail.length - 1)) * 0.4;
+                        const size = this.radius * (1 - (i / (this.trail.length - 1)) * 0.3);
+                        ctx.globalAlpha = alpha;
+                        ctx.fillStyle = '#ffffff';
+                        ctx.beginPath();
+                        ctx.arc(this.trail[i].x, this.trail[i].y, size, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                    ctx.globalAlpha = 1;
+                }
+                
+                // 绘制阴影
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+                ctx.shadowBlur = this.shadowBlur;
+                ctx.shadowOffsetX = 3;
+                ctx.shadowOffsetY = 3;
+                
+                // 绘制球体
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // 重置阴影
+                ctx.shadowColor = 'transparent';
+                ctx.shadowBlur = 0;
+                ctx.shadowOffsetX = 0;
+                ctx.shadowOffsetY = 0;
+            }
+        }
+
+        // 游戏状态
+        const cells = [];
+        const balls = [];
+        let isMouseDown = false;
+        let lastMousePos = { x: 0, y: 0 };
+        let lastTime = 0;
+        let lastBuffSpawn = 0;
+
+        // 初始化格子
+        function initializeCells() {
+            cells.length = 0;
+            for (let row = 0; row < ROWS; row++) {
+                cells[row] = [];
+                for (let col = 0; col < COLS; col++) {
+                    cells[row][col] = new Cell(row, col);
+                }
+            }
+        }
+
+        initializeCells();
+
+        // 创建主球
+        balls.push(new Ball(canvas.width / 2, canvas.height / 2));
+
+        // 创建目标点
+        const target = new Target();
+
+        function getCellAtPosition(x, y) {
+            const col = Math.floor(x / GRID_SIZE);
+            const row = Math.floor(y / GRID_SIZE);
+            if (row >= 0 && row < ROWS && col >= 0 && col < COLS) {
+                return cells[row][col];
+            }
+            return null;
+        }
+
+        // 生成buff 格子
+        function spawnBuffCell(currentTime) {
+            if (currentTime - lastBuffSpawn < BUFF_SPAWN_INTERVAL) return;
+            let attempts = 0;
+            while (attempts < 100) {
+                const row = Math.floor(Math.random() * ROWS);
+                const col = Math.floor(Math.random() * COLS);
+                const cell = cells[row][col];
+                if (cell.type === CELL_TYPES.NORMAL) {
+                    const type = Math.random() < 0.5 ? CELL_TYPES.BUFF_BLUE : CELL_TYPES.BUFF_RED;
+                    cell.type = type;
+                    lastBuffSpawn = currentTime;
+                    break;
+                }
+                attempts++;
+            }
+        }
+
+        // 创建分身
+        function createClones(sourceBall) {
+            const count = Math.floor(Math.random() * 3) + 2;
+            for (let i = 0; i < count; i++) {
+                const angle = (Math.PI * 2 / count) * i + Math.random() * 0.5;
+                const distance = 30 + Math.random() * 20;
+                const x = sourceBall.x + Math.cos(angle) * distance;
+                const y = sourceBall.y + Math.sin(angle) * distance;
+                const clampedX = Math.max(10, Math.min(canvas.width - 10, x));
+                const clampedY = Math.max(10, Math.min(canvas.height - 10, y));
+                const clone = new Ball(clampedX, clampedY, true);
+                clone.birthTime = Date.now();
+                balls.push(clone);
+            }
+        }
+
+        // 鼠标事件
+        canvas.addEventListener('mousedown', (e) => {
+            isMouseDown = true;
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX - rect.left) / currentZoom;
+            const y = (e.clientY - rect.top) / currentZoom;
+            lastMousePos = { x, y };
+            const cell = getCellAtPosition(x, y);
+            if (cell) {
+                const newType = currentBrush === 'white' ? CELL_TYPES.WHITE : currentBrush === 'orange' ? CELL_TYPES.ORANGE : CELL_TYPES.NORMAL;
+                cell.setType(newType);
+            }
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (isMouseDown) {
+                const rect = canvas.getBoundingClientRect();
+                const currentPos = { x: (e.clientX - rect.left) / currentZoom, y: (e.clientY - rect.top) / currentZoom };
+                const distance = Math.sqrt(Math.pow(currentPos.x - lastMousePos.x, 2) + Math.pow(currentPos.y - lastMousePos.y, 2));
+                const steps = Math.ceil(distance / (GRID_SIZE / 2));
+                for (let i = 0; i <= steps; i++) {
+                    const t = i / steps;
+                    const x = lastMousePos.x + (currentPos.x - lastMousePos.x) * t;
+                    const y = lastMousePos.y + (currentPos.y - lastMousePos.y) * t;
+                    const cell = getCellAtPosition(x, y);
+                    if (cell) {
+                        const newType = currentBrush === 'white' ? CELL_TYPES.WHITE : currentBrush === 'orange' ? CELL_TYPES.ORANGE : CELL_TYPES.NORMAL;
+                        cell.setType(newType);
+                    }
+                }
+                lastMousePos = currentPos;
+            }
+        });
+
+        canvas.addEventListener('mouseup', () => {
+            isMouseDown = false;
+        });
+
+        // 触摸事件
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            isMouseDown = true;
+            const rect = canvas.getBoundingClientRect();
+            const touch = e.touches[0];
+            const x = (touch.clientX - rect.left) / currentZoom;
+            const y = (touch.clientY - rect.top) / currentZoom;
+            lastMousePos = { x, y };
+            const cell = getCellAtPosition(x, y);
+            if (cell) {
+                const newType = currentBrush === 'white' ? CELL_TYPES.WHITE : currentBrush === 'orange' ? CELL_TYPES.ORANGE : CELL_TYPES.NORMAL;
+                cell.setType(newType);
+            }
+        });
+
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            if (isMouseDown) {
+                const rect = canvas.getBoundingClientRect();
+                const touch = e.touches[0];
+                const currentPos = { x: (touch.clientX - rect.left) / currentZoom, y: (touch.clientY - rect.top) / currentZoom };
+                const distance = Math.sqrt(Math.pow(currentPos.x - lastMousePos.x, 2) + Math.pow(currentPos.y - lastMousePos.y, 2));
+                const steps = Math.ceil(distance / (GRID_SIZE / 2));
+                for (let i = 0; i <= steps; i++) {
+                    const t = i / steps;
+                    const x = lastMousePos.x + (currentPos.x - lastMousePos.x) * t;
+                    const y = lastMousePos.y + (currentPos.y - lastMousePos.y) * t;
+                    const cell = getCellAtPosition(x, y);
+                    if (cell) {
+                        const newType = currentBrush === 'white' ? CELL_TYPES.WHITE : currentBrush === 'orange' ? CELL_TYPES.ORANGE : CELL_TYPES.NORMAL;
+                        cell.setType(newType);
+                    }
+                }
+                lastMousePos = currentPos;
+            }
+        });
+
+        canvas.addEventListener('touchend', () => {
+            isMouseDown = false;
+        });
+
+        // 画笔选择
+        document.querySelectorAll('.color-option').forEach(option => {
+            option.addEventListener('click', (e) => {
+                document.querySelectorAll('.color-option').forEach(opt => opt.classList.remove('active'));
+                e.target.classList.add('active');
+                currentBrush = e.target.dataset.color;
+            });
+        });
+
+        // 玩法说明弹窗
+        helpButton.addEventListener('click', () => {
+            helpModal.style.display = 'block';
+        });
+
+        closeModal.addEventListener('click', () => {
+            helpModal.style.display = 'none';
+        });
+
+        window.addEventListener('click', (e) => {
+            if (e.target === helpModal) {
+                helpModal.style.display = 'none';
+            }
+        });
+
+        // 游戏循环
+        function gameLoop(currentTime) {
+            const deltaTime = currentTime - lastTime;
+            lastTime = currentTime;
+
+            // 清空画布 - 使用固定的棋盘内背景，不再闪烁
+            const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+            gradient.addColorStop(0, selectedGradient[0] + '99');
+            gradient.addColorStop(1, selectedGradient[1] + '99');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 更新和绘制格子
+            for (let row = 0; row < ROWS; row++) {
+                for (let col = 0; col < COLS; col++) {
+                    cells[row][col].update(deltaTime);
+                    cells[row][col].draw();
+                }
+            }
+
+            // 绘制目标点
+            target.draw();
+
+            // 生成buff 格子
+            spawnBuffCell(currentTime);
+
+            // 更新和绘制小球
+            for (let i = balls.length - 1; i >= 0; i--) {
+                const result = balls[i].update(deltaTime, cells);
+                if (result === 'buff_blue') {
+                    createClones(balls[i]);
+                } else if (result === 'buff_red') {
+                } else if (result === false) {
+                    balls.splice(i, 1);
+                    continue;
+                }
+
+                // 检查与目标点的碰撞
+                if (target.checkBallCollision(balls[i])) {
+                    score++;
+                    scoreElement.textContent = '得分: ' + score;
+                    saveHighScore();
+                    checkLevelUp();
+                    target.respawn();
+                }
+
+                balls[i].draw();
+            }
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // 窗口大小改变
+        window.addEventListener('resize', () => {
+            resizeCanvas();
+            COLS = Math.ceil(canvas.width / GRID_SIZE);
+            ROWS = Math.ceil(canvas.height / GRID_SIZE);
+            initializeCells();
+            balls.forEach(ball => {
+                ball.x = Math.min(ball.x, canvas.width - ball.radius);
+                ball.y = Math.min(ball.y, canvas.height - ball.radius);
+            });
+            target.respawn();
+        });
+
+        // 开始游戏
+        requestAnimationFrame(gameLoop);
+    </script>
+</body>
+</html>

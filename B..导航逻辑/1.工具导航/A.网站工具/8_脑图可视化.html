@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSON 思维导图可视化工具</title>
+    
+    <!-- 引入 D3.js -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    
+    <!-- 引入 Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- 引入 Font Awesome 图标 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        .node {
+            cursor: pointer;
+        }
+        
+        .node rect {
+            fill: #fff;
+            stroke: #3b82f6;
+            stroke-width: 2px;
+            rx: 8;
+            ry: 8;
+            transition: all 0.3s ease;
+        }
+        
+        .node rect:hover {
+            fill: #eff6ff;
+            stroke-width: 3px;
+            filter: drop-shadow(0 4px 8px rgba(59, 130, 246, 0.3));
+        }
+        
+        .node.root rect {
+            fill: #3b82f6;
+            stroke: #1e40af;
+        }
+        
+        .node.root text {
+            fill: white;
+            font-weight: bold;
+        }
+        
+        .node.collapsed rect {
+            fill: #fbbf24;
+            stroke: #f59e0b;
+        }
+        
+        .node text {
+            font-size: 14px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            pointer-events: none;
+            user-select: none;
+        }
+        
+        .link {
+            fill: none;
+            stroke: #94a3b8;
+            stroke-width: 2px;
+            transition: all 0.3s ease;
+        }
+        
+        .link:hover {
+            stroke: #3b82f6;
+            stroke-width: 3px;
+        }
+        
+        .tooltip {
+            position: absolute;
+            padding: 8px 12px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            border-radius: 6px;
+            font-size: 12px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 1000;
+        }
+        
+        .json-input {
+            font-family: 'Courier New', monospace;
+            tab-size: 2;
+        }
+        
+        .modal-backdrop {
+            backdrop-filter: blur(5px);
+            background: rgba(0, 0, 0, 0.5);
+        }
+        
+        .control-panel {
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+        
+        .control-panel::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .control-panel::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        
+        .control-panel::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+        
+        .control-panel::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        
+        .sample-btn {
+            transition: all 0.3s ease;
+        }
+        
+        .sample-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-out;
+        }
+        
+        .mindmap-container {
+            background: linear-gradient(to right, #f8fafc 0%, #f1f5f9 50%, #f8fafc 100%);
+        }
+        
+        .control-fab {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 40;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
+    <!-- 标题区域 -->
+    <header class="text-center py-6 fade-in">
+        <h1 class="text-4xl font-bold text-gray-800 mb-2">
+            <i class="fas fa-project-diagram text-blue-500 mr-3"></i>
+            JSON 脑图可视化
+        </h1>
+        <p class="text-gray-600">JSON转换成脑图,建议横屏</p>
+    </header>
+    
+    <!-- 思维导图显示区域 -->
+    <div class="container mx-auto px-4 pb-20">
+        <div class="bg-white rounded-lg shadow-lg p-6 min-h-[600px]">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-semibold text-gray-700">
+                    <i class="fas fa-sitemap text-blue-500 mr-2"></i>
+                    思维导图视图
+                </h2>
+                <div class="space-x-2">
+                    <button 
+                        onclick="zoomIn()" 
+                        class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-1 rounded-lg transition">
+                        <i class="fas fa-search-plus"></i>
+                    </button>
+                    <button 
+                        onclick="zoomOut()" 
+                        class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-1 rounded-lg transition">
+                        <i class="fas fa-search-minus"></i>
+                    </button>
+                    <button 
+                        onclick="resetZoom()" 
+                        class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-1 rounded-lg transition">
+                        <i class="fas fa-compress"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div id="mindMapContainer" class="w-full h-[550px] border-2 border-gray-200 rounded-lg overflow-hidden mindmap-container">
+                <svg id="mindMap" width="100%" height="100%"></svg>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 控制面板浮动按钮 -->
+    <button 
+        onclick="openControlPanel()" 
+        class="control-fab bg-blue-500 hover:bg-blue-600 text-white rounded-full w-16 h-16 shadow-lg flex items-center justify-center transition-all hover:scale-110">
+        <i class="fas fa-cog text-2xl"></i>
+    </button>
+    
+    <!-- 控制面板模态框 -->
+    <div id="controlModal" class="fixed inset-0 z-50 hidden">
+        <div class="modal-backdrop fixed inset-0" onclick="closeControlPanel()"></div>
+        <div class="fixed inset-0 flex items-center justify-center p-4">
+            <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[85vh] control-panel relative">
+                <!-- 模态框头部 -->
+                <div class="sticky top-0 bg-white border-b px-6 py-4 rounded-t-xl">
+                    <div class="flex justify-between items-center">
+                        <h2 class="text-2xl font-bold text-gray-800">
+                            <i class="fas fa-sliders-h text-blue-500 mr-2"></i>
+                            控制面板
+                        </h2>
+                        <button 
+                            onclick="closeControlPanel()" 
+                            class="text-gray-500 hover:text-gray-700 text-2xl">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- 模态框内容 -->
+                <div class="p-6 space-y-6">
+                    <!-- JSON输入区域 -->
+                    <div class="bg-gray-50 rounded-lg p-6">
+                        <h3 class="text-lg font-semibold mb-4 text-gray-700">
+                            <i class="fas fa-code text-blue-500 mr-2"></i>
+                            JSON 输入
+                        </h3>
+                        
+                        <textarea 
+                            id="jsonInput" 
+                            class="w-full h-48 p-4 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none json-input text-sm"
+                            placeholder='输入JSON数据，例如：
+{
+  "name": "根节点",
+  "children": [
+    {"name": "子节点1"},
+    {"name": "子节点2"}
+  ]
+}'></textarea>
+                        
+                        <div class="mt-4">
+                            <button 
+                                onclick="renderMindMap(); closeControlPanel();" 
+                                class="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg transition duration-300 flex items-center justify-center">
+                                <i class="fas fa-play mr-2"></i>
+                                生成思维导图
+                            </button>
+                        </div>
+                        
+                        <div id="errorMessage" class="mt-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg hidden">
+                            <i class="fas fa-exclamation-triangle mr-2"></i>
+                            <span id="errorText"></span>
+                        </div>
+                        
+                        <div id="successMessage" class="mt-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded-lg hidden">
+                            <i class="fas fa-check-circle mr-2"></i>
+                            <span>思维导图生成成功！</span>
+                        </div>
+                    </div>
+                    
+                    <!-- 示例数据 -->
+                    <div class="bg-gray-50 rounded-lg p-6">
+                        <h3 class="text-lg font-semibold mb-4 text-gray-700">
+                            <i class="fas fa-flask text-purple-500 mr-2"></i>
+                            示例数据
+                        </h3>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            <button 
+                                onclick="loadSample(1)" 
+                                class="sample-btn bg-green-500 hover:bg-green-600 text-white py-3 px-4 rounded-lg">
+                                <i class="fas fa-building mr-2"></i>
+                                组织架构
+                            </button>
+                            <button 
+                                onclick="loadSample(2)" 
+                                class="sample-btn bg-purple-500 hover:bg-purple-600 text-white py-3 px-4 rounded-lg">
+                                <i class="fas fa-book mr-2"></i>
+                                知识体系
+                            </button>
+                            <button 
+                                onclick="loadSample(3)" 
+                                class="sample-btn bg-orange-500 hover:bg-orange-600 text-white py-3 px-4 rounded-lg">
+                                <i class="fas fa-tasks mr-2"></i>
+                                项目规划
+                            </button>
+                            <button 
+                                onclick="clearInput()" 
+                                class="sample-btn bg-gray-500 hover:bg-gray-600 text-white py-3 px-4 rounded-lg">
+                                <i class="fas fa-eraser mr-2"></i>
+                                清空
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- 操作说明 -->
+                    <div class="bg-gray-50 rounded-lg p-6">
+                        <h3 class="text-lg font-semibold mb-4 text-gray-700">
+                            <i class="fas fa-info-circle text-blue-500 mr-2"></i>
+                            操作说明
+                        </h3>
+                        <div class="grid md:grid-cols-2 gap-4">
+                            <div class="space-y-3">
+                                <div class="flex items-start">
+                                    <i class="fas fa-mouse text-blue-400 mr-3 mt-1"></i>
+                                    <div>
+                                        <strong>点击节点</strong>
+                                        <p class="text-sm text-gray-600">展开或折叠子节点</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-start">
+                                    <i class="fas fa-hand-paper text-blue-400 mr-3 mt-1"></i>
+                                    <div>
+                                        <strong>拖拽画布</strong>
+                                        <p class="text-sm text-gray-600">移动思维导图视图</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-start">
+                                    <i class="fas fa-search-plus text-blue-400 mr-3 mt-1"></i>
+                                    <div>
+                                        <strong>滚轮缩放</strong>
+                                        <p class="text-sm text-gray-600">放大或缩小视图</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="space-y-3">
+                                <div class="flex items-start">
+                                    <i class="fas fa-palette text-blue-400 mr-3 mt-1"></i>
+                                    <div>
+                                        <strong>颜色含义</strong>
+                                        <p class="text-sm text-gray-600">蓝色=根节点，黄色=已折叠</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-start">
+                                    <i class="fas fa-expand text-blue-400 mr-3 mt-1"></i>
+                                    <div>
+                                        <strong>全屏模式</strong>
+                                        <p class="text-sm text-gray-600">沉浸式查看思维导图</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-start">
+                                    <i class="fas fa-keyboard text-blue-400 mr-3 mt-1"></i>
+                                    <div>
+                                        <strong>快捷键</strong>
+                                        <p class="text-sm text-gray-600">ESC退出全屏，Ctrl+滚轮缩放</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 高级选项 -->
+                    <div class="bg-gray-50 rounded-lg p-6">
+                        <h3 class="text-lg font-semibold mb-4 text-gray-700">
+                            <i class="fas fa-cogs text-indigo-500 mr-2"></i>
+                            高级选项
+                        </h3>
+                        <div class="grid md:grid-cols-2 gap-4">
+                            <button 
+                                onclick="exportImage()" 
+                                class="bg-indigo-500 hover:bg-indigo-600 text-white py-3 px-4 rounded-lg transition">
+                                <i class="fas fa-download mr-2"></i>
+                                导出为图片
+                            </button>
+                            <button 
+                                onclick="openFullscreen()" 
+                                class="bg-teal-500 hover:bg-teal-600 text-white py-3 px-4 rounded-lg transition">
+                                <i class="fas fa-expand-arrows-alt mr-2"></i>
+                                全屏查看
+                            </button>
+                            <button 
+                                onclick="resetAll()" 
+                                class="bg-red-500 hover:bg-red-600 text-white py-3 px-4 rounded-lg transition">
+                                <i class="fas fa-redo mr-2"></i>
+                                重置所有
+                            </button>
+                            <button 
+                                onclick="printMindMap()" 
+                                class="bg-yellow-500 hover:bg-yellow-600 text-white py-3 px-4 rounded-lg transition">
+                                <i class="fas fa-print mr-2"></i>
+                                打印导图
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="tooltip" id="tooltip"></div>
+    
+    <script>
+        let currentData = null;
+        let svg, g, tree, root, zoom;
+        let nodeWidth = 120, nodeHeight = 40;
+        let horizontalSpacing = 180, verticalSpacing = 80;
+        
+        // 初始化SVG
+        function initSVG() {
+            const container = document.getElementById('mindMapContainer');
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+            
+            // 清空现有内容
+            d3.select("#mindMap").selectAll("*").remove();
+            
+            svg = d3.select("#mindMap")
+                .attr("width", width)
+                .attr("height", height);
+            
+            // 创建缩放行为
+            zoom = d3.zoom()
+                .scaleExtent([0.1, 3])
+                .on("zoom", (event) => {
+                    g.attr("transform", event.transform);
+                });
+            
+            svg.call(zoom);
+            
+            g = svg.append("g")
+                .attr("transform", `translate(${width/2},${height/2})`);
+        }
+        
+        // 渲染思维导图
+        function renderMindMap() {
+            const jsonInput = document.getElementById('jsonInput').value.trim();
+            
+            if (!jsonInput) {
+                showError('请输入JSON数据');
+                return;
+            }
+            
+            try {
+                currentData = JSON.parse(jsonInput);
+                hideError();
+                showSuccess();
+                drawMindMap(currentData);
+            } catch (e) {
+                showError('JSON格式错误：' + e.message);
+            }
+        }
+        
+        // 计算节点位置
+        function calculateNodePositions(node, x = 0, y = 0, level = 0, direction = 0) {
+            node.x = x;
+            node.y = y;
+            node.level = level;
+            
+            if (node.children) {
+                let childY = y - (node.children.length - 1) * verticalSpacing / 2;
+                
+                node.children.forEach((child, index) => {
+                    let childDirection = direction === 0 ? (index % 2 === 0 ? -1 : 1) : direction;
+                    let childX = x + horizontalSpacing * childDirection;
+                    calculateNodePositions(child, childX, childY, level + 1, childDirection);
+                    childY += verticalSpacing;
+                });
+            }
+        }
+        
+        // 绘制思维导图
+        function drawMindMap(data) {
+            initSVG();
+            
+            // 转换数据为D3层次结构
+            root = d3.hierarchy(data);
+            
+            // 计算节点位置
+            calculateNodePositions(root);
+            
+            // 创建连线
+            const link = g.append("g")
+                .selectAll(".link")
+                .data(root.links())
+                .enter().append("path")
+                .attr("class", "link")
+                .attr("d", d => {
+                    return `M${d.source.x},${d.source.y}
+                            L${d.source.x + (d.target.x - d.source.x) / 2},${d.source.y}
+                            L${d.source.x + (d.target.x - d.source.x) / 2},${d.target.y}
+                            L${d.target.x},${d.target.y}`;
+                });
+            
+            // 创建节点组
+            const node = g.append("g")
+                .selectAll(".node")
+                .data(root.descendants())
+                .enter().append("g")
+                .attr("class", d => {
+                    let classes = "node";
+                    if (d.depth === 0) classes += " root";
+                    if (!d.children && d._children) classes += " collapsed";
+                    return classes;
+                })
+                .attr("transform", d => `translate(${d.x - nodeWidth/2},${d.y - nodeHeight/2})`)
+                .on("click", (event, d) => {
+                    event.stopPropagation();
+                    toggle(d);
+                    update();
+                })
+                .on("mouseover", function(event, d) {
+                    showTooltip(event, d.data.name || d.data.value || '节点');
+                })
+                .on("mouseout", hideTooltip);
+            
+            // 添加矩形节点
+            node.append("rect")
+                .attr("width", nodeWidth)
+                .attr("height", nodeHeight);
+            
+            // 添加文本标签
+            node.append("text")
+                .attr("x", nodeWidth / 2)
+                .attr("y", nodeHeight / 2)
+                .attr("dy", "0.35em")
+                .attr("text-anchor", "middle")
+                .text(d => {
+                    let name = d.data.name || d.data.value || '';
+                    if (name.length > 12) name = name.substring(0, 12) + '...';
+                    return name;
+                });
+            
+            // 自动适应视图
+            autoFitView();
+        }
+        
+        // 切换节点展开/折叠
+        function toggle(d) {
+            if (d.children) {
+                d._children = d.children;
+                d.children = null;
+            } else {
+                d.children = d._children;
+                d._children = null;
+            }
+        }
+        
+        // 更新视图
+        function update() {
+            if (!root) return;
+            
+            // 重新计算位置
+            calculateNodePositions(root);
+            
+            // 更新连线
+            const link = g.selectAll(".link")
+                .data(root.links());
+            
+            link.enter().append("path")
+                .attr("class", "link")
+                .merge(link)
+                .transition()
+                .duration(750)
+                .attr("d", d => {
+                    return `M${d.source.x},${d.source.y}
+                            L${d.source.x + (d.target.x - d.source.x) / 2},${d.source.y}
+                            L${d.source.x + (d.target.x - d.source.x) / 2},${d.target.y}
+                            L${d.target.x},${d.target.y}`;
+                });
+            
+            link.exit().remove();
+            
+            // 更新节点
+            const node = g.selectAll(".node")
+                .data(root.descendants(), d => d.id || (d.id = ++i));
+            
+            const nodeEnter = node.enter().append("g")
+                .attr("class", d => {
+                    let classes = "node";
+                    if (d.depth === 0) classes += " root";
+                    if (!d.children && d._children) classes += " collapsed";
+                    return classes;
+                })
+                .on("click", (event, d) => {
+                    event.stopPropagation();
+                    toggle(d);
+                    update();
+                })
+                .on("mouseover", function(event, d) {
+                    showTooltip(event, d.data.name || d.data.value || '节点');
+                })
+                .on("mouseout", hideTooltip);
+            
+            nodeEnter.append("rect")
+                .attr("width", nodeWidth)
+                .attr("height", nodeHeight);
+            
+            nodeEnter.append("text")
+                .attr("x", nodeWidth / 2)
+                .attr("y", nodeHeight / 2)
+                .attr("dy", "0.35em")
+                .attr("text-anchor", "middle")
+                .text(d => {
+                    let name = d.data.name || d.data.value || '';
+                    if (name.length > 12) name = name.substring(0, 12) + '...';
+                    return name;
+                });
+            
+            const nodeUpdate = nodeEnter.merge(node);
+            
+            nodeUpdate.transition()
+                .duration(750)
+                .attr("transform", d => `translate(${d.x - nodeWidth/2},${d.y - nodeHeight/2})`);
+            
+            nodeUpdate.select("rect")
+                .attr("class", d => {
+                    if (d.depth === 0) return "root";
+                    if (!d.children && d._children) return "collapsed";
+                    return "";
+                });
+            
+            node.exit().remove();
+        }
+        
+        // 自动适应视图
+        function autoFitView() {
+            const bounds = g.node().getBBox();
+            const fullWidth = document.getElementById('mindMapContainer').clientWidth;
+            const fullHeight = document.getElementById('mindMapContainer').clientHeight;
+            const scale = 0.8 / Math.max(bounds.width / fullWidth, bounds.height / fullHeight);
+            const translate = [fullWidth / 2 - scale * (bounds.x + bounds.width / 2), 
+                              fullHeight / 2 - scale * (bounds.y + bounds.height / 2)];
+            
+            svg.transition()
+                .duration(750)
+                .call(zoom.transform, d3.zoomIdentity.translate(translate[0], translate[1]).scale(scale));
+        }
+        
+        // 控制面板操作
+        function openControlPanel() {
+            document.getElementById('controlModal').classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+        
+        function closeControlPanel() {
+            document.getElementById('controlModal').classList.add('hidden');
+            document.body.style.overflow = 'auto';
+        }
+        
+        // 加载示例数据
+        function loadSample(num) {
+            const samples = {
+                1: {
+                    "name": "公司组织架构",
+                    "children": [
+                        {
+                            "name": "技术部",
+                            "children": [
+                                {"name": "前端组"},
+                                {"name": "后端组"},
+                                {"name": "测试组"}
+                            ]
+                        },
+                        {
+                            "name": "市场部",
+                            "children": [
+                                {"name": "推广组"},
+                                {"name": "销售组"}
+                            ]
+                        },
+                        {
+                            "name": "人事部",
+                            "children": [
+                                {"name": "招聘组"},
+                                {"name": "培训组"}
+                            ]
+                        }
+                    ]
+                },
+                2: {
+                    "name": "知识体系",
+                    "children": [
+                        {
+                            "name": "编程语言",
+                            "children": [
+                                {"name": "JavaScript"},
+                                {"name": "Python"},
+                                {"name": "Java"}
+                            ]
+                        },
+                        {
+                            "name": "框架",
+                            "children": [
+                                {"name": "React"},
+                                {"name": "Vue"},
+                                {"name": "Angular"}
+                            ]
+                        },
+                        {
+                            "name": "工具",
+                            "children": [
+                                {"name": "Git"},
+                                {"name": "Docker"},
+                                {"name": "Webpack"}
+                            ]
+                        }
+                    ]
+                },
+                3: {
+                    "name": "项目规划",
+                    "children": [
+                        {
+                            "name": "第一阶段",
+                            "children": [
+                                {"name": "需求分析"},
+                                {"name": "原型设计"}
+                            ]
+                        },
+                        {
+                            "name": "第二阶段",
+                            "children": [
+                                {"name": "开发实现"},
+                                {"name": "单元测试"}
+                            ]
+                        },
+                        {
+                            "name": "第三阶段",
+                            "children": [
+                                {"name": "集成测试"},
+                                {"name": "部署上线"}
+                            ]
+                        }
+                    ]
+                }
+            };
+            
+            document.getElementById('jsonInput').value = JSON.stringify(samples[num], null, 2);
+        }
+        
+        // 清空输入
+        function clearInput() {
+            document.getElementById('jsonInput').value = '';
+            hideError();
+            hideSuccess();
+        }
+        
+        // 重置所有
+        function resetAll() {
+            clearInput();
+            d3.select("#mindMap").selectAll("*").remove();
+            currentData = null;
+            hideError();
+            hideSuccess();
+        }
+        
+        // 全屏查看
+        function openFullscreen() {
+            const fullscreenData = {
+                data: currentData,
+                timestamp: new Date().toISOString()
+            };
+            
+            // 将数据存储到 sessionStorage
+            sessionStorage.setItem('mindmapData', JSON.stringify(fullscreenData));
+            
+            // 打开全屏页面
+            window.open('8_脑图子页面.html', '_blank');
+        }
+        
+        // 导出为图片
+        function exportImage() {
+            if (!svg) {
+                showError('请先生成思维导图');
+                return;
+            }
+            
+            const svgElement = document.getElementById('mindMap');
+            const svgData = new XMLSerializer().serializeToString(svgElement);
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const img = new Image();
+            
+            canvas.width = svgElement.clientWidth;
+            canvas.height = svgElement.clientHeight;
+            
+            img.onload = function() {
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0);
+                
+                const link = document.createElement('a');
+                link.download = 'mindmap_' + Date.now() + '.png';
+                link.href = canvas.toDataURL();
+                link.click();
+            };
+            
+            img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
+        }
+        
+        // 打印思维导图
+        function printMindMap() {
+            window.print();
+        }
+        
+        // 显示错误信息
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            const errorText = document.getElementById('errorText');
+            errorText.textContent = message;
+            errorDiv.classList.remove('hidden');
+            hideSuccess();
+        }
+        
+        // 隐藏错误信息
+        function hideError() {
+            document.getElementById('errorMessage').classList.add('hidden');
+        }
+        
+        // 显示成功信息
+        function showSuccess() {
+            document.getElementById('successMessage').classList.remove('hidden');
+            setTimeout(hideSuccess, 3000);
+        }
+        
+        // 隐藏成功信息
+        function hideSuccess() {
+            document.getElementById('successMessage').classList.add('hidden');
+        }
+        
+        // 显示工具提示
+        function showTooltip(event, text) {
+            const tooltip = document.getElementById('tooltip');
+            tooltip.textContent = text;
+            tooltip.style.left = event.pageX + 10 + 'px';
+            tooltip.style.top = event.pageY - 10 + 'px';
+            tooltip.style.opacity = 1;
+        }
+        
+        // 隐藏工具提示
+        function hideTooltip() {
+            document.getElementById('tooltip').style.opacity = 0;
+        }
+        
+        // 缩放功能
+        function zoomIn() {
+            if (svg) {
+                svg.transition().call(zoom.scaleBy, 1.3);
+            }
+        }
+        
+        function zoomOut() {
+            if (svg) {
+                svg.transition().call(zoom.scaleBy, 0.7);
+            }
+        }
+        
+        function resetZoom() {
+            if (svg) {
+                autoFitView();
+            }
+        }
+        
+        // 页面加载时加载示例
+        window.onload = function() {
+            loadSample(1);
+            renderMindMap();
+        };
+        
+        // 窗口大小改变时重新渲染
+        window.onresize = function() {
+            if (currentData) {
+                drawMindMap(currentData);
+            }
+        };
+        
+        // ESC键关闭控制面板
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeControlPanel();
+            }
+        });
+        
+        let i = 0;
+    </script>
+</body>
+</html>

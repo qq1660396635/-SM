@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>C 标准库参考手册</title>
+    <script src="A.插件_字体缩放.js"></script>
+<style>
+:root {
+    --primary-color: #10b981;
+    --secondary-color: #06b6d4;
+    --accent-color: #8b5cf6;
+    --text-color: #1e293b;
+    --text-secondary: #64748b;
+    --bg-color: #f0fdf4;
+    --border-color: #d1fae5;
+    --hover-bg: #dcfce7;
+    --code-bg: #ffffff;
+    --tree-line: #86efac;
+    --view-button-bg: #d1fae5;
+    --view-button-hover: #a7f3d0;
+    --view-button-active: #059669;
+    --view-button-text: #064e3b;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--text-color);
+    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 50%, #d1fae5 100%);
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+    display: flex;
+    flex-direction: column;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+}
+
+.container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background-color: rgba(255, 255, 255, 0.95);
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    margin: 8px;
+    border-radius: 8px;
+    border: 1px solid rgba(209, 250, 229, 0.3);
+}
+
+header {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: #fff;
+    padding: 12px 16px;
+    text-align: left;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    flex-shrink: 0;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+header::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+    animation: shimmer 3s infinite;
+}
+
+@keyframes shimmer {
+    0% { left: -100%; }
+    100% { left: 100%; }
+}
+
+.header-content {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    flex: 1;
+}
+
+header h1 {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    position: relative;
+}
+
+header p {
+    opacity: 0.9;
+    font-size: 12px;
+    position: relative;
+}
+
+.header-search {
+    position: relative;
+    z-index: 10;
+}
+
+#searchInput {
+    padding: 6px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background-color: rgba(240, 253, 244, 0.8);
+    color: var(--text-color);
+    font-size: 12px;
+    font-family: inherit;
+    width: 180px;
+    transition: all 0.3s;
+}
+
+#searchInput:focus {
+    outline: none;
+    border-color: var(--accent-color);
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2);
+}
+
+.controls {
+    padding: 10px 16px;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.controls button {
+    background: linear-gradient(135deg, var(--accent-color), var(--secondary-color));
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-size: 12px;
+    font-family: inherit;
+    font-weight: 500;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.controls button:hover {
+    background: linear-gradient(135deg, var(--secondary-color), var(--primary-color));
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.tree-container {
+    flex: 1;
+    padding: 12px;
+    overflow: auto;
+    background: linear-gradient(180deg, rgba(240, 253, 244, 0.4) 0%, rgba(240, 253, 244, 0.2) 100%);
+}
+
+.tree-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+.tree-container::-webkit-scrollbar-thumb {
+    background: var(--accent-color);
+    border-radius: 3px;
+}
+
+.tree ul {
+    list-style-type: none;
+    padding-left: 16px;
+    margin: 0;
+}
+
+.tree li {
+    position: relative;
+    padding: 1px 0;
+    white-space: nowrap;
+}
+
+.tree li::before {
+    content: "";
+    position: absolute;
+    left: -10px;
+    top: 8px;
+    width: 10px;
+    height: 1px;
+    background-color: var(--tree-line);
+}
+
+.tree li::after {
+    content: "";
+    position: absolute;
+    left: -10px;
+    top: -2px;
+    width: 1px;
+    height: 100%;
+    background-color: var(--tree-line);
+}
+
+.tree li:last-child::after {
+    height: 10px;
+}
+
+.tree > ul > li::before, .tree > ul > li::after {
+    display: none;
+}
+
+.tree-node {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.tree-node:hover {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(6, 182, 212, 0.05) 100%);
+    transform: translateX(2px);
+}
+
+.tree-node .toggle {
+    color: #94a3b8;
+    margin-right: 3px;
+    font-size: 9px;
+    transition: transform 0.2s;
+}
+
+.tree-node .icon {
+    margin-right: 6px;
+    font-size: 12px;
+}
+
+.tree-node .folder {
+    color: var(--primary-color);
+}
+
+.tree-node .file {
+    color: var(--text-secondary);
+}
+
+.tree-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    min-width: 0;
+}
+
+.tree-name {
+    font-weight: 500;
+    font-size: 13px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--text-color);
+}
+
+.tree-desc {
+    font-style: normal !important;
+    white-space: normal !important;
+    max-width: none !important;
+    overflow: visible !important;
+    text-overflow: unset !important;
+    display: inline-block !important;
+    line-height: 1.4 !important;
+    margin-top: 2px !important;
+    font-size: 11px !important;
+    color: var(--text-secondary) !important;
+    background: rgba(16, 185, 129, 0.06) !important;
+    padding: 1px 4px !important;
+    border-radius: 3px !important;
+    border: 1px solid rgba(16, 185, 129, 0.1) !important;
+    transition: all 0.2s !important;
+}
+
+.tree-node:hover .tree-desc {
+    background: rgba(16, 185, 129, 0.1) !important;
+    border-color: rgba(16, 185, 129, 0.2) !important;
+}
+
+.collapsed > ul {
+    display: none;
+}
+
+.highlight {
+    background: linear-gradient(135deg, var(--accent-color), var(--secondary-color));
+    padding: 0 3px;
+    border-radius: 3px;
+    color: #fff;
+    font-weight: 500;
+}
+
+footer {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: white;
+    padding: 8px 16px;
+    text-align: center;
+    font-size: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+    flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+    body { font-size: 12px; }
+    .container { margin: 4px; }
+    header h1 { font-size: 16px; }
+    header p { font-size: 11px; }
+    .tree ul { padding-left: 14px; }
+    .tree-name { font-size: 12px; }
+    .tree-desc { font-size: 10px; }
+    #searchInput { width: 140px; font-size: 11px; }
+    .controls button { font-size: 11px; padding: 5px 10px; }
+}
+
+@media (max-width: 480px) {
+    body { font-size: 11px; }
+    .container { margin: 2px; }
+    header h1 { font-size: 14px; }
+    header p { font-size: 10px; }
+    .tree ul { padding-left: 12px; }
+    .tree-node { padding: 1px 3px; }
+    .tree-name { font-size: 11px; }
+    .tree-desc { font-size: 9px; }
+    #searchInput { width: 120px; font-size: 10px; }
+    .controls button { font-size: 10px; padding: 4px 8px; }
+}
+</style>
+</head>
+<body>
+<div class="container">
+    <header>
+        <div class="header-content">
+            <h1>C 标准库参考手册</h1>
+            <p>C Standard Library Reference Manual (2025-12-18)</p>
+        </div>
+        <div class="header-search">
+            <input type="text" id="searchInput" placeholder="搜索函数或常量...">
+        </div>
+    </header>
+    <div class="controls">
+        <div class="action-buttons">
+            <button id="expandAll">展开全部</button>
+            <button id="collapseAll">折叠全部</button>
+        </div>
+    </div>
+    <div class="tree-container">
+        <div class="tree" id="treeContainer"></div>
+    </div>
+    <footer>
+        <p>© 2025 C 标准库参考手册 | Generated by 凉安</p>
+    </footer>
+</div>
+
+<!-- 数据部分 -->
+<script>
+// C 标准库树形数据
+// 返回 NULL 并非“没结果”，可能指针传递信息。
+const cLibraryData = [
+    {
+        name: "一、assert.h，诊断",
+        type: "folder",
+        children: [
+            { name: "1. void assert(int exp)", desc: "验证程序假设，失败时终止程序", type: "file" }
+        ]
+    },
+    {
+        name: "二、ctype.h，字符处理函数",
+        type: "folder",
+        children: [
+            { name: "1. int isalnum(int c)", desc: "检查字符是否为字母或数字", type: "file" },
+            { name: "2. int isalpha(int c)", desc: "检查字符是否为字母", type: "file" },
+            { name: "3. int iscntrl(int c)", desc: "检查字符是否为控制字符", type: "file" },
+            { name: "4. int isdigit(int c)", desc: "检查字符是否为十进制数字", type: "file" },
+            { name: "5. int isgraph(int c)", desc: "检查字符是否有图形表示法", type: "file" },
+            { name: "6. int islower(int c)", desc: "检查字符是否为小写字母", type: "file" },
+            { name: "7. int isprint(int c)", desc: "检查字符是否为可打印字符", type: "file" },
+            { name: "8. int ispunct(int c)", desc: "检查字符是否为标点符号", type: "file" },
+            { name: "9. int isspace(int c)", desc: "检查字符是否为空白字符", type: "file" },
+            { name: "10. int isupper(int c)", desc: "检查字符是否为大写字母", type: "file" },
+            { name: "11. int isxdigit(int c)", desc: "检查字符是否为十六进制数字", type: "file" },
+            { name: "12. int tolower(int c)", desc: "将大写字母转换为小写字母", type: "file" },
+            { name: "13. int toupper(int c)", desc: "将小写字母转换为大写字母", type: "file" }
+        ]
+    },
+    {
+        name: "三、float.h，浮点型限制",
+        type: "folder",
+        children: [
+            { name: "1. int FLT_RADIX", desc: "指数表示的基数（最小值2）", type: "file" },
+            { name: "2. int FLT_ROUNDS", desc: "加法的浮点舍入规则", type: "file" },
+            { name: "3. int FLT_MANT_DIG", desc: "基数为FLT_RADIX 的尾数中的数字数", type: "file" },
+            { name: "4. int FLT_MAX_EXP", desc: "使FLT_RADIX^n-1 可表示的最大n", type: "file" },
+            { name: "5. int FLT_MIN_EXP", desc: "使10^n 为规范化数的最小n", type: "file" },
+            { name: "6. int DBL_MANT_DIG", desc: "基数为FLT_RADIX 的尾数中的数字数", type: "file" },
+            { name: "7. int DBL_MAX_EXP", desc: "使FLT_RADIX^n-1 可表示的最大n", type: "file" },
+            { name: "8. int DBL_MIN_EXP", desc: "使10^n 为规范化数的最小n", type: "file" },
+            { name: "9. float FLT_DIG", desc: "float 类型精度 （最小值6） ", type: "file" },
+            { name: "10. float FLT_EPSILON", desc: "使1.0 + x != 1.0 成立的最小x（最小值1E-5）", type: "file" },
+            { name: "11. float FLT_MAX", desc: "最大浮点数（最小值1E+37）", type: "file" },
+            { name: "12. float FLT_MIN", desc: "最小的规范化浮点数（最小值1E-37）", type: "file" },
+            { name: "13. double DBL_DIG", desc: "double 类型精度（最小值10）", type: "file" },
+            { name: "14. double DBL_EPSILON", desc: "使1.0 + x != 1.0 成立的最小x（最小值1E-9）", type: "file" },
+            { name: "15. double DBL_MAX", desc: "最大双精度浮点数（最小值1E+37）", type: "file" },
+            { name: "16. double DBL_MIN", desc: "最小的规范化双精度浮点数（最小值1E-37）", type: "file" }
+        ]
+    },
+    {
+        name: "四、limits.h，整型限制",
+        type: "folder",
+        children: [
+            { name: "1. int CHAR_BIT", desc: "char 类型的位数（最小值8）", type: "file" },
+            { name: "2. int CHAR_MAX", desc: "char 类型的最大值", type: "file" },
+            { name: "3. int CHAR_MIN", desc: "char 类型的最小值", type: "file" },
+            { name: "4. int INT_MAX", desc: "int 类型的最大值 （最小值32767）", type: "file" },
+            { name: "5. int INT_MIN", desc: "int 类型的最小值 （最小值-32767）", type: "file" },
+            { name: "6. long LONG_MAX", desc: "long 类型的最大值（最小值2147483647）", type: "file" },
+            { name: "7. long LONG_MIN", desc: "long 类型的最小值（最小值-2147483647）", type: "file" },
+            { name: "8. int SCHAR_MAX", desc: "signed char 的最大值（最小值127）", type: "file" },
+            { name: "9. int SCHAR_MIN", desc: "signed char 的最小值（最小值-127）", type: "file" },
+            { name: "10. int SHRT_MAX", desc: "short 的最大值（最小值32767）", type: "file" },
+            { name: "11. int SHRT_MIN", desc: "short 的最小值（最小值-32767）", type: "file" },
+            { name: "12. unsigned int UCHAR_MAX", desc: "unsigned char 的最大值（最小值255）", type: "file" },
+            { name: "13. unsigned int UINT_MAX", desc: "unsigned int 的最大值（最小值65535）", type: "file" },
+            { name: "14. unsigned long ULONG_MAX", desc: "unsigned long 的最大值（最小值4294967295）", type: "file" },
+            { name: "15. unsigned int USHRT_MAX", desc: "unsigned short 的最大值（最小值65535）", type: "file" }
+        ]
+    },
+    {
+        name: "五、locale.h，地域化设置",
+        type: "folder",
+        children: [
+            { name: "1. char* setlocale(int category, const char* locale)", desc: "设置或读取地域化信息", type: "file" },
+            { name: "2. struct lconv *localeconv(void)", desc: "获取地域化信息（如货币符号）", type: "file" }
+        ]
+    },
+    {
+        name: "六、math.h，数学函数库",
+        type: "folder",
+        children: [
+            { name: "1. double acos(double x)", desc: "返回以弧度表示的x 的反余弦", type: "file" },
+            { name: "2. double asin(double x)", desc: "返回以弧度表示的x 的反正弦", type: "file" },
+            { name: "3. double atan(double x)", desc: "返回以弧度表示的x 的反正切", type: "file" },
+            { name: "4. double atan2(double y, double x)", desc: "返回以弧度表示的y/x 的反正切，y 和x 的符号决定象限", type: "file" },
+            { name: "5. double cos(double x)", desc: "返回弧度角x 的余弦", type: "file" },
+            { name: "6. double cosh(double x)", desc: "返回x 的双曲余弦", type: "file" },
+            { name: "7. double sin(double x)", desc: "返回弧度角x 的正弦", type: "file" },
+            { name: "8. double sinh(double x)", desc: "返回x 的双曲正弦", type: "file" },
+            { name: "9. double tanh(double x)", desc: "返回x 的双曲正切", type: "file" },
+            { name: "10. double exp(double x)", desc: "返回e 的x 次幂的值", type: "file" },
+            { name: "11. double frexp(double x, int *exponent)", desc: "分解浮点数x 为尾数和指数，返回尾数，指数存入exponent", type: "file" },
+            { name: "12. double ldexp(double x, int exponent)", desc: "返回x 乘以2 的exponent 次幂", type: "file" },
+            { name: "13. double log(double x)", desc: "返回x 的自然对数（基数为e）", type: "file" },
+            { name: "14. double log10(double x)", desc: "返回x 的常用对数（基数为10）", type: "file" },
+            { name: "15. double modf(double x, double *integer)", desc: "返回小数部分，并设置integer 为整数部分", type: "file" },
+            { name: "16. double pow(double x, double y)", desc: "返回x的y 次幂", type: "file" },
+            { name: "17. double sqrt(double x)", desc: "返回x 的平方根", type: "file" },
+            { name: "18. double ceil(double x)", desc: "返回大于或等于x的最小整数值", type: "file" },
+            { name: "19. double fabs(double x)", desc: "返回x 的绝对值", type: "file" },
+            { name: "20. double floor(double x)", desc: "返回小于或等于x的最大整数值", type: "file" },
+            { name: "21. double fmod(double x, double y)", desc: "返回x 除以y 的余数", type: "file" }
+        ]
+    },
+    {
+        name: "七、setjmp.h，非局部跳转",
+        type: "folder",
+        children: [
+            { name: "1. void longjmp(jmp_buf environment, int value)", desc: "恢复由setjmp 保存的环境", type: "file" },
+            { name: "2. int setjmp(jmp_buf env)", desc: "保存当前执行环境", type: "file" }
+        ]
+    },
+    {
+        name: "八、signal.h，信号处理",
+        type: "folder",
+        children: [
+            { name: "1. void (*signal(int sig, void (*func)(int)))(int)", desc: "设置信号处理函数", type: "file" },
+            { name: "2. int raise(int sig)", desc: "生成指定信号", type: "file" }
+        ]
+    },
+    {
+        name: "九、stdarg.h，变长参数",
+        type: "folder",
+        children: [
+            { name: "1. void va_start(va_list ap, lastarg)", desc: "初始化可变参数列表", type: "file" },
+            { name: "2. void va_end(va_list ap)", desc: "清理可变参数列表", type: "file" },
+            { name: "3. type va_arg(va_list ap, type)", desc: "获取下一个可变参数", type: "file" }
+        ]
+    },
+    {
+        name: "十、stdio.h，输入输出函数",
+        type: "folder",
+        children: [
+            { name: "1. void clearerr(FILE* stream)", desc: "清除文件流的错误标识符", type: "file" },
+            { name: "2. void perror(const char* str)", desc: "输出错误描述到标准错误", type: "file" },
+            { name: "3. void rewind(FILE* stream)", desc: "重置文件位置到开头", type: "file" },
+            { name: "4. void setbuf(FILE* stream, char* buffer)", desc: "设置文件缓冲区", type: "file" },
+            { name: "5. int fclose(FILE* stream)", desc: "关闭文件流", type: "file" },
+            { name: "6. int feof(FILE* stream)", desc: "测试文件结束标识符", type: "file" },
+            { name: "7. int ferror(FILE* stream)", desc: "测试文件流的错误标识符", type: "file" },
+            { name: "8. int fflush(FILE* stream)", desc: "刷新输出缓冲区", type: "file" },
+            { name: "9. int fgetpos(FILE* stream, fpos_t *pos)", desc: "获取文件当前位置", type: "file" },
+            { name: "10. int fsetpos(FILE* stream, const fpos_t *pos)", desc: "设置文件位置", type: "file" },
+            { name: "11. int fseek(FILE* stream, long int offset, int whence)", desc: "设置文件位置", type: "file" },
+            { name: "12. int remove(const char* filename)", desc: "删除文件", type: "file" },
+            { name: "13. int rename(const char* old_filename, const char* new_filename)", desc: "重命名文件", type: "file" },
+            { name: "14. int setvbuf(FILE* stream, char* buffer, int mode, size_t size)", desc: "设置文件缓冲模式", type: "file" },
+            { name: "15. int ungetc(int char, FILE* stream)", desc: "将字符推回文件流", type: "file" },
+            { name: "16. long int ftell(FILE* stream)", desc: "返回当前文件位置", type: "file" },
+            { name: "17. FILE* fopen(const char* filename, const char* mode)", desc: "打开文件", type: "file" },
+            { name: "18. FILE* freopen(const char* filename, const char* mode, FILE* stream)", desc: "重新打开文件流", type: "file" },
+            { name: "19. FILE* tmpfile(void)", desc: "创建临时文件", type: "file" },
+            { name: "20. char* fgets(char* str, int n, FILE* stream)", desc: "从文件流读取一行", type: "file" },
+            { name: "21. char* tmpnam(char* str)", desc: "生成唯一临时文件名", type: "file" },
+            { name: "22. size_t fread(void* ptr, size_t size, size_t nmemb, FILE* stream)", desc: "从文件读取数据", type: "file" },
+            { name: "23. size_t fwrite(const void* ptr, size_t size, size_t nmemb, FILE* stream)", desc: "向文件写入数据", type: "file" },
+            { name: "24. int fprintf(FILE* stream, const char* format, ...)", desc: "格式化输出到文件流", type: "file" },
+            { name: "25. int printf(const char* format, ...)", desc: "格式化输出到标准输出", type: "file" },
+            { name: "26. int sprintf(char* str, const char* format, ...)", desc: "格式化输出到字符串", type: "file" },
+            { name: "27. int vfprintf(FILE* stream, const char* format, va_list arg)", desc: "使用参数列表格式化输出到文件流", type: "file" },
+            { name: "28. int vprintf(const char* format, va_list arg)", desc: "使用参数列表格式化输出到标准输出", type: "file" },
+            { name: "29. int vsprintf(char* str, const char* format, va_list arg)", desc: "使用参数列表格式化输出到字符串", type: "file" },
+            { name: "30. int snprintf(char* buf, size_t num, const char* format, ...)", desc: "安全格式化输出到字符串", type: "file" },
+            { name: "31. int vsnprintf(char* buf, size_t num, const char* format, va_list arg)", desc: "安全可变参数格式化输出", type: "file" },
+            { name: "32. int fscanf(FILE* stream, const char* format, ...)", desc: "从文件流读取格式化输入", type: "file" },
+            { name: "33. int scanf(const char* format, ...)", desc: "从标准输入读取格式化输入", type: "file" },
+            { name: "34. int sscanf(const char* str, const char* format, ...)", desc: "从字符串读取格式化输入", type: "file" },
+            { name: "35. int fgetc(FILE* stream)", desc: "从文件流读取单个字符", type: "file" },
+            { name: "36. int getc(FILE* stream)", desc: "从文件流读取单个字符", type: "file" },
+            { name: "37. int getchar(void)", desc: "从标准输入读取单个字符", type: "file" },
+            { name: "38. int fputc(int char, FILE* stream)", desc: "写入字符到文件流", type: "file" },
+            { name: "39. int putc(int char, FILE* stream)", desc: "写入字符到文件流", type: "file" },
+            { name: "40. int putchar(int char)", desc: "写入字符到标准输出", type: "file" },
+            { name: "41. int fputs(const char* str, FILE* stream)", desc: "写入字符串到文件流", type: "file" },
+            { name: "42. int puts(const char* str)", desc: "写入字符串到标准输出", type: "file" },
+            { name: "43. int gets(char* str)", desc: "从标准输入读取一行（已弃用）", type: "file" }
+        ]
+    },
+    {
+        name: "十一、stdlib.h，标准库函数",
+        type: "folder",
+        children: [
+            { name: "1. void abort(void)", desc: "使程序异常终止", type: "file" },
+            { name: "2. void exit(int status)", desc: "使程序正常终止", type: "file" },
+            { name: "3. void free(void* ptr)", desc: "释放之前分配的内存空间", type: "file" },
+            { name: "4. void qsort(void* base, size_t nitems, size_t size, int (*compar)(const void* , const void*))", desc: "数组排序", type: "file" },
+            { name: "5. void srand(unsigned int seed)", desc: "初始化随机数发生器", type: "file" },
+            { name: "6. int atoi(const char* str)", desc: "将字符串转换为int 类型整数", type: "file" },
+            { name: "7. int atexit(void (*func)(void))", desc: "程序正常终止时调用指定函数", type: "file" },
+            { name: "8. int mblen(const char* str, size_t n)", desc: "返回多字节字符的长度", type: "file" },
+            { name: "9. int mbtowc(whcar_t *pwc, const char* str, size_t n)", desc: "检查多字节字符", type: "file" },
+            { name: "10. int rand(void)", desc: "返回0 到RAND_MAX 之间的伪随机数", type: "file" },
+            { name: "11. int system(const char* string)", desc: "执行系统命令", type: "file" },
+            { name: "12. int wctomb(char* str, wchar_t wchar)", desc: "检查宽字符的多字节编码", type: "file" },
+            { name: "13. long atol(const char* str)", desc: "将字符串转换为long int 类型长整数", type: "file" },
+            { name: "14. int abs(int x)", desc: "返回x 的绝对值", type: "file" },
+            { name: "15. long labs(long int x)", desc: "返回x 的绝对值", type: "file" },
+            { name: "16. double atof(const char* str)", desc: "将字符串转换为double 类型浮点数", type: "file" },
+            { name: "17. div_t div(int numer, int denom)", desc: "分子除以分母", type: "file" },
+            { name: "18. ldiv_t ldiv(long int numer, long int denom)", desc: "分子除以分母", type: "file" },
+            { name: "19. char* getenv(const char* name)", desc: "搜索环境字符串并返回相关值", type: "file" },
+            { name: "20. void* calloc(size_t nitems, size_t size)", desc: "分配内存空间并返回指针", type: "file" },
+            { name: "21. void* malloc(size_t size)", desc: "分配内存空间并返回指针", type: "file" },
+            { name: "22. void* realloc(void* ptr, size_t size)", desc: "重新调整内存块大小", type: "file" },
+            { name: "23. void* bsearch(const void* key, const void* base, size_t nitems, size_t size, int (*compar)(const void* , const void* ))", desc: "执行二分查找", type: "file" },
+            { name: "24. double strtod(const char* str, char* *endptr)", desc: "将字符串转换为double 类型浮点数", type: "file" },
+            { name: "25. long strtol(const char* str, char* *endptr, int base)", desc: "将字符串转换为long int 类型长整数", type: "file" },
+            { name: "26. unsigned long strtoul(const char* str, char* *endptr, int base)", desc: "将字符串转换为unsigned long int 类型无符号长整数", type: "file" },
+            { name: "27. size_t mbstowcs(schar_t *pwcs, const char* str, size_t n)", desc: "将多字节字符串转换为宽字符数组", type: "file" },
+            { name: "28. size_t wcstombs(char* str, const wchar_t *pwcs, size_t n)", desc: "将宽字符数组转换为多字节字符串", type: "file" }
+        ]
+    },
+    {
+        name: "十二、string.h，字符串处理函数 ❤",
+        type: "folder",
+        children: [
+            { name: "1. void* memchr(const void* str, int c, size_t n)", desc: "在字符串中搜索字符首次出现的位置", type: "file" },
+            { name: "2. void* memcpy(void* dest, const void* src, size_t n)", desc: "复制n 个字符从src 到dest", type: "file" },
+            { name: "3. void* memmove(void* dest, const void* src, size_t n)", desc: "复制n 个字符（处理重叠）", type: "file" },
+            { name: "4. void* memset(void* str, int c, size_t n)", desc: "将字符c 复制到字符串前n 个字符", type: "file" },
+            { name: "5. char* strcat(char* dest, const char* src)", desc: "追加字符串src 到dest 末尾", type: "file" },
+            { name: "6. char* strncat(char* dest, const char* src, size_t n)", desc: "追加src 的前n 个字符到dest", type: "file" },
+            { name: "7. char* strchr(const char* str, int c)", desc: "在字符串中搜索字符首次出现的位置", type: "file" },
+            { name: "8. char* strcpy(char* dest, const char* src)", desc: "复制字符串src 到dest", type: "file" },
+            { name: "9. char* strncpy(char* dest, const char* src, size_t n)", desc: "复制src 的前n 个字符到dest", type: "file" },
+            { name: "10. char* strerror(int errnum)", desc: "返回错误码对应的错误消息字符串", type: "file" },
+            { name: "11. char* strpbrk(const char* str1, const char* str2)", desc: "在str1 中查找str2 中任意字符首次出现的位置", type: "file" },
+            { name: "12. char* strrchr(const char* str, int c)", desc: "在字符串中搜索字符最后一次出现的位置", type: "file" },
+            { name: "13. char* strstr(const char* haystack, const char* needle)", desc: "在字符串中查找子串首次出现的位置", type: "file" },
+            { name: "14. char* strtok(char* str, const char* delim)", desc: "分解字符串为标记序列", type: "file" },
+            { name: "15. int memcmp(const void* str1, const void* str2, size_t n)", desc: "比较两个字符串的前n 个字节", type: "file" },
+            { name: "16. int strcmp(const char* str1, const char* str2)", desc: "比较两个字符串", type: "file" },
+            { name: "17. int strncmp(const char* str1, const char* str2, size_t n)", desc: "比较两个字符串的前n 个字符", type: "file" },
+            { name: "18. int strcoll(const char* str1, const char* str2)", desc: "根据地域设置比较字符串", type: "file" },
+            { name: "19. size_t strcspn(const char* str1, const char* str2)", desc: "返回str1 中不含str2 字符的起始段长度", type: "file" },
+            { name: "20. size_t strlen(const char* str)", desc: "返回字符串长度", type: "file" },
+            { name: "21. size_t strspn(const char* str1, const char* str2)", desc: "返回str1 中只包含str2 字符的起始段长度", type: "file" },
+            { name: "22. size_t strxfrm(char* dest, const char* src, size_t n)", desc: "转换字符串为当前地域的可比较形式", type: "file" }
+        ]
+    },
+    {
+        name: "十三、time.h，时间日期函数",
+        type: "folder",
+        children: [
+            { name: "1. char* asctime(const struct tm *timeptr)", desc: "将时间结构转换为字符串", type: "file" },
+            { name: "2. char* ctime(const time_t *timer)", desc: "将时间转换为本地时间字符串", type: "file" },
+            { name: "3. clock_t clock(void)", desc: "返回程序执行时间", type: "file" },
+            { name: "4. double difftime(time_t time1, time_t time2)", desc: "计算两个时间的差值（秒）", type: "file" },
+            { name: "5. struct tm *gmtime(const time_t *timer)", desc: "将时间转换为协调世界时（UTC）", type: "file" },
+            { name: "6. struct tm *localtime(const time_t *timer)", desc: "将时间转换为本地时间", type: "file" },
+            { name: "7. time_t mktime(struct tm *timeptr)", desc: "将时间结构转换为time_t 值", type: "file" },
+            { name: "8. time_t time(time_t *timer)", desc: "获取当前日历时间", type: "file" },
+            { name: "9. size_t strftime(char* str, size_t maxsize, const char* format, const struct tm *timeptr)", desc: "格式化时间字符串", type: "file" }
+        ]
+    }
+];
+</script>
+
+
+<!-- 图标部分 -->
+<script>
+// 图标配置
+const icons = {
+    folder: '📄',
+    file: '💦',
+    toggle: {
+        expanded: '▼',
+        collapsed: '▶'
+    }
+};
+</script>
+
+<!-- 逻辑部分 -->
+<script>
+// 创建树节点的函数
+function createTreeNode(data) {
+    const li = document.createElement('li');
+    
+    // 创建节点容器
+    const nodeDiv = document.createElement('div');
+    nodeDiv.className = 'tree-node';
+    
+    // 添加折叠图标（仅文件夹）
+    if (data.type === 'folder') {
+        const toggleIcon = document.createElement('span');
+        toggleIcon.className = 'toggle';
+        toggleIcon.textContent = icons.toggle.expanded;
+        nodeDiv.appendChild(toggleIcon);
+    }
+    
+    // 添加文件夹/文件图标
+    const icon = document.createElement('span');
+    icon.className = 'icon';
+    icon.textContent = data.type === 'folder' ? icons.folder : icons.file;
+    icon.classList.add(data.type);
+    nodeDiv.appendChild(icon);
+    
+    // 添加内容区域
+    const contentDiv = document.createElement('div');
+    contentDiv.className = 'tree-content';
+    
+    const nameSpan = document.createElement('span');
+    nameSpan.className = 'tree-name';
+    nameSpan.textContent = data.name;
+    contentDiv.appendChild(nameSpan);
+    
+    if (data.desc) {
+        const descSpan = document.createElement('span');
+        descSpan.className = 'tree-desc';
+        descSpan.textContent = data.desc;
+        contentDiv.appendChild(descSpan);
+    }
+    
+    nodeDiv.appendChild(contentDiv);
+    li.appendChild(nodeDiv);
+    
+    // 递归创建子节点
+    if (data.children && data.children.length > 0) {
+        const ul = document.createElement('ul');
+        data.children.forEach(child => {
+            ul.appendChild(createTreeNode(child));
+        });
+        li.appendChild(ul);
+    }
+    
+    return li;
+}
+
+// 初始化树形结构
+function initTree() {
+    const treeContainer = document.getElementById('treeContainer');
+    treeContainer.innerHTML = '';
+    
+    const ul = document.createElement('ul');
+    cLibraryData.forEach(item => {
+        ul.appendChild(createTreeNode(item));
+    });
+    treeContainer.appendChild(ul);
+    
+    // 默认展开第一级文件夹
+    const rootUl = treeContainer.querySelector('ul');
+    const firstLevelLis = rootUl.querySelectorAll(':scope > li');
+    firstLevelLis.forEach(li => {
+        // 第一级文件夹默认展开，不添加collapsed 类
+            li.classList.add('collapsed'); // 第一级文件夹也默认折叠
+    });
+    
+    // 其他文件夹默认折叠
+    document.querySelectorAll('.tree li:has(> ul)').forEach(li => {
+        if (li.parentElement.parentElement.id !== 'treeContainer') {
+            li.classList.add('collapsed');
+            // 更新折叠图标
+            const toggle = li.querySelector('.toggle');
+            if (toggle) {
+                toggle.textContent = icons.toggle.collapsed;
+            }
+        }
+    });
+}
+
+// 展开全部
+function expandAll() {
+    document.querySelectorAll('.tree li.collapsed').forEach(li => {
+        li.classList.remove('collapsed');
+        // 更新展开图标
+        const toggle = li.querySelector('.toggle');
+        if (toggle) {
+            toggle.textContent = icons.toggle.expanded;
+        }
+    });
+}
+
+// 折叠全部
+function collapseAll() {
+    document.querySelectorAll('.tree li:has(.icon.folder)').forEach(li => {
+        if (!li.parentElement.classList.contains('tree')) {
+            li.classList.add('collapsed');
+            // 更新折叠图标
+            const toggle = li.querySelector('.toggle');
+            if (toggle) {
+                toggle.textContent = icons.toggle.collapsed;
+            }
+        }
+    });
+}
+
+// 搜索功能
+function searchTree(term) {
+    // 清除之前的高亮
+    document.querySelectorAll('.highlight').forEach(el => {
+        el.classList.remove('highlight');
+    });
+    
+    if (term === '') return;
+    
+    // 搜索并高亮匹配项
+    document.querySelectorAll('.tree-node').forEach(node => {
+        const text = node.textContent.toLowerCase();
+        if (text.includes(term)) {
+            node.querySelector('.tree-name').classList.add('highlight');
+            
+            // 展开父节点
+            let parent = node.closest('li');
+            while (parent && !parent.classList.contains('tree')) {
+                parent.classList.remove('collapsed');
+                // 更新展开图标
+                const toggle = parent.querySelector('.toggle');
+                if (toggle) {
+                    toggle.textContent = icons.toggle.expanded;
+                }
+                parent = parent.parentElement.closest('li');
+            }
+        }
+    });
+}
+
+// 初始化
+document.addEventListener('DOMContentLoaded', function() {
+    initTree();
+    
+    // 展开全部按钮
+    document.getElementById('expandAll').addEventListener('click', expandAll);
+    
+    // 折叠全部按钮
+    document.getElementById('collapseAll').addEventListener('click', collapseAll);
+    
+    // 搜索功能
+    document.getElementById('searchInput').addEventListener('input', function(e) {
+        searchTree(e.target.value.toLowerCase());
+    });
+    
+    // 折叠/展开功能
+    document.getElementById('treeContainer').addEventListener('click', function(e) {
+        const treeNode = e.target.closest('.tree-node');
+        if (!treeNode) return;
+        
+        const folder = treeNode.querySelector('.icon.folder');
+        if (!folder) return;
+        
+        const li = treeNode.parentElement;
+        li.classList.toggle('collapsed');
+        
+        // 更新图标
+        const toggle = treeNode.querySelector('.toggle');
+        if (toggle) {
+            toggle.textContent = li.classList.contains('collapsed') 
+                ? icons.toggle.collapsed 
+                : icons.toggle.expanded;
+        }
+    });
+});
+</script>
+</body>
+</html>

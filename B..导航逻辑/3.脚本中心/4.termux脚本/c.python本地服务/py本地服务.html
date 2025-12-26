@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Python本地服务中心</title>   
+    <style>
+        /* 基础重置 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* 主体样式 - 恢复动态渐变背景 */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #f5576c 75%, #fda085 100%);
+            background-size: 400% 400%;
+            animation: gradientShift 15s ease infinite;
+            color: #fff;
+        }
+
+        /* 渐变背景动画 */
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* 主容器 */
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+        }
+
+        /* 头部 */
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .subtitle {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        /* 导航网格 - 手机保持两列 */
+        .nav-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            flex: 1;
+        }
+
+        /* 工具卡片 */
+        .tool-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 20px;
+            text-decoration: none;
+            color: white;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            text-align: center;
+        }
+
+        .tool-card:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        /* 工具图标 */
+        .tool-icon {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        /* 工具名称 */
+        .tool-name {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        /* 工具描述 */
+        .tool-description {
+            font-size: 0.75rem;
+            opacity: 0.85;
+            line-height: 1.3;
+        }
+
+        /* 分页容器 */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin-top: 30px;
+            padding: 20px 0;
+        }
+
+        /* 分页按钮 */
+        .page-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+
+        .page-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .page-btn.active {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.5);
+            font-weight: 600;
+        }
+
+        .page-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* 页码信息 */
+        .page-info {
+            font-size: 0.85rem;
+            opacity: 0.9;
+            margin: 0 10px;
+        }
+
+        /* 加载状态 */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            font-size: 1rem;
+        }
+
+        /* 空状态 */
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+        }
+
+        .empty-state h2 {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+        }
+
+        .empty-state p {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        /* 响应式设计 - 保持手机两列 */
+        @media (max-width: 600px) {
+            .container {
+                padding: 15px;
+            }
+            
+            h1 {
+                font-size: 1.5rem;
+            }
+            
+            .nav-grid {
+                gap: 10px;
+            }
+            
+            .tool-card {
+                padding: 15px;
+            }
+            
+            .tool-icon {
+                font-size: 1.5rem;
+            }
+            
+            .tool-name {
+                font-size: 0.8rem;
+            }
+            
+            .tool-description {
+                font-size: 0.7rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Python本地服务</h1>
+            <p class="subtitle">精选实用工具，一键直达</p>
+        </header>
+        
+        <main>
+            <div class="loading" id="loading">正在加载工具...</div>
+            <div class="nav-grid" id="navGrid" style="display: none;"></div>
+            <div class="empty-state" id="emptyState" style="display: none;">
+                <h2>😔 暂无可用工具</h2>
+                <p>请确保工具文件在同一目录下</p>
+            </div>
+            
+            <!-- 分页控件 -->
+            <div class="pagination" id="pagination" style="display: none;">
+                <button class="page-btn" id="prevBtn" onclick="changePage(-1)">上一页</button>
+                <div id="pageNumbers"></div>
+                <button class="page-btn" id="nextBtn" onclick="changePage(1)">下一页</button>
+            </div>
+        </main>
+    </div>
+
+    <!-- 引入配置文件 -->
+    <script src="py本地服务.js"></script>
+    
+    <script>
+        class NavigationApp {
+            constructor() {
+                this.currentPage = 1;
+                this.itemsPerPage = 6; // 每页显示6个工具（3行 x 2列）
+                this.allTools = [];
+                this.init();
+            }
+
+            async init() {
+                // 等待配置加载
+                if (typeof window.navConfig === 'undefined') {
+                    setTimeout(() => this.init(), 100);
+                    return;
+                }
+                
+                await this.loadTools();
+            }
+
+            async loadTools() {
+                try {
+                    this.allTools = window.navConfig.getAllTools();
+                    
+                    document.getElementById('loading').style.display = 'none';
+                    
+                    if (this.allTools.length === 0) {
+                        document.getElementById('emptyState').style.display = 'block';
+                    } else {
+                        document.getElementById('navGrid').style.display = 'grid';
+                        this.renderPage();
+                        this.renderPagination();
+                    }
+                } catch (error) {
+                    console.error('加载工具失败:', error);
+                    document.getElementById('loading').style.display = 'none';
+                    document.getElementById('emptyState').style.display = 'block';
+                }
+            }
+
+            renderPage() {
+                const navGrid = document.getElementById('navGrid');
+                const startIndex = (this.currentPage - 1) * this.itemsPerPage;
+                const endIndex = startIndex + this.itemsPerPage;
+                const currentTools = this.allTools.slice(startIndex, endIndex);
+                
+                navGrid.innerHTML = currentTools.map(tool => `
+                    <div class="tool-card" onclick="navigateTo('${tool.file}')">
+                        <span class="tool-icon">${tool.icon || '🔧'}</span>
+                        <div class="tool-name">${tool.name}</div>
+                        <div class="tool-description">${tool.description || '点击进入工具'}</div>
+                    </div>
+                `).join('');
+            }
+
+            renderPagination() {
+                const totalPages = Math.ceil(this.allTools.length / this.itemsPerPage);
+                const pagination = document.getElementById('pagination');
+                const pageNumbers = document.getElementById('pageNumbers');
+                const prevBtn = document.getElementById('prevBtn');
+                const nextBtn = document.getElementById('nextBtn');
+                
+                if (totalPages <= 1) {
+                    pagination.style.display = 'none';
+                    return;
+                }
+                
+                pagination.style.display = 'flex';
+                
+                // 更新上一页/下一页按钮状态
+                prevBtn.disabled = this.currentPage === 1;
+                nextBtn.disabled = this.currentPage === totalPages;
+                
+                // 生成页码按钮
+                let pageHTML = '';
+                const maxVisiblePages = 5;
+                
+                if (totalPages <= maxVisiblePages) {
+                    // 总页数少，显示所有页码
+                    for (let i = 1; i <= totalPages; i++) {
+                        pageHTML += `<button class="page-btn ${i === this.currentPage ? 'active' : ''}" onclick="goToPage(${i})">${i}</button>`;
+                    }
+                } else {
+                    // 总页数多，智能显示页码
+                    if (this.currentPage <= 3) {
+                        for (let i = 1; i <= 5; i++) {
+                            pageHTML += `<button class="page-btn ${i === this.currentPage ? 'active' : ''}" onclick="goToPage(${i})">${i}</button>`;
+                        }
+                        pageHTML += `<span class="page-info">...</span>`;
+                        pageHTML += `<button class="page-btn" onclick="goToPage(${totalPages})">${totalPages}</button>`;
+                    } else if (this.currentPage >= totalPages - 2) {
+                        pageHTML += `<button class="page-btn" onclick="goToPage(1)">1</button>`;
+                        pageHTML += `<span class="page-info">...</span>`;
+                        for (let i = totalPages - 4; i <= totalPages; i++) {
+                            pageHTML += `<button class="page-btn ${i === this.currentPage ? 'active' : ''}" onclick="goToPage(${i})">${i}</button>`;
+                        }
+                    } else {
+                        pageHTML += `<button class="page-btn" onclick="goToPage(1)">1</button>`;
+                        pageHTML += `<span class="page-info">...</span>`;
+                        for (let i = this.currentPage - 1; i <= this.currentPage + 1; i++) {
+                            pageHTML += `<button class="page-btn ${i === this.currentPage ? 'active' : ''}" onclick="goToPage(${i})">${i}</button>`;
+                        }
+                        pageHTML += `<span class="page-info">...</span>`;
+                        pageHTML += `<button class="page-btn" onclick="goToPage(${totalPages})">${totalPages}</button>`;
+                    }
+                }
+                
+                pageNumbers.innerHTML = pageHTML;
+            }
+        }
+
+        let app;
+
+        function navigateTo(file) {
+            window.location.href = file;
+        }
+
+        function changePage(direction) {
+            const totalPages = Math.ceil(app.allTools.length / app.itemsPerPage);
+            const newPage = app.currentPage + direction;
+            
+            if (newPage >= 1 && newPage <= totalPages) {
+                app.currentPage = newPage;
+                app.renderPage();
+                app.renderPagination();
+            }
+        }
+
+        function goToPage(page) {
+            app.currentPage = page;
+            app.renderPage();
+            app.renderPagination();
+        }
+
+        // 启动应用
+        document.addEventListener('DOMContentLoaded', () => {
+            app = new NavigationApp();
+        });
+    </script>
+</body>
+</html>

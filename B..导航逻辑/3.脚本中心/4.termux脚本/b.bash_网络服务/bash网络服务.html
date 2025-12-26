@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TM脚本中心</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+            background: #0a0a0a;
+            color: #fff;
+        }
+
+        /* 赛博朋克网格背景 */
+        .cyber-grid {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            z-index: 0;
+            background-image: 
+                linear-gradient(rgba(0, 255, 255, 0.1) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 255, 0.1) 1px, transparent 1px);
+            background-size: 50px 50px;
+            animation: gridMove 10s linear infinite;
+        }
+
+        @keyframes gridMove {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(50px, 50px); }
+        }
+
+        /* 霓虹扫描线 */
+        .scanlines {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            z-index: 1;
+            background: linear-gradient(
+                transparent 50%,
+                rgba(255, 0, 255, 0.03) 50%
+            );
+            background-size: 100% 4px;
+            animation: scanlines 8s linear infinite;
+            pointer-events: none;
+        }
+
+        @keyframes scanlines {
+            0% { background-position: 0 0; }
+            100% { background-position: 0 10px; }
+        }
+
+        /* 故障效果 */
+        .glitch-effect {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            z-index: 2;
+            opacity: 0.05;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(255, 0, 255, 0.1) 2px,
+                rgba(0, 255, 255, 0.1) 4px
+            );
+            animation: glitch 5s infinite;
+            pointer-events: none;
+        }
+
+        @keyframes glitch {
+            0%, 100% { transform: translate(0); }
+            20% { transform: translate(-2px, 2px); }
+            40% { transform: translate(-2px, -2px); }
+            60% { transform: translate(2px, 2px); }
+            80% { transform: translate(2px, -2px); }
+        }
+
+        /* 主容器 */
+        .container {
+            position: relative;
+            z-index: 10;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 15px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 标题 */
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+            color: white;
+            animation: fadeInDown 0.8s ease;
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            margin-bottom: 5px;
+            color: #00ffff;
+            text-shadow: 
+                0 0 10px #00ffff,
+                0 0 20px #00ffff,
+                0 0 30px #00ffff;
+            animation: neonFlicker 2s infinite alternate;
+            letter-spacing: 2px;
+        }
+
+        @keyframes neonFlicker {
+            0%, 100% { 
+                text-shadow: 
+                    0 0 10px #00ffff,
+                    0 0 20px #00ffff,
+                    0 0 30px #00ffff;
+            }
+            50% { 
+                text-shadow: 
+                    0 0 5px #00ffff,
+                    0 0 10px #00ffff,
+                    0 0 15px #00ffff;
+            }
+        }
+
+        .subtitle {
+            font-size: 0.85rem;
+            color: #ff00ff;
+            text-shadow: 0 0 5px #ff00ff;
+            letter-spacing: 1px;
+        }
+
+        /* 导航网格 */
+        .nav-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            max-width: 600px;
+            margin: 0 auto;
+            flex: 1;
+            animation: fadeInUp 0.8s ease;
+        }
+
+        /* 赛博朋克卡片 */
+        .tool-card {
+            background: rgba(10, 10, 30, 0.7);
+            border: 1px solid #00ffff;
+            border-radius: 0;
+            padding: 15px;
+            text-decoration: none;
+            color: white;
+            transition: all 0.3s;
+            box-shadow: 
+                0 0 5px rgba(0, 255, 255, 0.5),
+                inset 0 0 10px rgba(0, 255, 255, 0.1);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            cursor: pointer;
+            clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+        }
+
+        .tool-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #ff00ff, transparent);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+
+        .tool-card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, transparent 30%, rgba(0, 255, 255, 0.1) 50%, transparent 70%);
+            transform: translateX(-100%);
+            transition: transform 0.6s;
+        }
+
+        .tool-card:hover {
+            background: rgba(10, 10, 50, 0.8);
+            border-color: #ff00ff;
+            box-shadow: 
+                0 0 15px rgba(255, 0, 255, 0.7),
+                inset 0 0 15px rgba(255, 0, 255, 0.2);
+            transform: translateY(-5px);
+        }
+
+        .tool-card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .tool-card:hover::after {
+            transform: translateX(100%);
+        }
+
+        /* 图标 */
+        .tool-icon {
+            font-size: 1.8rem;
+            margin-bottom: 8px;
+            display: block;
+            color: #00ffff;
+            filter: drop-shadow(0 0 5px currentColor);
+            animation: iconPulse 3s infinite alternate;
+        }
+
+        @keyframes iconPulse {
+            0% { filter: drop-shadow(0 0 5px currentColor); }
+            100% { filter: drop-shadow(0 0 15px currentColor); }
+        }
+
+        /* 标题 */
+        .tool-name {
+            font-size: 0.9rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+            line-height: 1.2;
+            color: #ffffff;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* 描述 */
+        .tool-description {
+            font-size: 0.7rem;
+            opacity: 0.8;
+            line-height: 1.3;
+            color: #cccccc;
+        }
+
+        /* 动画效果 */
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 赛博朋克网格背景 -->
+    <div class="cyber-grid"></div>
+
+    <!-- 霓虹扫描线 -->
+    <div class="scanlines"></div>
+
+    <!-- 故障效果 -->
+    <div class="glitch-effect"></div>
+
+    <div class="container">
+        <header>
+            <h1>👻 bash网络服务</h1>
+            <p class="subtitle">精选实用工具，一键直达</p>
+        </header>
+        
+        <main>
+            <!-- 导航网格 -->
+            <div class="nav-grid" id="navGrid">
+                <!-- 工具卡片将在这里直接渲染 -->
+            </div>
+        </main>
+    </div>
+
+    <!-- 引入配置文件 -->
+    <script src="termux_nav-config.js"></script>
+    
+    <script>
+        // 页面加载完成后直接执行，无等待
+        document.addEventListener('DOMContentLoaded', () => {
+            const navGrid = document.getElementById('navGrid');
+            const tools = window.navConfig.tools;
+
+            // 直接生成 HTML 字符串并注入
+            navGrid.innerHTML = tools.map(tool => `
+                <div class="tool-card" onclick="window.location.href='${tool.file}'">
+                    <span class="tool-icon">${tool.icon}</span>
+                    <div class="tool-name">${tool.name}</div>
+                    <div class="tool-description">${tool.description}</div>
+                </div>
+            `).join('');
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Go 1.x 标准库全景速览</title>
+    <script src="A.插件_字体缩放.js"></script>
+    <style>
+        :root {
+            --primary-color: #ff6b6b;
+            --secondary-color: #4ecdc4;
+            --accent-color: #45b7d1;
+            --text-color: #2c3e50;
+            --text-secondary: #7f8c8d;
+            --bg-color: #fffbf0;
+            --border-color: #ffeaa7;
+            --hover-bg: #fff5e6;
+            --code-bg: #ffffff;
+            --tree-line: #fab1a0;
+            --view-button-bg: #f0f9ff;
+            --view-button-hover: #e0f2fe;
+            --view-button-active: #0ea5e9;
+            --view-button-text: #0c4a6e;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            font-size: 15.6px; /* 13px × 1.2 */
+            line-height: 1.5;
+            color: var(--text-color);
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 50%, #fecfef 100%);
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            flex-direction: column;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            text-rendering: optimizeLegibility;
+        }
+
+        .container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: rgba(255, 255, 255, 0.98);
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            margin: 4px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: #fff;
+            padding: 6px 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            flex-shrink: 0;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        header::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+            animation: shimmer 3s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+        .header-content {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            flex: 1;
+        }
+
+        header h1 {
+            font-size: 16.8px; /* 14px × 1.2 */
+            font-weight: 700;
+            margin-bottom: 2px;
+            position: relative;
+        }
+
+        header p {
+            opacity: 0.9;
+            font-size: 12px; /* 10px × 1.2 */
+            position: relative;
+        }
+
+        .header-search {
+            position: relative;
+            z-index: 10;
+        }
+
+        #searchInput {
+            padding: 4px 8px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background-color: rgba(255, 255, 255, 0.9);
+            color: var(--text-color);
+            font-size: 13.2px; /* 11px × 1.2 */
+            font-family: inherit;
+            width: 120px;
+            transition: all 0.3s;
+        }
+
+        #searchInput:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            background: rgba(255, 255, 255, 1);
+            box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.1);
+        }
+
+        .controls {
+            padding: 6px 12px;
+            background: linear-gradient(180deg, #ffffff 0%, #f9fafb 100%);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: nowrap;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 4px;
+        }
+
+        .controls button {
+            background: linear-gradient(135deg, var(--accent-color), var(--secondary-color));
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 13.2px; /* 11px × 1.2 */
+            font-family: inherit;
+            font-weight: 500;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .controls button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .view-toggle {
+            display: flex;
+            gap: 4px;
+            background: var(--view-button-bg);
+            padding: 3px;
+            border-radius: 6px;
+        }
+
+        .view-toggle button {
+            background: transparent;
+            color: var(--view-button-text);
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 13.2px; /* 11px × 1.2 */
+            font-family: inherit;
+            font-weight: 500;
+            box-shadow: none;
+        }
+
+        .view-toggle button:hover {
+            background: var(--view-button-hover);
+            transform: none;
+            box-shadow: none;
+        }
+
+        .view-toggle button.active {
+            background: var(--view-button-active);
+            color: white;
+            box-shadow: 0 2px 6px rgba(14, 165, 233, 0.3);
+        }
+
+        .tree-container {
+            flex: 1;
+            padding: 8px;
+            overflow: auto;
+            background: linear-gradient(180deg, rgba(255, 251, 240, 0.5) 0%, rgba(255, 245, 230, 0.3) 100%);
+        }
+
+        .tree-container::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .tree-container::-webkit-scrollbar-thumb {
+            background: var(--primary-color);
+            border-radius: 4px;
+        }
+
+        .tree ul {
+            list-style-type: none;
+            padding-left: 16px;
+            margin: 0;
+        }
+
+        .tree li {
+            position: relative;
+            padding: 2px 0;
+            white-space: nowrap;
+        }
+
+        .tree li::before {
+            content: "";
+            position: absolute;
+            left: -12px;
+            top: 12px;
+            width: 12px;
+            height: 1px;
+            background-color: var(--tree-line);
+        }
+
+        .tree li::after {
+            content: "";
+            position: absolute;
+            left: -12px;
+            top: -2px;
+            width: 1px;
+            height: 100%;
+            background-color: var(--tree-line);
+        }
+
+        .tree li:last-child::after {
+            height: 14px;
+        }
+
+        .tree > ul > li::before,
+        .tree > ul > li::after {
+            display: none;
+        }
+
+        .tree-node {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            padding: 3px 6px;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+
+        .tree-node:hover {
+            background: linear-gradient(135deg, rgba(255, 107, 107, 0.08) 0%, rgba(78, 205, 196, 0.05) 100%);
+            transform: translateX(2px);
+        }
+
+        .tree-node i {
+            margin-right: 8px;
+            color: var(--text-color);
+            width: 14px;
+            text-align: center;
+            font-size: 14.4px; /* 12px × 1.2 */
+        }
+
+        .tree-node .folder {
+            color: var(--primary-color);
+        }
+
+        .tree-node .file {
+            color: var(--text-secondary);
+        }
+
+        .tree-node .toggle {
+            color: #9ca3af;
+            margin-right: 4px;
+            font-size: 12px; /* 10px × 1.2 */
+            transition: transform 0.2s;
+        }
+
+        .collapsed .toggle.fa-chevron-down::before {
+            content: "▶";
+        }
+
+        .tree-content {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            min-width: 0;
+        }
+
+        .tree-name {
+            font-weight: 600;
+            font-size: 14.4px; /* 12px × 1.2 */
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: var(--text-color);
+        }
+
+        .tree-desc {
+            font-style: normal !important;
+            white-space: normal !important;
+            max-width: none !important;
+            overflow: visible !important;
+            text-overflow: unset !important;
+            display: inline-block !important;
+            line-height: 1.4 !important;
+            margin-left: 8px !important;
+            font-size: 12px !important; /* 10px × 1.2 */
+            color: var(--text-secondary) !important;
+            background: rgba(255, 107, 107, 0.06) !important;
+            padding: 2px 4px !important;
+            border-radius: 4px !important;
+            border: 1px solid rgba(255, 107, 107, 0.1) !important;
+            transition: all 0.2s !important;
+        }
+
+        .tree-node:hover .tree-desc {
+            background: rgba(255, 107, 107, 0.1) !important;
+            border-color: rgba(255, 107, 107, 0.2) !important;
+        }
+
+        .collapsed > ul {
+            display: none;
+        }
+
+        .highlight {
+            background: linear-gradient(135deg, var(--accent-color), var(--secondary-color));
+            padding: 0 4px;
+            border-radius: 4px;
+            color: #fff;
+            font-weight: 600;
+        }
+
+        footer {
+            background: linear-gradient(135deg, var(--primary-color),
+                var(--secondary-color));
+            color: white;
+            padding: 6px 12px;
+            text-align: center;
+            font-size: 12px; /* 10px × 1.2 */
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+            flex-shrink: 0;
+        }
+
+        @media (max-width: 768px) {
+            body { font-size: 14.4px; } /* 12px × 1.2 */
+            .container { margin: 2px; }
+            header h1 { font-size: 15.6px; } /* 13px × 1.2 */
+            header p { font-size: 10.8px; } /* 9px × 1.2 */
+            .tree ul { padding-left: 14px; }
+            .tree-name { font-size: 13.2px; } /* 11px × 1.2 */
+            .tree-desc { font-size: 10.8px; } /* 9px × 1.2 */
+            #searchInput { width: 100px; font-size: 12px; } /* 10px × 1.2 */
+            .controls button { font-size: 12px; padding: 3px 6px; } /* 10px × 1.2 */
+            .view-toggle button { padding: 3px 6px; font-size: 12px; } /* 10px × 1.2 */
+        }
+
+        @media (max-width: 480px) {
+            body { font-size: 13.2px; } /* 11px × 1.2 */
+            .container { margin: 1px; }
+            header { padding: 4px 8px; }
+            header h1 { font-size: 14.4px; } /* 12px × 1.2 */
+            header p { font-size: 9.6px; } /* 8px × 1.2 */
+            .controls { padding: 4px 8px; }
+            .tree ul { padding-left: 12px; }
+            .tree-node { padding: 2px 4px; }
+            .tree-name { font-size: 12px; } /* 10px × 1.2 */
+            .tree-desc { font-size: 9.6px; } /* 8px × 1.2 */
+            #searchInput { width: 80px; font-size: 10.8px; padding: 3px 6px; } /* 9px × 1.2 */
+            .controls button { font-size: 10.8px; padding: 2px 4px; } /* 9px × 1.2 */
+            .view-toggle button { padding: 2px 4px; font-size: 10.8px; } /* 9px × 1.2 */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <h1>Go 1.x 标准库全景速览</h1>
+                <p>Go Standard Library - Complete Overview (2025-12-16)</p>
+            </div>
+            <div class="header-search">
+                <input type="text" id="searchInput" placeholder="搜索包名或描述...">
+            </div>
+        </header>
+        <div class="controls">
+            <div class="action-buttons">
+                <button id="expandAll">展开全部</button>
+                <button id="collapseAll">折叠全部</button>
+            </div>
+            <div class="view-toggle">
+                <button id="viewFunction" class="active">按功能分类</button>
+                <button id="viewAlpha">按字母序</button>
+            </div>
+        </div>
+        <div class="tree-container">
+            <div class="tree">
+                <ul id="treeRoot"></ul>
+            </div>
+        </div>
+        <footer>
+            <p>© 2025 Go 1.x 标准库全景速览| Generated by 凉安</p>
+        </footer>
+    </div>
+
+<!-- 数据定义--> 
+<script>
+// 按功能分类的数据 
+const functionData = [
+    {
+        name: '语言内置', 
+        type: 'folder', 
+        children: [
+            { name: 'builtin', desc: '内置类型与函数（true、append、make...）', type: 'file' }
+        ]
+    }, 
+    {
+        name: '输入输出', 
+        type: 'folder', 
+        children: [
+            { name: 'io', desc: '基本I/O 接口', type: 'file' }, 
+            { name: 'bufio', desc: '带缓冲的I/O', type: 'file' }, 
+            { name: 'fmt', desc: '格式化输入输出', type: 'file' }, 
+            { name: 'log', desc: '日志打印', type: 'file' }, 
+            { name: 'os', desc: '操作系统文件/进程接口', type: 'file' }
+        ]
+    }, 
+    {
+        name: '文本处理',
+        type: 'folder', 
+        children: [
+            { name: 'strings', desc: '字符串操作', type: 'file' }, 
+            { name: 'bytes', desc: '字节切片操作', type: 'file' }, 
+            { name: 'strconv', desc: '字符串与基本类型互转', type: 'file' }, 
+            { name: 'unicode', desc: 'Unicode 码点判断', type: 'file' }, 
+            { name: 'regexp', desc: '正则表达式', type: 'file' }
+        ]
+    }, 
+    {
+        name: '数据编码', 
+        type: 'folder', 
+        children: [
+            { name: 'json', desc: 'JSON 编解码', type: 'file' }, 
+            { name: 'xml', desc: 'XML 编解码', type: 'file' }, 
+            { name: 'gob', desc: 'Go 二进制编码', type: 'file' }, 
+            { name: 'base64', desc: 'Base64 编解码', type: 'file' }, 
+            { name: 'hex', desc: '十六进制编解码', type: 'file' }
+        ]
+    }, 
+    {
+        name: '网络通信', 
+        type: 'folder', 
+        children: [
+            { name: 'net', desc: '原始网络接口（TCP/UDP/IP）', type: 'file' },
+            { name: 'net/http', desc: 'HTTP 客户端/服务端', type: 'file' }, 
+            { name: 'net/http/httptest', desc: 'HTTP 测试辅助', type: 'file' },
+            { name: 'net/url', desc: 'URL 解析', type: 'file' }, 
+            { name: 'net/mail', desc: '邮件地址解析', type: 'file' }
+        ]
+    }, 
+    {
+        name: '并发同步', 
+        type: 'folder', 
+        children: [
+            { name: 'sync', desc: '互斥锁/等待组', type: 'file' }, 
+            { name: 'sync/atomic', desc: '原子操作', type: 'file' }, 
+            { name: 'context', desc: '请求级上下文', type: 'file' }, 
+            { name: 'channel', desc: '语言级通道（内置）', type: 'file' }
+        ]
+    }, 
+    {
+        name: '运行时与反射', 
+        type: 'folder', 
+        children: [
+            { name: 'runtime', desc: '运行时控制与信息', type: 'file' }, 
+            { name: 'reflect', desc: '反射机制', type: 'file' }
+        ]
+    }, 
+    {
+        name: '加密与安全', 
+        type: 'folder', 
+        children: [
+            { name: 'crypto/md5', desc: 'MD5 哈希', type: 'file' }, 
+            { name: 'crypto/sha256', desc: 'SHA-256 哈希', type: 'file' },
+            { name: 'crypto/aes', desc: 'AES 对称加密', type: 'file' }, 
+            { name: 'crypto/rsa', desc: 'RSA 非对称加密', type: 'file' }, 
+            { name: 'crypto/rand', desc: '加密随机数', type: 'file' }
+        ]
+    }, 
+    {
+        name: '数学与计算', 
+        type: 'folder', 
+        children: [
+            { name: 'math', desc: '浮点数学函数', type: 'file' }, 
+            { name: 'math/big', desc: '大整数/高精度小数', type: 'file' }, 
+            { name: 'math/rand', desc: '伪随机数', type: 'file' }, 
+            { name: 'sort', desc: '切片排序', type: 'file' }
+        ]
+    }, 
+    {
+        name: '时间与定时器', 
+        type: 'folder', 
+        children: [
+            { name: 'time', desc: '时间戳/格式化/延时', type: 'file' }, 
+            { name: 'time/ticker', desc: '周期性定时器', type: 'file' }
+        ]
+    }, 
+    {
+        name: '文件路径与压缩', 
+        type: 'folder', 
+        children: [
+            { name: 'path/filepath', desc: '跨平台路径操作', type: 'file' }, 
+            { name: 'archive/tar', desc: 'TAR 归档', type: 'file' }, 
+            { name: 'archive/zip', desc: 'ZIP 归档', type: 'file' },
+            { name: 'compress/gzip', desc: 'Gzip 压缩', type: 'file' }
+        ]
+    }, 
+    {
+        name: '测试与调试', 
+        type: 'folder', 
+        children: [
+            { name: 'testing', desc: '单元测试框架', type: 'file' }, 
+            { name: 'testing/httptest', desc: 'HTTP 测试辅助', type: 'file' },
+            { name: 'fmt', desc: '打印调试（见输入输出）', type: 'file' }, 
+            { name: 'log', desc: '日志调试（见输入输出）', type: 'file' }
+        ]
+    }, 
+    {
+        name: '插件与解释', 
+        type: 'folder', 
+        children: [
+            { name: 'plugin', desc: '动态插件加载', type: 'file' }, 
+            { name: 'go/ast', desc: 'Go 语法树', type: 'file' }, 
+            { name: 'go/parser', desc: 'Go 源码解析', type: 'file' }, 
+            { name: 'go/token', desc: '词法标记', type: 'file' }
+        ]
+    }, 
+    {
+        name: '数据库', 
+        type: 'folder', 
+        children: [
+            { name: 'database/sql', desc: '通用SQL 接口', type: 'file' }, 
+            { name: 'database/sql/driver', desc: '驱动接口', type: 'file' }
+        ]
+    }, 
+    {
+        name: '运行时调试', 
+        type: 'folder', 
+        children: [
+            { name: 'runtime/pprof', desc: 'CPU/内存剖析', type: 'file' }, 
+            { name: 'runtime/trace', desc: '执行追踪', type: 'file' }
+        ]
+    }, 
+    {
+        name: '其他实用包', 
+        type: 'folder', 
+        children: [
+            { name: 'flag', desc: '命令行参数解析', type: 'file' }, 
+            { name: 'errors', desc: '错误包装', type: 'file' }, 
+            { name: 'io/ioutil', desc: '已合并到io，保留兼容', type: 'file' }, 
+            { name: 'mime', desc: 'MIME 类型处理', type: 'file' }, 
+            { name: 'hash', desc: '哈希接口定义', type: 'file' }
+        ]
+    }
+];
+
+// 按字母序分类的数据 
+const alphaData = [
+    {
+        name: 'A', 
+        type: 'folder', 
+        children: [
+            { name: 'archive/tar', desc: 'tar 归档格式读写', type: 'file' }, 
+            { name: 'archive/zip', desc: 'zip 归档格式读写', type: 'file' }, 
+            { name: 'arena', desc: '内存arena 手动管理 （go1.20+） ', type: 'file' },
+            { name: 'ascii85', desc: 'ASCII85 编码（btoa/a85）', type: 'file' }
+        ]
+    }, 
+    {
+        name: 'B', 
+        type: 'folder', 
+        children: [
+            { name: 'bufio', desc: '带缓冲I/O 读写', type: 'file' }, 
+            { name: 'bytes', desc: '字节切片工具集', type: 'file' }
+        ]
+    }, 
+    {
+        name: 'C', 
+        type: 'folder', 
+        children: [
+            { name: 'compress/bzip2', desc: 'bzip2 解压', type: 'file' }, 
+            { name: 'compress/flate', desc: 'DEFLATE 压缩', type: 'file' },
+            { name: 'compress/gzip', desc: 'gzip 格式', type: 'file' }, 
+            { name: 'compress/lzw', desc: 'LZW 压缩', type: 'file' }, 
+            { name: 'compress/zlib', desc: 'zlib 格式', type: 'file' }, 
+            { name: 'container/heap', desc: '最小/最大堆', type: 'file' }, 
+            { name: 'container/list', desc: '双向链表', type: 'file' }, 
+            { name: 'container/ring', desc: '循环链表', type: 'file' },
+            { name: 'context', desc: '请求作用域取消/超时', type: 'file' }, 
+            { name: 'crypto', desc: '加密框架接口', type: 'file' }, 
+            { name: 'crypto/aes', desc: 'AES 分组密码', type: 'file' }, 
+            { name: 'crypto/cipher', desc: '分组密码模式', type: 'file' }, 
+            { name: 'crypto/des', desc: 'DES/3DES', type: 'file' }, 
+            { name: 'crypto/dsa', desc: 'DSA 签名', type: 'file' }, 
+            { name: 'crypto/ecdh', desc: '椭圆曲线Diffie-Hellman', type: 'file' },
+            { name: 'crypto/ecdsa', desc: 'ECDSA 签名', type: 'file' }, 
+            { name: 'crypto/ed25519', desc: 'Ed25519 签名', type: 'file' },
+            { name: 'crypto/elliptic', desc: '椭圆曲线参数', type: 'file' }, 
+            { name: 'crypto/hmac', desc: 'HMAC 哈希消息认证', type: 'file' },
+            { name: 'crypto/md5', desc: 'MD5 哈希 （已弱） ', type: 'file' }, 
+            { name: 'crypto/rand', desc: '加密安全随机数', type: 'file' }, 
+            { name: 'crypto/rc4', desc: 'RC4 流密码 （已弱） ', type: 'file' }, 
+            { name: 'crypto/rsa', desc: 'RSA 加签/解密', type: 'file' }, 
+            { name: 'crypto/sha1', desc: 'SHA-1（已弱）', type: 'file' }, 
+            { name: 'crypto/sha256', desc: 'SHA-256/224', type: 'file' }, 
+            { name: 'crypto/sha512', desc: 'SHA-512/384', type: 'file' }, 
+            { name: 'crypto/subtle', desc: '常量时间比较', type: 'file' }, 
+            { name: 'crypto/tls', desc: 'TLS 1.2/1.3 客户端/服务端', type: 'file' },
+            { name: 'crypto/x509', desc: 'X.509 证书链', type: 'file' }, 
+            { name: 'crypto/x509/pkix', desc: 'PKIX 证书属性', type: 'file' }
+        ]
+    }, 
+    {
+        name: 'D', 
+        type: 'folder', 
+        children: [
+            { name: 'database/sql', desc: '通用SQL 接口', type: 'file' }, 
+            { name: 'database/sql/driver', desc: '驱动编写接口', type: 'file' },
+            { name: 'debug/buildinfo', desc: '读取二进制构建信息', type: 'file' },
+            { name: 'debug/dwarf', desc: 'DWARF 调试信息解析', type: 'file' },
+            { name: 'debug/elf', desc: 'ELF 文件解析', type: 'file' }, 
+            { name: 'debug/gosym', desc: 'Go 符号表', type: 'file' }, 
+            { name: 'debug/macho', desc: 'Mach-O 文件解析', type: 'file' },
+            { name: 'debug/pe', desc: 'PE/COFF 文件解析', type: 'file' }, 
+            { name: 'debug/plan9obj', desc: 'Plan 9 a.out 解析', type: 'file' }
+        ]
+    }, 
+    {
+        name: 'E', 
+        type: 'folder', 
+        children: [
+            { name: 'embed', desc: '静态资源嵌入（go1.16+）', type: 'file' },
+            { name: 'encoding', desc: '编码框架接口', type: 'file' }, 
+            { name: 'encoding/ascii85', desc: 'ASCII85（同ascii85）', type: 'file' },
+            { name: 'encoding/asn1', desc: 'ASN.1 DER', type: 'file' }, 
+            { name: 'encoding/base32', desc: 'Base32', type: 'file' }, 
+            { name: 'encoding/base64', desc: 'Base64', type: 'file' }, 
+            { name: 'encoding/binary', desc: ' 二进制字节序', type: 'file' },
+            { name: 'encoding/csv', desc: 'CSV 读写', type: 'file' }, 
+            { name: 'encoding/gob', desc: 'Go 私有二进制编码', type: 'file' },
+            { name: 'encoding/hex', desc: '十六进制', type: 'file' }, 
+            { name: 'encoding/json', desc: 'JSON 编解码', type: 'file' }, 
+            { name: 'encoding/pem', desc: 'PEM 块解析', type: 'file' }, 
+            { name: 'encoding/xml', desc: 'XML 编解码', type: 'file' }, 
+            { name: 'errors', desc: '错误包装与检查', type: 'file' }, 
+            { name: 'expvar', desc: '暴露公共变量 （debug/metrics） ', type: 'file' }
+        ]
+    }, 
+    {
+        name: 'F', 
+        type: 'folder', 
+        children: [
+            { name: 'flag', desc: '命令行参数解析', type: 'file' }
+        ]
+    }, 
+    {
+        name: 'G', 
+        type: 'folder', 
+        children: [
+            { name: 'go/ast', desc: 'Go 抽象语法树', type: 'file' }, 
+            { name: 'go/build', desc: '构建约束与包加载（已弃部分功能）', type: 'file' },
+            { name: 'go/build/constraint', desc: ' 构建标签解析', type: 'file' },
+            { name: 'go/constant', desc: '常量值表示', type: 'file' }, 
+            { name: 'go/doc', desc: '文档注释解析', type: 'file' }, 
+            { name: 'go/format', desc: '源码格式化', type: 'file' }, 
+            { name: 'go/importer', desc: '导入查询辅助', type: 'file' }, 
+            { name: 'go/parser', desc: '源码解析器', type: 'file' }, 
+            { name: 'go/printer', desc: '语法树打印', type: 'file' }, 
+            { name: 'go/scanner', desc: '词法扫描', type: 'file' }, 
+            { name: 'go/token', desc: '词法标记与位置', type: 'file' }, 
+            { name: 'go/types', desc: '类型检查', type: 'file' }
+        ]
+    }, 
+    {
+        name: 'H', 
+        type: 'folder', 
+        children: [
+            { name: 'hash', desc: '哈希接口', type: 'file' }, 
+            { name: 'hash/adler32', desc: 'Adler-32', type: 'file' }, 
+            { name: 'hash/crc32', desc: 'CRC-32', type: 'file' }, 
+            { name: 'hash/crc64', desc: 'CRC-64', type: 'file' }, 
+            { name: 'hash/fnv', desc: 'FNV-1a', type: 'file' }
+        ]
+    }, 
+    {
+        name: 'I', 
+        type: 'folder', 
+        children: [
+            { name: 'html', desc: 'HTML 转义', type: 'file' }, 
+            { name: 'html/template', desc: 'HTML 模板引擎', type: 'file' },
+            { name: 'image', desc: '通用图像接口', type: 'file' }, 
+            { name: 'image/color', desc: '颜色模型', type: 'file' }, 
+            { name: 'image/draw', desc: '2D 图像合成', type: 'file' }, 
+            { name: 'image/gif', desc: 'GIF 编解码', type: 'file' }, 
+            { name: 'image/jpeg', desc: 'JPEG 编解码', type: 'file' }, 
+            { name: 'image/png', desc: 'PNG 编解码', type: 'file' }, 
+            { name: 'index/suffixarray', desc: '后缀数组子串搜索', type: 'file' },
+            { name: 'io', desc: '基本I/O 接口', type: 'file' }, 
+            { name: 'io/fs', desc: '文件系统抽象', type: 'file' }, 
+            { name: 'io/ioutil', desc: '旧IO 助手（已退化）', type: 'file' }
+        ]
+    }, 
+    {
+        name: 'L', 
+        type: 'folder', 
+        children: [
+            { name: 'log', desc: '简单日志输出', type: 'file' }, 
+            { name: 'log/syslog', desc: 'Unix syslog 后端', type: 'file' }, 
+            { name: 'log/slog', desc: '结构化日志 （go1.21+） ', type: 'file' }
+        ]
+    }, 
+    {
+        name: 'M', 
+        type: 'folder', 
+        children: [
+            { name: 'math', desc: '浮点数学函数', type: 'file' }, 
+            { name: 'math/big', desc: '大整数/有理数/高精度浮点', type: 'file' },
+            { name: 'math/bits', desc: '位计数与内建运算', type: 'file' }, 
+            { name: 'math/cmplx', desc: '复数数学函数', type: 'file' }, 
+            { name: 'math/rand', desc: '伪随机数生成', type: 'file' }, 
+            { name: 'mime', desc: 'MIME 类型处理', type: 'file' }
+        ]
+    }, 
+    {
+        name: 'N', 
+        type: 'folder', 
+        children: [
+            { name: 'net', desc: '网络原语（TCP/UDP/Unix 域套接字）', type: 'file' },
+            { name: 'net/http', desc: 'HTTP 客户端/服务端', type: 'file' }, 
+            { name: 'net/http/cgi', desc: 'CGI 网关', type: 'file' }, 
+            { name: 'net/http/cookiejar', desc: 'Cookie 管理', type: 'file' },
+            { name: 'net/http/fcgi', desc: 'FastCGI 客户端', type: 'file' }, 
+            { name: 'net/http/httptest', desc: 'HTTP 测试辅助', type: 'file' },
+            { name: 'net/http/httptrace', desc: 'HTTP 追踪钩子', type: 'file' },
+            { name: 'net/http/httputil', desc: 'HTTP 工具（反向代理等）', type: 'file' },
+            { name: 'net/http/pprof', desc: 'HTTP 剖析端点', type: 'file' },
+            { name: 'net/mail', desc: '邮件头解析', type: 'file' }, 
+            { name: 'net/netip', desc: '新IP 地址类型（go1.18+）', type: 'file' },
+            { name: 'net/rpc', desc: 'RPC 框架', type: 'file' }, 
+            { name: 'net/rpc/jsonrpc', desc: 'JSON-RPC 编解码', type: 'file' },
+            { name: 'net/smtp', desc: 'SMTP 客户端', type: 'file' }, 
+            { name: 'net/textproto', desc: '文本协议通用Reader/Writer', type: 'file' }
+        ]
+    }, 
+    {
+        name: 'O', 
+        type: 'folder', 
+        children: [
+            { name: 'os', desc: '操作系统接口（文件、环境、进程）', type: 'file' },
+            { name: 'os/exec', desc: '外部命令执行', type: 'file' }, 
+            { name: 'os/signal', desc: '信号接收与处理', type: 'file' }, 
+            { name: 'os/user', desc: '当前用户查询', type: 'file' }
+        ]
+    }, 
+    {
+        name: 'P', 
+        type: 'folder', 
+        children: [
+            { name: 'path', desc: '正斜杠路径操作（不感知OS）', type: 'file' },
+            { name: 'path/filepath', desc: '跨平台路径操作', type: 'file' }, 
+            { name: 'plugin', desc: '运行时动态插件加载 （Unix 支持） ', type: 'file' }
+        ]
+    }, 
+    {
+        name: 'R', 
+        type: 'folder', 
+        children: [
+            { name: 'reflect', desc: '运行时反射', type: 'file' }, 
+            { name: 'regexp', desc: '正则表达式', type: 'file' }, 
+            { name: 'regexp/syntax', desc: '正则语法解析（内部）', type: 'file' },
+            { name: 'runtime', desc: '运行时控制与度量', type: 'file' }, 
+            { name: 'runtime/cgo', desc: 'C 互操作', type: 'file' }, 
+            { name: 'runtime/debug', desc: ' 调试打印与堆栈', type: 'file' },
+            { name: 'runtime/metrics', desc: ' 运行时指标读取', type: 'file' },
+            { name: 'runtime/pprof', desc: 'CPU/ 堆/ 互斥剖析', type: 'file' },
+            { name: 'runtime/trace', desc: '执行追踪', type: 'file' }
+        ]
+    }, 
+    {
+        name: 'S', 
+        type: 'folder', 
+        children: [
+            { name: 'sort', desc: '切片/用户定义集合排序', type: 'file' }, 
+            { name: 'strconv', desc: '字符串↔基本类型转换', type: 'file' }, 
+            { name: 'strings', desc: '字符串工具集', type: 'file' }, 
+            { name: 'sync', desc: '互斥锁、 读写锁、 等待组、 单次执行', type: 'file' },
+            { name: 'sync/atomic', desc: '原子操作', type: 'file' }, 
+            { name: 'syscall', desc: ' 底层系统调用（尽量用golang.org/x/sys）', type: 'file' }
+        ]
+    }, 
+    {
+        name: 'T', 
+        type: 'folder', 
+        children: [
+            { name: 'testing', desc: '单元测试框架', type: 'file' }, 
+            { name: 'testing/fstest', desc: ' 文件系统接口测试', type: 'file' },
+            { name: 'testing/iotest', desc: 'I/O 接口测试', type: 'file' }, 
+            { name: 'testing/quick', desc: '黑盒属性测试（已冻结）', type: 'file' },
+            { name: 'text/scanner', desc: '通用词法扫描', type: 'file' }, 
+            { name: 'text/tabwriter', desc: '表格列对齐', type: 'file' }, 
+            { name: 'text/template', desc: '通用文本模板', type: 'file' }, 
+            { name: 'text/template/parse', desc: ' 模板语法树', type: 'file' },
+            { name: 'time', desc: '时间戳、定时器、格式化', type: 'file' }, 
+            { name: 'time/tzdata', desc: '时区数据嵌入', type: 'file' }
+        ]
+    }, 
+    {
+        name: 'U', 
+        type: 'folder', 
+        children: [
+            { name: 'unicode', desc: 'Unicode 分类与转换', type: 'file' },
+            { name: 'unicode/utf16', desc: 'UTF-16 转换', type: 'file' }, 
+            { name: 'unicode/utf8', desc: 'UTF-8 转换与验证', type: 'file' },
+            { name: 'unsafe', desc: '绕过类型系统（指针运算等）', type: 'file' }
+        ]
+    }
+];
+
+// 当前显示的数据 
+let currentData = functionData; 
+let currentView = 'function'; 
+</script>
+
+<!-- 渲染逻辑--> 
+<script>
+// 创建节点元素的函数 
+function createTreeNode(data) {
+    const li = document.createElement('li');
+    
+    // 创建节点容器 
+    const nodeDiv = document.createElement('div'); 
+    nodeDiv.className = 'tree-node';
+    
+    // 添加折叠图标（仅文件夹） 
+    if (data.type === 'folder') {
+        const toggleIcon = document.createElement('span'); 
+        toggleIcon.className = 'toggle'; 
+        toggleIcon.textContent = '▼'; 
+        nodeDiv.appendChild(toggleIcon);
+    }
+    
+    // 添加文件夹/文件图标（使用emoji） 
+    const icon = document.createElement('span'); 
+    icon.className = 'icon'; 
+    if (data.type === 'folder') {
+        icon.className += ' folder'; 
+        icon.textContent = '📁'; 
+    } else {
+        icon.className += ' file'; 
+        icon.textContent = '🐿'; 
+    } 
+    nodeDiv.appendChild(icon);
+    
+    // 添加内容区域 
+    const contentDiv = document.createElement('div'); 
+    contentDiv.className = 'tree-content';
+    
+    const nameSpan = document.createElement('span'); 
+    nameSpan.className = 'tree-name'; 
+    nameSpan.textContent = data.name; 
+    contentDiv.appendChild(nameSpan);
+    
+    if (data.desc) {
+        const descSpan = document.createElement('span'); 
+        descSpan.className = 'tree-desc'; 
+        descSpan.textContent = data.desc; 
+        contentDiv.appendChild(descSpan);
+    }
+    
+    nodeDiv.appendChild(contentDiv); 
+    li.appendChild(nodeDiv);
+    
+    // 递归创建子节点 
+    if (data.children && data.children.length > 0) {
+        const ul = document.createElement('ul'); 
+        data.children.forEach(child => {
+            ul.appendChild(createTreeNode(child)); 
+        }); 
+        li.appendChild(ul);
+    }
+    
+    return li;
+}
+
+// 初始化树形结构 
+function initTree() {
+    const treeRoot = document.getElementById('treeRoot'); 
+    treeRoot.innerHTML = ''; // 清空现有内容 
+    currentData.forEach(item => {
+        treeRoot.appendChild(createTreeNode(item)); 
+    });
+    
+    // 默认折叠所有文件夹 
+    document.querySelectorAll('.tree li:has(> ul)').forEach(li => {
+        li.classList.add('collapsed'); 
+    });
+}
+
+// 切换视图 
+function switchView(view) {
+    currentView = view; 
+    if (view === 'function') {
+        currentData = functionData;
+        document.getElementById('viewFunction').classList.add('active');
+        document.getElementById('viewAlpha').classList.remove('active');
+    } else {
+        currentData = alphaData; 
+        document.getElementById('viewAlpha').classList.add('active'); 
+        document.getElementById('viewFunction').classList.remove('active'); 
+    } 
+    initTree();
+}
+</script>
+
+<!-- 交互功能--> 
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 初始化树形结构 
+    initTree();
+    
+    // 视图切换 
+    document.getElementById('viewFunction').addEventListener('click', function() {
+        switchView('function'); 
+    });
+    
+    document.getElementById('viewAlpha').addEventListener('click', function() {
+        switchView('alpha'); 
+    });
+    
+    // 使用事件委托处理折叠/展开 
+    document.getElementById('treeRoot').addEventListener('click', function(e) {
+        const treeNode = e.target.closest('.tree-node'); 
+        if (!treeNode) return;
+        
+        const folderIcon = treeNode.querySelector('.folder');
+        if (!folderIcon) return;
+        
+        const li = treeNode.parentElement; 
+        li.classList.toggle('collapsed'); 
+    });
+    
+    // 展开全部按钮 
+    document.getElementById('expandAll').addEventListener('click', function() {
+        document.querySelectorAll('.tree li.collapsed').forEach(li => {
+            li.classList.remove('collapsed'); 
+        }); 
+    });
+    
+    // 折叠全部按钮 
+    document.getElementById('collapseAll').addEventListener('click', function() {
+        document.querySelectorAll('.tree li:has(.folder)').forEach(li => {
+            if (!li.parentElement.classList.contains('tree')) {
+                li.classList.add('collapsed'); 
+            }
+        }); 
+    });
+    
+    // 搜索功能 
+    document.getElementById('searchInput').addEventListener('input', function(e) {
+        const searchTerm = e.target.value.toLowerCase();
+        
+        // 清除之前的高亮 
+        document.querySelectorAll('.highlight').forEach(el => {
+            el.classList.remove('highlight'); 
+        });
+        
+        if (searchTerm === '') return;
+        
+        // 搜索并高亮匹配项 
+        document.querySelectorAll('.tree-node').forEach(node => {
+            const text = node.textContent.toLowerCase(); 
+            if (text.includes(searchTerm)) {
+                node.querySelector('.tree-name').classList.add('highlight');
+                
+                // 展开父节点 
+                let parent = node.closest('li'); 
+                while (parent && !parent.classList.contains('tree')) {
+                    parent.classList.remove('collapsed'); 
+                    parent = parent.parentElement.closest('li'); 
+                }
+            }
+        }); 
+    }); 
+}); 
+</script> 
+</body> 
+</html>

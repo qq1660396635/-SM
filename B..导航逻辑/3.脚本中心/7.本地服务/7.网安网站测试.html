@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>网安测试工具</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            height: 100vh;
+            overflow: hidden;
+            padding: 8px;
+        }
+        
+        .container { 
+            height: 100%; 
+            display: flex; 
+            flex-direction: column; 
+            max-width: 600px; 
+            margin: 0 auto; 
+        }
+        
+        .main-card { 
+            background: rgba(255,255,255,0.95); 
+            border-radius: 15px; 
+            padding: 15px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 15px; 
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        
+        .header h1 { 
+            font-size: 20px; 
+            background: linear-gradient(135deg, #667eea, #764ba2); 
+            -webkit-background-clip: text; 
+            -webkit-text-fill-color: transparent; 
+        }
+        
+        .server-status { 
+            display: flex; 
+            align-items: center; 
+            gap: 8px; 
+            padding: 6px 12px; 
+            background: #f8f9fa; 
+            border-radius: 20px; 
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .status-dot { 
+            width: 10px; 
+            height: 10px; 
+            border-radius: 50%; 
+            background: #ff4444; 
+        }
+        
+        .status-dot.connected { background: #44ff44; }
+        
+        .config-section {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+        
+        .server-config, .target-config {
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 8px;
+        }
+        
+        .section-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .input-group {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .input-group input {
+            flex: 1;
+            padding: 10px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        
+        .input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+        }
+        
+        .btn {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+        
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+        
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+            font-size: 12px;
+            padding: 6px 12px;
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .test-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            gap: 8px;
+        }
+        
+        .test-config-btn, .copy-btn {
+            background: #6c757d;
+            color: white;
+            padding: 6px 12px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+        
+        .copy-btn {
+            background: #17a2b8;
+        }
+        
+        .copy-btn:hover {
+            background: #138496;
+        }
+        
+        .test-config-btn:hover {
+            background: #5a6268;
+        }
+        
+        .progress-section {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            display: none;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #e9ecef;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            width: 0%;
+            transition: width 0.3s;
+        }
+        
+        .progress-text {
+            margin-top: 6px;
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .page-indicators {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        
+        .page-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ddd;
+            transition: all 0.3s;
+        }
+        
+        .page-dot.active {
+            background: #667eea;
+            width: 20px;
+            border-radius: 4px;
+        }
+        
+        .results-container {
+            flex: 1;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .results-swiper {
+            display: flex;
+            height: 100%;
+            transition: transform 0.3s ease;
+        }
+        
+        .results-page {
+            min-width: 100%;
+            height: 100%;
+            overflow-y: auto;
+            padding: 5px;
+        }
+        
+        .results-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+        
+        .result-card {
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            padding: 12px;
+            transition: all 0.3s;
+        }
+        
+        .result-card.running {
+            border-color: #ffc107;
+            background: #fff8e1;
+        }
+        
+        .result-card.success {
+            border-color: #28a745;
+            background: #f8fff9;
+        }
+        
+        .result-card.error {
+            border-color: #dc3545;
+            background: #fff8f8;
+        }
+        
+        .result-card.warning {
+            border-color: #fd7e14;
+            background: #fff8f0;
+        }
+        
+        .result-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        
+        .result-icon {
+            font-size: 18px;
+        }
+        
+        .result-title {
+            font-weight: 600;
+            font-size: 13px;
+            flex: 1;
+        }
+        
+        .result-status {
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            background: #e9ecef;
+            color: #666;
+        }
+        
+        .result-content {
+            font-size: 11px;
+            color: #666;
+            max-height: 60px;
+            overflow-y: auto;
+            line-height: 1.3;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+        
+        .modal-content {
+            background: white;
+            margin: 20px auto;
+            padding: 20px;
+            width: 90%;
+            max-width: 400px;
+            max-height: 80vh;
+            overflow-y: auto;
+            border-radius: 15px;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .modal-close {
+            cursor: pointer;
+            font-size: 24px;
+            color: #999;
+        }
+        
+        .test-items {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 8px;
+        }
+        
+        .test-item {
+            display: flex;
+            align-items: center;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+        
+        .test-item input {
+            margin-right: 8px;
+        }
+        
+        .test-item label {
+            cursor: pointer;
+            font-size: 13px;
+        }
+        
+        .modal-footer {
+            margin-top: 15px;
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+        }
+        
+        .empty-state {
+            text-align: center;
+            color: #999;
+            padding: 40px 20px;
+            font-size: 14px;
+        }
+        
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            z-index: 2000;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .toast.show {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="main-card">
+            <div class="header">
+                <h1>🔒 网安测试</h1>
+                <div class="server-status">
+                    <span class="status-dot" id="statusDot"></span>
+                    <span id="statusText">未连接</span>
+                    <button class="btn btn-danger" id="disconnectBtn" style="display: none;" onclick="disconnect()">断开</button>
+                </div>
+            </div>
+            
+            <div class="config-section">
+                <div class="server-config">
+                    <div class="section-title">
+                        <span>🌐</span>
+                        <span>服务器</span>
+                    </div>
+                    <div class="input-group">
+                        <input type="text" id="serverUrl" placeholder="服务器地址" value="http://localhost:8080">
+                        <button class="btn btn-primary" id="connectBtn" onclick="connect()">连接</button>
+                    </div>
+                </div>
+                
+                <div class="target-config">
+                    <div class="section-title">
+                        <span>🎯</span>
+                        <span>测试目标</span>
+                    </div>
+                    <div class="input-group">
+                        <input type="text" id="targetUrl" placeholder="要测试的网站">
+                        <button class="btn btn-success" id="testBtn" onclick="startTest()" disabled>测试</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="test-controls">
+                <button class="test-config-btn" onclick="openModal()" id="configBtn" disabled>⚙️ 配置</button>
+                <button class="copy-btn" onclick="copyResults()" id="copyBtn" disabled>📋 复制结果</button>
+                <span style="color: #666; font-size: 12px; flex: 1; text-align: right;" id="testCount">已选择 32 项</span>
+            </div>
+            
+            <div class="progress-section" id="progressSection">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div class="progress-text" id="progressText">准备中...</div>
+            </div>
+            
+            <div class="page-indicators" id="pageIndicators">
+                <div class="page-dot active" data-page="0"></div>
+                <div class="page-dot" data-page="1"></div>
+                <div class="page-dot" data-page="2"></div>
+            </div>
+            
+            <div class="results-container">
+                <div class="results-swiper" id="resultsSwiper">
+                    <div class="results-page" id="page0">
+                        <div class="results-grid" id="resultsGrid0">
+                            <div class="empty-state">请连接服务器并输入测试目标</div>
+                        </div>
+                    </div>
+                    <div class="results-page" id="page1">
+                        <div class="results-grid" id="resultsGrid1"></div>
+                    </div>
+                    <div class="results-page" id="page2">
+                        <div class="results-grid" id="resultsGrid2"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="toast" id="toast"></div>
+    
+    <div class="modal" id="configModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>测试项目配置</h2>
+                <span class="modal-close" onclick="closeModal()">&times;</span>
+            </div>
+            <div class="test-items" id="testItems"></div>
+            <div class="modal-footer">
+                <button class="btn" onclick="selectAll()">全选</button>
+                <button class="btn" onclick="deselectAll()">全不选</button>
+                <button class="btn btn-primary" onclick="saveConfig()">保存</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const testItems = [
+            { id: 'http_headers', name: 'HTTP安全头检查', icon: '🔍' },
+            { id: 'ssl_tls', name: 'SSL/TLS配置检查', icon: '🔐' },
+            { id: 'port_scan', name: '常用端口扫描', icon: '🌐' },
+            { id: 'dir_scan', name: '敏感目录扫描', icon: '📁' },
+            { id: 'subdomain', name: '子域名枚举', icon: '🔗' },
+            { id: 'whois', name: 'WHOIS信息查询', icon: '📋' },
+            { id: 'dns_records', name: 'DNS记录查询', icon: '🌍' },
+            { id: 'http_methods', name: 'HTTP方法检测', icon: '📡' },
+            { id: 'server_info', name: '服务器信息泄露', icon: '💻' },
+            { id: 'vuln_scan', name: '常见漏洞扫描', icon: '⚠️' },
+            { id: 'robots_txt', name: 'robots.txt检查', icon: '🤖' },
+            { id: 'sitemap', name: 'sitemap.xml检查', icon: '🗺️' },
+            { id: 'response_time', name: '响应时间测试', icon: '⏱️' },
+            { id: 'redirects', name: '重定向链检查', icon: '🔄' },
+            { id: 'cookies', name: 'Cookie安全检查', icon: '🍪' },
+            { id: 'csp', name: 'CSP策略检查', icon: '🛡️' },
+            { id: 'hsts', name: 'HSTS检查', icon: '🔒' },
+            { id: 'x_frame', name: 'X-Frame-Options检查', icon: '🖼️' },
+            { id: 'content_type', name: '内容类型嗅探', icon: '📄' },
+            { id: 'file_upload', name: '文件上传漏洞', icon: '📤' },
+            { id: 'sql_injection', name: 'SQL注入检测', icon: '💉' },
+            { id: 'xss', name: 'XSS漏洞检测', icon: '🎯' },
+            { id: 'csrf', name: 'CSRF令牌检查', icon: '🎭' },
+            { id: 'session_mgmt', name: '会话管理安全', icon: '🔑' },
+            { id: 'auth_mechanism', name: '认证机制分析', icon: '🔐' },
+            { id: 'access_control', name: '权限控制测试', icon: '🚪' },
+            { id: 'info_leak', name: '敏感信息泄露', icon: '🔓' },
+            { id: 'backup_files', name: '备份文件扫描', icon: '💾' },
+            { id: 'config_files', name: '配置文件检查', icon: '⚙️' },
+            { id: 'error_pages', name: '错误页面信息', icon: '❌' },
+            { id: 'api_endpoints', name: 'API端点发现', icon: '🔌' },
+            { id: 'tech_stack', name: 'Web技术栈识别', icon: '🏗️' }
+        ];
+        
+        let serverBaseUrl = '';
+        let isConnected = false;
+        let selectedTests = new Set(testItems.map(item => item.id));
+        let testResults = {};
+        let isTestRunning = false;
+        let currentPage = 0;
+        let touchStartX = 0;
+        let touchEndX = 0;
+        
+        // 分页逻辑
+        const itemsPerPage = 11;
+        const totalPages = 3;
+        
+        function updateStatus(connected) {
+            isConnected = connected;
+            const statusDot = document.getElementById('statusDot');
+            const statusText = document.getElementById('statusText');
+            const connectBtn = document.getElementById('connectBtn');
+            const disconnectBtn = document.getElementById('disconnectBtn');
+            const testBtn = document.getElementById('testBtn');
+            const configBtn = document.getElementById('configBtn');
+            const copyBtn = document.getElementById('copyBtn');
+            
+            if (connected) {
+                statusDot.classList.add('connected');
+                statusText.textContent = '已连接';
+                connectBtn.textContent = '重新连接';
+                disconnectBtn.style.display = 'inline-block';
+                testBtn.disabled = false;
+                configBtn.disabled = false;
+                copyBtn.disabled = false;
+            } else {
+                statusDot.classList.remove('connected');
+                statusText.textContent = '未连接';
+                connectBtn.textContent = '连接';
+                disconnectBtn.style.display = 'none';
+                testBtn.disabled = true;
+                configBtn.disabled = true;
+                copyBtn.disabled = true;
+            }
+        }
+        
+        async function connect() {
+            const url = document.getElementById('serverUrl').value.trim();
+            if (!url) {
+                alert('请输入服务器地址');
+                return;
+            }
+            
+            const connectBtn = document.getElementById('connectBtn');
+            connectBtn.disabled = true;
+            connectBtn.textContent = '连接中...';
+            
+            try {
+                const response = await fetch(`${url}/test`);
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    serverBaseUrl = url;
+                    updateStatus(true);
+                } else {
+                    throw new Error('服务器响应异常');
+                }
+            } catch (error) {
+                updateStatus(false);
+                alert(`连接失败: ${error.message}`);
+            } finally {
+                connectBtn.disabled = false;
+            }
+        }
+        
+        function disconnect() {
+            updateStatus(false);
+            serverBaseUrl = '';
+        }
+        
+        function openModal() {
+            document.getElementById('configModal').style.display = 'block';
+            initializeModal();
+        }
+        
+        function closeModal() {
+            document.getElementById('configModal').style.display = 'none';
+        }
+        
+        function initializeModal() {
+            const container = document.getElementById('testItems');
+            container.innerHTML = testItems.map(item => `
+                <div class="test-item">
+                    <input type="checkbox" id="${item.id}" ${selectedTests.has(item.id) ? 'checked' : ''}>
+                    <label for="${item.id}">${item.icon} ${item.name}</label>
+                </div>
+            `).join('');
+        }
+        
+        function selectAll() {
+            document.querySelectorAll('#testItems input').forEach(cb => cb.checked = true);
+        }
+        
+        function deselectAll() {
+            document.querySelectorAll('#testItems input').forEach(cb => cb.checked = false);
+        }
+        
+        function saveConfig() {
+            selectedTests.clear();
+            document.querySelectorAll('#testItems input:checked').forEach(cb => {
+                selectedTests.add(cb.id);
+            });
+            document.getElementById('testCount').textContent = `已选择 ${selectedTests.size} 项`;
+            closeModal();
+        }
+        
+        function goToPage(page) {
+            if (page < 0 || page >= totalPages) return;
+            
+            currentPage = page;
+            const swiper = document.getElementById('resultsSwiper');
+            swiper.style.transform = `translateX(-${page * 100}%)`;
+            
+            // 更新指示器
+            document.querySelectorAll('.page-dot').forEach((dot, index) => {
+                if (index === page) {
+                    dot.classList.add('active');
+                } else {
+                    dot.classList.remove('active');
+                }
+            });
+        }
+        
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2000);
+        }
+        
+        function copyResults() {
+            if (Object.keys(testResults).length === 0) {
+                showToast('没有可复制的结果');
+                return;
+            }
+            
+            const targetUrl = document.getElementById('targetUrl').value.trim();
+            let reportText = `网站安全测试报告\n`;
+            reportText += `测试目标: ${targetUrl}\n`;
+            reportText += `测试时间: ${new Date().toLocaleString()}\n`;
+            reportText += `=================================\n\n`;
+            
+            // 按测试项顺序整理结果
+            const testsToRun = testItems.filter(item => selectedTests.has(item.id));
+            
+            testsToRun.forEach(item => {
+                const result = testResults[item.id];
+                if (result) {
+                    reportText += `【${item.icon} ${item.name}】\n`;
+                    reportText += `${result.content || result.error || '无结果'}\n\n`;
+                }
+            });
+            
+            // 复制到剪贴板
+            navigator.clipboard.writeText(reportText).then(() => {
+                showToast('测试结果已复制到剪贴板');
+            }).catch(err => {
+                showToast('复制失败，请重试');
+                console.error('复制失败:', err);
+            });
+        }
+        
+        async function startTest() {
+            const url = document.getElementById('targetUrl').value.trim();
+            if (!url) {
+                alert('请输入要测试的网站地址');
+                return;
+            }
+            
+            if (isTestRunning) {
+                alert('测试正在进行中，请等待完成');
+                return;
+            }
+            
+            isTestRunning = true;
+            const testBtn = document.getElementById('testBtn');
+            testBtn.disabled = true;
+            testBtn.textContent = '测试中...';
+            
+            const progressSection = document.getElementById('progressSection');
+            const progressFill = document.getElementById('progressFill');
+            const progressText = document.getElementById('progressText');
+            
+            progressSection.style.display = 'block';
+            testResults = {};
+            
+            // 清空所有页面
+            for (let i = 0; i < totalPages; i++) {
+                document.getElementById(`resultsGrid${i}`).innerHTML = '';
+            }
+            
+            const testsToRun = testItems.filter(item => selectedTests.has(item.id));
+            const totalTests = testsToRun.length;
+            let completedTests = 0;
+            
+            // 初始化结果卡片
+            testsToRun.forEach((item, index) => {
+                const pageIndex = Math.floor(index / itemsPerPage);
+                const grid = document.getElementById(`resultsGrid${pageIndex}`);
+                
+                const card = document.createElement('div');
+                card.className = 'result-card';
+                card.id = `card-${item.id}`;
+                card.innerHTML = `
+                    <div class="result-header">
+                        <span class="result-icon">${item.icon}</span>
+                        <span class="result-title">${item.name}</span>
+                        <span class="result-status">等待中</span>
+                    </div>
+                    <div class="result-content"></div>
+                `;
+                grid.appendChild(card);
+            });
+            
+            // 并行运行测试
+            const promises = testsToRun.map(async (item) => {
+                const card = document.getElementById(`card-${item.id}`);
+                const statusEl = card.querySelector('.result-status');
+                const contentEl = card.querySelector('.result-content');
+                
+                card.className = 'result-card running';
+                statusEl.textContent = '运行中';
+                statusEl.style.background = '#ffc107';
+                statusEl.style.color = '#856404';
+                
+                try {
+                    const response = await fetch(`${serverBaseUrl}/security-test`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ url, test: item.id })
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.status === 'success') {
+                        card.className = 'result-card success';
+                        statusEl.textContent = '完成';
+                        statusEl.style.background = '#28a745';
+                        statusEl.style.color = 'white';
+                        contentEl.textContent = result.result;
+                        testResults[item.id] = { content: result.result };
+                    } else {
+                        card.className = 'result-card error';
+                        statusEl.textContent = '错误';
+                        statusEl.style.background = '#dc3545';
+                        statusEl.style.color = 'white';
+                        contentEl.textContent = result.error;
+                        testResults[item.id] = { error: result.error };
+                    }
+                } catch (error) {
+                    card.className = 'result-card error';
+                    statusEl.textContent = '失败';
+                    statusEl.style.background = '#dc3545';
+                    statusEl.style.color = 'white';
+                    contentEl.textContent = '测试失败: ' + error.message;
+                    testResults[item.id] = { error: '测试失败: ' + error.message };
+                }
+                
+                completedTests++;
+                const progress = (completedTests / totalTests) * 100;
+                progressFill.style.width = `${progress}%`;
+                progressText.textContent = `已完成 ${completedTests}/${totalTests} 项测试`;
+            });
+            
+            await Promise.all(promises);
+            
+            testBtn.disabled = false;
+            testBtn.textContent = '测试';
+            isTestRunning = false;
+            
+            setTimeout(() => {
+                progressSection.style.display = 'none';
+            }, 2000);
+        }
+        
+        // 触摸滑动支持
+        document.addEventListener('DOMContentLoaded', function() {
+            const swiper = document.getElementById('resultsSwiper');
+            
+            swiper.addEventListener('touchstart', function(e) {
+                touchStartX = e.changedTouches[0].screenX;
+            });
+            
+            swiper.addEventListener('touchend', function(e) {
+                touchEndX = e.changedTouches[0].screenX;
+                handleSwipe();
+            });
+            
+            // 页面指示器点击
+            document.querySelectorAll('.page-dot').forEach(dot => {
+                dot.addEventListener('click', function() {
+                    goToPage(parseInt(this.dataset.page));
+                });
+            });
+        });
+        
+        function handleSwipe() {
+            const swipeThreshold = 50;
+            const diff = touchStartX - touchEndX;
+            
+            if (Math.abs(diff) > swipeThreshold) {
+                if (diff > 0 && currentPage < totalPages - 1) {
+                    // 向左滑动，下一页
+                    goToPage(currentPage + 1);
+                } else if (diff < 0 && currentPage > 0) {
+                    // 向右滑动，上一页
+                    goToPage(currentPage - 1);
+                }
+            }
+        }
+        
+        // 页面加载时初始化
+        window.onload = function() {
+            const savedUrl = localStorage.getItem('serverUrl');
+            if (savedUrl) {
+                document.getElementById('serverUrl').value = savedUrl;
+            }
+            document.getElementById('testCount').textContent = `已选择 ${selectedTests.size} 项`;
+        };
+        
+        // 保存服务器地址
+        document.getElementById('serverUrl').addEventListener('input', function(e) {
+            localStorage.setItem('serverUrl', e.target.value);
+        });
+    </script>
+</body>
+</html>

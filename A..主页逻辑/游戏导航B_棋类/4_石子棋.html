@@ -1,0 +1,1056 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>石子棋 - 二顶一</title>
+    
+            <!-- 引入数据库管理器 -->
+    <script src="/db.js"></script>
+    
+    <!-- 引入插件工具箱 🧰-->
+    <script src="/A2_全局中心/B_插件工具/toolbox.js"></script>
+    
+    <style>
+         * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #ffeaa7 0%, #fab1a0 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        .settings-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 45px;
+            height: 45px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            z-index: 100;
+            transition: all 0.3s ease;
+        }
+
+        .settings-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+        }
+
+        .settings-btn svg {
+            width: 24px;
+            height: 24px;
+            fill: #4a5568;
+        }
+
+        .settings-panel {
+            position: fixed;
+            top: 70px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            z-index: 99;
+            min-width: 280px;
+            transform: translateX(400px);
+            opacity: 0;
+            transition: all 0.3s ease;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .settings-panel.show {
+            transform: translateX(0);
+            opacity: 1;
+        }
+
+        .settings-header {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #2d3748;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .setting-item {
+            margin-bottom: 20px;
+        }
+
+        .setting-label {
+            display: block;
+            margin-bottom: 8px;
+            color: #4a5568;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .setting-input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .setting-input:focus {
+            outline: none;
+            border-color: #fab1a0;
+            box-shadow: 0 0 0 3px rgba(250, 177, 160, 0.1);
+        }
+
+        .setting-hint {
+            font-size: 12px;
+            color: #718096;
+            margin-top: 5px;
+        }
+
+        .setting-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn-small {
+            flex: 1;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-save {
+            background: linear-gradient(135deg, #fab1a0 0%, #ff7675 100%);
+            color: white;
+        }
+
+        .btn-save:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .btn-reset {
+            background: #e2e8f0;
+            color: #4a5568;
+        }
+
+        .btn-reset:hover {
+            background: #cbd5e0;
+        }
+
+        .game-container {
+            width: 100%;
+            max-width: 500px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+            margin-top: 20px;
+        }
+
+        .game-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .game-title {
+            font-size: 28px;
+            font-weight: bold;
+            background: linear-gradient(135deg, #ff7675, #fab1a0);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+
+        .game-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: linear-gradient(135deg, #fff5f5 0%, #ffe0e0 100%);
+            border-radius: 10px;
+        }
+
+        .player-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .player-name {
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        .player-stones {
+            display: flex;
+            gap: 5px;
+        }
+
+        .stone-indicator {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 2px solid #333;
+        }
+
+        .player-stone {
+            background: #3498db;
+        }
+
+        .ai-stone {
+            background: #e74c3c;
+        }
+
+        .current-turn {
+            padding: 5px 15px;
+            background: #48bb78;
+            color: white;
+            border-radius: 20px;
+            font-size: 14px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: repeat(4, 1fr);
+            gap: 8px;
+            width: 100%;
+            aspect-ratio: 1;
+            max-width: 400px;
+            margin: 0 auto 20px;
+            padding: 15px;
+            background: linear-gradient(135deg, #fff9e6 0%, #ffe4cc 100%);
+            border-radius: 15px;
+            box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .cell {
+            background: white;
+            border: 2px solid #cbd5e0;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .cell:hover {
+            background: #f7fafc;
+            transform: scale(1.05);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .cell.selected {
+            background: #fef5e7;
+            border-color: #f39c12;
+            box-shadow: 0 0 15px rgba(243, 156, 18, 0.5);
+            animation: selected-pulse 1s infinite;
+        }
+
+        @keyframes selected-pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.08); }
+        }
+
+        .cell.possible-move {
+            background: #e8f5e9;
+            border-color: #4caf50;
+            animation: blink 0.8s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        .stone {
+            width: 70%;
+            height: 70%;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 12px;
+            color: white;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+        }
+
+        .stone.player {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            border: 2px solid #1e5f8e;
+        }
+
+        .stone.ai {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            border: 2px solid #922b21;
+        }
+
+        .stone-text {
+            position: relative;
+            z-index: 1;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #fab1a0 0%, #ff7675 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #74b9ff 0%, #a29bfe 100%);
+            color: white;
+        }
+
+        .message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            z-index: 1000;
+            display: none;
+            max-width: 90%;
+            width: 400px;
+        }
+
+        .message.show {
+            display: block;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translate(-50%, -60%);
+            }
+            to {
+                opacity: 1;
+                transform: translate(-50%, -50%);
+            }
+        }
+
+        .message h2 {
+            margin-bottom: 15px;
+            font-size: 24px;
+            color: #2d3748;
+        }
+
+        .message p {
+            margin-bottom: 20px;
+            color: #4a5568;
+            line-height: 1.6;
+            text-align: left;
+        }
+
+        .message-content {
+            background: #f7fafc;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .message-content h3 {
+            color: #2d3748;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .message-content ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .message-content li {
+            padding: 5px 0;
+            color: #4a5568;
+            display: flex;
+            align-items: flex-start;
+        }
+
+        .message-content li::before {
+            content: "•";
+            color: #fab1a0;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        @media (max-width: 480px) {
+            .game-container {
+                padding: 15px;
+            }
+
+            .game-title {
+                font-size: 24px;
+            }
+
+            .board {
+                gap: 6px;
+                padding: 10px;
+            }
+
+            .btn {
+                padding: 10px 20px;
+                font-size: 14px;
+            }
+
+            .settings-panel {
+                right: 10px;
+                left: 10px;
+                min-width: auto;
+            }
+
+            .message {
+                width: 95%;
+                padding: 20px;
+            }
+        }
+
+    </style>
+</head>
+<body>
+    <div class="settings-btn" onclick="toggleSettings()">
+        <svg viewBox="0 0 24 24">
+            <path d="M12 15.5A3.5 3.5 0 0 1 8.5 12A3.5 3.5 0 0 1 12 8.5a3.5 3.5 0 0 1 3.5 3.5a3.5 3.5 0 0 1-3.5 3.5m7.43-2.53c.04-.32.07-.64.07-.97c0-.33-.03-.66-.07-1l2.11-1.63c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.39-1.06-.73-1.69-.98l-.37-2.65A.506.506 0 0 0 14 2h-4c-.25 0-.46.18-.5.42l-.37 2.65c-.63.25-1.17.59-1.69.98l-2.49-1c-.22-.08-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64L4.57 11c-.04.34-.07.67-.07 1c0 .33.03.65.07.97l-2.11 1.66c-.19.15-.25.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1.01c.52.4 1.06.74 1.69.99l.37 2.65c.04.24.25.42.5.42h4c.25 0 .46-.18.5-.42l.37-2.65c.63-.26 1.17-.59 1.69-.99l2.49 1.01c.22.08.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.66Z"/>
+        </svg>
+    </div>
+
+    <div class="settings-panel" id="settingsPanel">
+        <div class="settings-header">游戏设置</div>
+        
+        <div class="setting-item">
+            <label class="setting-label">您的棋子名称</label>
+            <input type="text" class="setting-input" id="playerStoneName" maxlength="3" placeholder="输入1-3个字符">
+            <div class="setting-hint">支持中文、英文，最多3个字符</div>
+        </div>
+
+        <div class="setting-item">
+            <label class="setting-label">凤九歌的棋子名称</label>
+            <input type="text" class="setting-input" id="aiStoneName" maxlength="3" placeholder="输入1-3个字符">
+            <div class="setting-hint">支持中文、英文，最多3个字符</div>
+        </div>
+
+        <div class="setting-actions">
+            <button class="btn-small btn-save" onclick="saveSettings()">保存设置</button>
+            <button class="btn-small btn-reset" onclick="resetSettings()">恢复默认</button>
+        </div>
+    </div>
+
+    <div class="game-container">
+        <div class="game-header">
+            <h1 class="game-title">石子棋 · 二顶一</h1>
+        </div>
+
+        <div class="game-info">
+            <div class="player-info">
+                <span class="player-name" id="playerDisplayName">玩家</span>
+                <div class="player-stones" id="playerStones"></div>
+            </div>
+            <div class="current-turn" id="currentTurn">您的回合</div>
+            <div class="player-info">
+                <span class="player-name">凤九歌</span>
+                <div class="player-stones" id="aiStones"></div>
+            </div>
+        </div>
+
+        <div class="board" id="board"></div>
+
+        <div class="controls">
+            <button class="btn btn-primary" onclick="game.restart()">重新开始</button>
+            <button class="btn btn-secondary" onclick="game.showRules()">游戏规则</button>
+        </div>
+    </div>
+
+    <div class="message" id="message">
+        <h2 id="messageTitle"></h2>
+        <div id="messageContent"></div>
+        <button class="btn btn-primary" onclick="game.hideMessage()">确定</button>
+    </div>
+
+    <script>
+        // 设置管理
+        const Settings = {
+            load() {
+                const saved = localStorage.getItem('stoneGameSettings');
+                if (saved) {
+                    return JSON.parse(saved);
+                }
+                return {
+                    playerStoneName: '',
+                    aiStoneName: '九歌'
+                };
+            },
+
+            save(settings) {
+                localStorage.setItem('stoneGameSettings', JSON.stringify(settings));
+            },
+
+            reset() {
+                localStorage.removeItem('stoneGameSettings');
+                return {
+                    playerStoneName: '',
+                    aiStoneName: '九歌'
+                };
+            }
+        };
+
+        let currentSettings = Settings.load();
+
+        function toggleSettings() {
+            const panel = document.getElementById('settingsPanel');
+            panel.classList.toggle('show');
+            
+            if (panel.classList.contains('show')) {
+                document.getElementById('playerStoneName').value = currentSettings.playerStoneName;
+                document.getElementById('aiStoneName').value = currentSettings.aiStoneName;
+            }
+        }
+
+        function saveSettings() {
+            const playerName = document.getElementById('playerStoneName').value.trim();
+            const aiName = document.getElementById('aiStoneName').value.trim();
+            
+            currentSettings = {
+                playerStoneName: playerName,
+                aiStoneName: aiName || '九歌'
+            };
+            
+            Settings.save(currentSettings);
+            
+            // 更新显示名称
+            document.getElementById('playerDisplayName').textContent = playerName || '玩家';
+            
+            // 重新渲染棋盘以显示新名称
+            game.renderBoard();
+            
+            toggleSettings();
+            game.showMessage('设置已保存', '您的设置已成功保存！');
+        }
+
+        function resetSettings() {
+            currentSettings = Settings.reset();
+            document.getElementById('playerStoneName').value = '';
+            document.getElementById('aiStoneName').value = '九歌';
+            document.getElementById('playerDisplayName').textContent = '玩家';
+            game.renderBoard();
+            toggleSettings();
+            game.showMessage('已恢复默认', '设置已恢复为默认值！');
+        }
+
+        // 点击其他地方关闭设置面板
+        document.addEventListener('click', function(e) {
+            const settingsBtn = document.querySelector('.settings-btn');
+            const settingsPanel = document.getElementById('settingsPanel');
+            
+            if (!settingsBtn.contains(e.target) && !settingsPanel.contains(e.target)) {
+                settingsPanel.classList.remove('show');
+            }
+        });
+
+        class StoneGame {
+            constructor() {
+                this.board = [];
+                this.currentPlayer = 'player';
+                this.selectedCell = null;
+                this.playerStones = 4;
+                this.aiStones = 4;
+                this.gameOver = false;
+                this.init();
+            }
+
+            init() {
+                // 初始化4x4棋盘
+                this.board = Array(4).fill(null).map(() => Array(4).fill(null));
+                
+                // 放置玩家棋子（底部两行）
+                this.board[3][0] = 'player';
+                this.board[3][1] = 'player';
+                this.board[3][2] = 'player';
+                this.board[3][3] = 'player';
+                
+                // 放置AI棋子（顶部两行）
+                this.board[0][0] = 'ai';
+                this.board[0][1] = 'ai';
+                this.board[0][2] = 'ai';
+                this.board[0][3] = 'ai';
+                
+                // 更新玩家显示名称
+                document.getElementById('playerDisplayName').textContent = 
+                    currentSettings.playerStoneName || '玩家';
+                
+                this.renderBoard();
+                this.updateStonesDisplay();
+                this.updateTurnDisplay();
+            }
+
+            renderBoard() {
+                const boardElement = document.getElementById('board');
+                boardElement.innerHTML = '';
+                
+                for (let row = 0; row < 4; row++) {
+                    for (let col = 0; col < 4; col++) {
+                        const cell = document.createElement('div');
+                        cell.className = 'cell';
+                        cell.dataset.row = row;
+                        cell.dataset.col = col;
+                        
+                        if (this.board[row][col]) {
+                            const stone = document.createElement('div');
+                            stone.className = `stone ${this.board[row][col]}`;
+                            
+                            // 添加文字
+                            const text = document.createElement('span');
+                            text.className = 'stone-text';
+                            if (this.board[row][col] === 'player') {
+                                text.textContent = currentSettings.playerStoneName || '';
+                            } else {
+                                text.textContent = currentSettings.aiStoneName || '九歌';
+                            }
+                            stone.appendChild(text);
+                            
+                            cell.appendChild(stone);
+                        }
+                        
+                        cell.addEventListener('click', () => this.handleCellClick(row, col));
+                        boardElement.appendChild(cell);
+                    }
+                }
+            }
+
+            handleCellClick(row, col) {
+                if (this.gameOver || this.currentPlayer !== 'player') return;
+                
+                const cell = this.getCellElement(row, col);
+                
+                if (this.selectedCell) {
+                    // 尝试移动
+                    if (this.isValidMove(this.selectedCell.row, this.selectedCell.col, row, col)) {
+                        this.makeMove(this.selectedCell.row, this.selectedCell.col, row, col);
+                        this.clearSelection();
+                        
+                        // 检查吃子
+                        this.checkCaptures(row, col);
+                        
+                        // 检查游戏结束
+                        if (this.checkGameOver()) return;
+                        
+                        // 切换到AI回合
+                        this.currentPlayer = 'ai';
+                        this.updateTurnDisplay();
+                        setTimeout(() => this.aiMove(), 1000);
+                    } else {
+                        this.clearSelection();
+                        if (this.board[row][col] === 'player') {
+                            this.selectCell(row, col);
+                        }
+                    }
+                } else {
+                    // 选择棋子
+                    if (this.board[row][col] === 'player') {
+                        this.selectCell(row, col);
+                    }
+                }
+            }
+
+            selectCell(row, col) {
+                this.selectedCell = { row, col };
+                const cell = this.getCellElement(row, col);
+                cell.classList.add('selected');
+                this.showPossibleMoves(row, col);
+            }
+
+            clearSelection() {
+                if (this.selectedCell) {
+                    const cell = this.getCellElement(this.selectedCell.row, this.selectedCell.col);
+                    cell.classList.remove('selected');
+                    this.selectedCell = null;
+                }
+                this.clearPossibleMoves();
+            }
+
+            showPossibleMoves(row, col) {
+                const moves = [
+                    { r: row - 1, c: col }, // 上
+                    { r: row + 1, c: col }, // 下
+                    { r: row, c: col - 1 }, // 左
+                    { r: row, c: col + 1 }  // 右
+                ];
+                
+                moves.forEach(move => {
+                    if (this.isValidMove(row, col, move.r, move.c)) {
+                        const cell = this.getCellElement(move.r, move.c);
+                        if (cell) cell.classList.add('possible-move');
+                    }
+                });
+            }
+
+            clearPossibleMoves() {
+                document.querySelectorAll('.possible-move').forEach(cell => {
+                    cell.classList.remove('possible-move');
+                });
+            }
+
+            isValidMove(fromRow, fromCol, toRow, toCol) {
+                // 检查边界
+                if (toRow < 0 || toRow >= 4 || toCol < 0 || toCol >= 4) return false;
+                
+                // 检查目标位置是否为空
+                if (this.board[toRow][toCol] !== null) return false;
+                
+                // 检查是否是相邻格子（不能斜走）
+                const rowDiff = Math.abs(toRow - fromRow);
+                const colDiff = Math.abs(toCol - fromCol);
+                
+                return (rowDiff === 1 && colDiff === 0) || (rowDiff === 0 && colDiff === 1);
+            }
+
+            makeMove(fromRow, fromCol, toRow, toCol) {
+                this.board[toRow][toCol] = this.board[fromRow][fromCol];
+                this.board[fromRow][fromCol] = null;
+                this.renderBoard();
+            }
+
+            checkCaptures(row, col) {
+                const current = this.board[row][col];
+                const opponent = current === 'player' ? 'ai' : 'player';
+                const captured = [];
+                
+                // 检查四个方向的夹击
+                const directions = [
+                    { dr: -1, dc: 0 }, // 上
+                    { dr: 1, dc: 0 },  // 下
+                    { dr: 0, dc: -1 }, // 左
+                    { dr: 0, dc: 1 }   // 右
+                ];
+                
+                directions.forEach(dir => {
+                    const midRow = row + dir.dr;
+                    const midCol = col + dir.dc;
+                    const endRow = row + dir.dr * 2;
+                    const endCol = col + dir.dc * 2;
+                    
+                    // 检查是否形成夹击
+                    if (endRow >= 0 && endRow < 4 && endCol >= 0 && endCol < 4) {
+                        if (this.board[midRow] && this.board[midRow][midCol] === opponent &&
+                            this.board[endRow] && this.board[endRow][endCol] === current) {
+                            captured.push({ row: midRow, col: midCol });
+                        }
+                    }
+                });
+                
+                // 移除被夹击的棋子
+                captured.forEach(pos => {
+                    this.board[pos.row][pos.col] = null;
+                    if (opponent === 'ai') {
+                        this.aiStones--;
+                    } else {
+                        this.playerStones--;
+                    }
+                });
+                
+                if (captured.length > 0) {
+                    this.renderBoard();
+                    this.updateStonesDisplay();
+                }
+            }
+
+            aiMove() {
+                if (this.gameOver) return;
+                
+                const aiPieces = [];
+                for (let row = 0; row < 4; row++) {
+                    for (let col = 0; col < 4; col++) {
+                        if (this.board[row][col] === 'ai') {
+                            const moves = this.getValidMoves(row, col);
+                            if (moves.length > 0) {
+                                aiPieces.push({ row, col, moves });
+                            }
+                        }
+                    }
+                }
+                
+                if (aiPieces.length === 0) {
+                    this.endGame('player');
+                    return;
+                }
+                
+                // 简单AI策略：优先吃子，否则随机移动
+                let bestMove = null;
+                let canCapture = false;
+                
+                for (const piece of aiPieces) {
+                    for (const move of piece.moves) {
+                        // 模拟移动
+                        this.board[move.row][move.col] = 'ai';
+                        this.board[piece.row][piece.col] = null;
+                        
+                        // 检查是否能吃子
+                        const wouldCapture = this.wouldCapture(move.row, move.col, 'ai');
+                        
+                        // 恢复棋盘
+                        this.board[piece.row][piece.col] = 'ai';
+                        this.board[move.row][move.col] = null;
+                        
+                        if (wouldCapture) {
+                            bestMove = { from: piece, to: move };
+                            canCapture = true;
+                            break;
+                        }
+                    }
+                    if (canCapture) break;
+                }
+                
+                // 如果不能吃子，随机选择
+                if (!bestMove) {
+                    const randomPiece = aiPieces[Math.floor(Math.random() * aiPieces.length)];
+                    const randomMove = randomPiece.moves[Math.floor(Math.random() * randomPiece.moves.length)];
+                    bestMove = { from: randomPiece, to: randomMove };
+                }
+                
+                // 执行移动
+                this.makeMove(bestMove.from.row, bestMove.from.col, bestMove.to.row, bestMove.to.col);
+                
+                // 检查吃子
+                this.checkCaptures(bestMove.to.row, bestMove.to.col);
+                
+                // 检查游戏结束
+                if (this.checkGameOver()) return;
+                
+                // 切换到玩家回合
+                this.currentPlayer = 'player';
+                this.updateTurnDisplay();
+            }
+
+            getValidMoves(row, col) {
+                const moves = [];
+                const directions = [
+                    { r: row - 1, c: col },
+                    { r: row + 1, c: col },
+                    { r: row, c: col - 1 },
+                    { r: row, c: col + 1 }
+                ];
+                
+                directions.forEach(pos => {
+                    if (this.isValidMove(row, col, pos.r, pos.c)) {
+                        moves.push({ row: pos.r, col: pos.c });
+                    }
+                });
+                
+                return moves;
+            }
+
+            wouldCapture(row, col, player) {
+                const opponent = player === 'player' ? 'ai' : 'player';
+                const directions = [
+                    { dr: -1, dc: 0 },
+                    { dr: 1, dc: 0 },
+                    { dr: 0, dc: -1 },
+                    { dr: 0, dc: 1 }
+                ];
+                
+                for (const dir of directions) {
+                    const midRow = row + dir.dr;
+                    const midCol = col + dir.dc;
+                    const endRow = row + dir.dr * 2;
+                    const endCol = col + dir.dc * 2;
+                    
+                    if (endRow >= 0 && endRow < 4 && endCol >= 0 && endCol < 4) {
+                        if (this.board[midRow] && this.board[midRow][midCol] === opponent &&
+                            this.board[endRow] && this.board[endRow][endCol] === player) {
+                            return true;
+                        }
+                    }
+                }
+                
+                return false;
+            }
+
+            checkGameOver() {
+                if (this.playerStones <= 1) {
+                    this.endGame('ai');
+                    return true;
+                }
+                
+                if (this.aiStones <= 1) {
+                    this.endGame('player');
+                    return true;
+                }
+                
+                // 检查是否有可移动的棋子
+                const current = this.currentPlayer;
+                let canMove = false;
+                
+                for (let row = 0; row < 4; row++) {
+                    for (let col = 0; col < 4; col++) {
+                        if (this.board[row][col] === current) {
+                            if (this.getValidMoves(row, col).length > 0) {
+                                canMove = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (canMove) break;
+                }
+                
+                if (!canMove) {
+                    this.endGame(current === 'player' ? 'ai' : 'player');
+                    return true;
+                }
+                
+                return false;
+            }
+
+            endGame(winner) {
+                this.gameOver = true;
+                const title = winner === 'player' ? '恭喜获胜！' : '凤九歌获胜';
+                const text = winner === 'player' ? '您成功击败了凤九歌！' : '凤九歌技高一筹，再接再厉！';
+                this.showMessage(title, text);
+            }
+
+            updateStonesDisplay() {
+                const playerStonesElement = document.getElementById('playerStones');
+                const aiStonesElement = document.getElementById('aiStones');
+                
+                playerStonesElement.innerHTML = '';
+                aiStonesElement.innerHTML = '';
+                
+                for (let i = 0; i < this.playerStones; i++) {
+                    const indicator = document.createElement('div');
+                    indicator.className = 'stone-indicator player-stone';
+                    playerStonesElement.appendChild(indicator);
+                }
+                
+                for (let i = 0; i < this.aiStones; i++) {
+                    const indicator = document.createElement('div');
+                    indicator.className = 'stone-indicator ai-stone';
+                    aiStonesElement.appendChild(indicator);
+                }
+            }
+
+            updateTurnDisplay() {
+                const turnElement = document.getElementById('currentTurn');
+                turnElement.textContent = this.currentPlayer === 'player' ? '您的回合' : '凤九歌思考中...';
+            }
+
+            getCellElement(row, col) {
+                return document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
+            }
+
+            showMessage(title, text) {
+                const messageElement = document.getElementById('message');
+                document.getElementById('messageTitle').textContent = title;
+                
+                if (title === '游戏规则') {
+                    document.getElementById('messageContent').innerHTML = `
+                        <div class="message-content">
+                            <h3>🎯 游戏目标</h3>
+                            <ul>
+                                <li>通过策略移动，吃掉对方棋子</li>
+                                <li>当对方只剩1枚棋子或无法移动时获胜</li>
+                            </ul>
+                            
+                            <h3>🎮 基本规则</h3>
+                            <ul>
+                                <li>双方各执4枚棋子，分别置于棋盘两端</li>
+                                <li>棋子可横向或纵向移动一格（不可斜走）</li>
+                                <li>当对方棋子被己方两枚棋子夹在中间时，该棋子被吃掉</li>
+                            </ul>
+                            
+                            <h3>📱 操作说明</h3>
+                            <ul>
+                                <li>点击己方棋子选中（会显示黄色高亮）</li>
+                                <li>点击绿色高亮格子进行移动</li>
+                                <li>右上角设置可自定义棋子名称</li>
+                            </ul>
+                        </div>
+                    `;
+                } else {
+                    document.getElementById('messageContent').innerHTML = `<p>${text}</p>`;
+                }
+                
+                messageElement.classList.add('show');
+            }
+
+            hideMessage() {
+                document.getElementById('message').classList.remove('show');
+            }
+
+            showRules() {
+                this.showMessage('游戏规则', '');
+            }
+
+            restart() {
+                this.gameOver = false;
+                this.currentPlayer = 'player';
+                this.selectedCell = null;
+                this.playerStones = 4;
+                this.aiStones = 4;
+                this.init();
+            }
+        }
+
+        // 初始化游戏
+        const game = new StoneGame();
+    </script>
+</body>
+</html>

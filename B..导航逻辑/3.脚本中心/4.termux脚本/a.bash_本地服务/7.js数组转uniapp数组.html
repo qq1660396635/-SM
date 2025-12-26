@@ -1,0 +1,381 @@
+<!DOCTYPE html> 
+<html lang="zh-CN"> 
+<head>
+<meta charset="utf-8"> 
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JS数据转换工具</title>
+<!-- prism.js 语法高亮-->
+<script src="/A2_全局中心/B_插件缓存-CDN/1.prism代码高亮/1.prism-css-白色主题.js"></script>
+<script src="/A2_全局中心/B_插件缓存-CDN/1.prism代码高亮/prism-core.min.js"></script>
+<script src="/A2_全局中心/B_插件缓存-CDN/1.prism代码高亮/prism-bash.min.js"></script>
+<!-- 引入缩放插件--> 
+<script src="/A2_全局中心/B_插件工具/3.插件_字体缩放.js"></script>
+<style>
+/* 1. 基础样式重置*/
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+/* 2. 页面主体样式 - 红色渐变背景*/
+body {
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  /* 红色渐变背景 + 网格纹理*/
+  background:
+    repeating-linear-gradient(
+      0deg, 
+      rgba(255, 255, 255, 0.03), 
+      rgba(255, 255, 255, 0.03) 1px, 
+      transparent 1px, 
+      transparent 20px
+    ),
+    repeating-linear-gradient(
+      90deg, 
+      rgba(255, 255, 255, 0.03),
+      rgba(255, 255, 255, 0.03) 1px, 
+      transparent 1px, 
+      transparent 20px
+    ),
+    linear-gradient(135deg, 
+      #ff6b6b 0%, 
+      #ee5a5a 20%, 
+      #ff8e8e 40%,
+      #ff5252 60%,
+      #f06292 80%,
+      #e91e63 100%
+    );
+  color: #2c3e50;
+  line-height: 1.6;
+  padding: 20px;
+  min-height: 100vh;
+}
+/* 3. 主容器*/
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  animation: fadeIn 0.5s ease-in;
+}
+/* 4. 页面标题*/
+h3 {
+  color: #e91e63;
+  margin-bottom: 12px;
+  font-size: 20px;
+  line-height: 1.2;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-shadow: 0 1px 2px rgba(233, 30, 99, 0.3);
+  animation: slideDown 0.6s ease-out;
+}
+/* 5. 代码块容器*/
+.code-container {
+  background: #ffffff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e1e8ed;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+/* 6. 代码块悬停效果*/
+.code-container:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(233, 30, 99, 0.2);
+}
+/* 7. 代码头部*/
+.code-header {
+  background: linear-gradient(90deg, #e91e63 0%, #f06292 100%);
+  padding: 15px 20px;
+  border-bottom: 1px solid #dee2e6;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+/* 8. 代码标题*/
+.code-title {
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+/* 9. 复制按钮*/
+.copy-btn {
+  background: linear-gradient(135deg, #e91e63 0%, #f06292 100%);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 2px 4px rgba(233, 30, 99, 0.3);
+}
+/* 10. 复制按钮悬停效果*/
+.copy-btn:hover {
+  background: linear-gradient(135deg, #f06292 0%, #e91e63 100%);
+  transform: scale(1.05);
+  box-shadow: 0 4px 8px rgba(233, 30, 99, 0.4);
+}
+/* 11. 复制按钮已复制状态*/
+.copy-btn.copied {
+  background: linear-gradient(135deg, #4caf50 0%, #8bc34a 100%);
+}
+/* 12. 代码内容区*/
+pre {
+  background: #fff5f5;
+  padding: 20px;
+  overflow-x: auto;
+  font-size: 13px;
+  line-height: 1.5;
+  border-radius: 0 0 12px 12px;
+  margin: 0;
+}
+/* 13. 代码标签*/
+code {
+  color: #495057;
+  font-family: inherit;
+  white-space: pre;
+}
+/* 14. 底部信息区*/
+.info-section {
+  margin-top: 30px;
+  padding: 15px;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+  border: 1px solid #e1e8ed;
+  box-shadow: 0 4px 12px rgba(233, 30, 99, 0.08);
+}
+/* 15. 信息区标题*/
+.info-section h2 {
+  color: #e91e63;
+  margin-bottom: 8px;
+  font-size: 18px;
+}
+/* 16. 信息网格布局*/
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
+  margin-top: 10px;
+}
+/* 17. 信息项*/
+.info-item {
+  background: rgba(255, 245, 245, 0.9);
+  padding: 10px;
+  border-radius: 8px;
+  border-left: 3px solid #e91e63;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+/* 18. 信息项悬停效果*/
+.info-item:hover {
+  transform: translateX(5px);
+  box-shadow: 0 4px 8px rgba(233, 30, 99, 0.15);
+}
+/* 19. 信息标签*/
+.info-label {
+  color: #6c757d;
+  font-size: 11px;
+  margin-bottom: 3px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+/* 20. 信息内容*/
+.info-content {
+  color: #2c3e50;
+  font-size: 12px;
+}
+/* 21. Toast 提示*/
+.toast {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: #e91e63;
+  color: white;
+  padding: 12px 20px;
+  border-radius: 6px;
+  font-size: 14px;
+  z-index: 1000;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+/* 22. Toast 显示状态*/
+.toast.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+/* 23. 响应式设计*/
+@media (max-width: 768px) {
+  body {
+    padding: 10px;
+  }
+  pre {
+    padding: 15px;
+    font-size: 12px;
+  }
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+}
+/* 24. 动画定义*/
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+/* 25. 滑入动画*/
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+</style> 
+</head> 
+<body>
+<div class="container">
+<h3>🔄 JS数据转换工具</h3>
+<div class="code-container">
+<div class="code-header">
+<span class="code-title">js_data_converter.sh</span> 
+<button class="copy-btn" id="copyBtn">
+<span>📋</span>
+<span id="copyBtnText">复制</span> 
+</button>
+</div> 
+<pre><code id="codeContent" class="language-bash">#!/data/data/com.termux/files/usr/bin/bash
+# 1. 删除原始文件里"// Bash 内建命令树形数据"注释行
+# 2. 删除const commandsData = 声明行
+# 3. 把剩下的= 换成合法键值冒号:
+# 4. 去掉行尾分号;
+# 5. 给type:folder 且没expanded 的节点补, expanded: true,
+# 6. 去掉原始最后一行的]，重新包成commandsData: [ ... ] 并在] 后加英文逗号,
+
+src='/storage/emulated/0/Download/OnePlus Share/05_APP/uniapp 项目/src/subPkg/3.脚本中心/pages/2.标准库函数/1.bash 内建命令/原始数组.js'
+dst='/storage/emulated/0/Download/OnePlus Share/05_APP/uniapp 项目/src/subPkg/3. 脚本中心/pages/2. 标准库函数/1.bash 内建命令 /commandsData.uniapp.js'
+
+sed -e '/^[[:space:]]*\/\/.*Bash 内建命令树形数据/d' \
+-e '/^[[:space:]]*const[[:space:]]\+commandsData[[:space:]]*=/d' \
+-e 's/=/:/g' \
+-e 's/;$//' \
+-e '/type.*folder/{/expanded/!s/,$/, expanded: true,/ }' \
+-e '${s/]$//;}' "$src" \
+| { echo 'commandsData: ['; cat; echo '],'; } > "$dst"
+echo "已生成uni-app 格式：$dst"</code></pre>
+</div>
+<div class="info-section">
+<h2>📋脚本功能</h2> 
+<div class="info-grid">
+<div class="info-item">
+<div class="info-label">🎯功能</div> 
+<div class="info-content">将原始JS数组转换为uni-app格式的树形数据</div>
+</div> 
+<div class="info-item">
+<div class="info-label">📁输入</div> 
+<div class="info-content">从指定的原始JS文件读取数据</div>
+</div> 
+<div class="info-item">
+<div class="info-label">📤输出</div> 
+<div class="info-content">生成符合uni-app格式的commandsData文件</div>
+</div> 
+<div class="info-item">
+<div class="info-label">⚡特性</div> 
+<div class="info-content">自动补全文件夹节点的expanded属性</div>
+</div> 
+<div class="info-item">
+<div class="info-label">🛠️依赖</div> 
+<div class="info-content">仅需bash和sed命令，无需额外安装</div>
+</div> 
+<div class="info-item">
+<div class="info-label">📱环境</div> 
+<div class="info-content">适用于Termux和Linux环境</div>
+</div> 
+</div> 
+</div> 
+</div>
+<!-- Toast 提示-->
+<div class="toast" id="toast"></div>
+<script>
+// 1. 复制按钮点击事件处理
+document.getElementById('copyBtn').addEventListener('click', function() {
+  const copyBtn = this;
+  const copyBtnText = document.getElementById('copyBtnText');
+  const toast = document.getElementById('toast');
+  
+  // 获取纯文本内容（去除HTML 标签）
+  const codeElement = document.getElementById('codeContent');
+  const textContent = codeElement.textContent || codeElement.innerText;
+  
+  // 使用现代API 复制
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(textContent).then(function() {
+      handleCopySuccess(copyBtn, copyBtnText, toast);
+    }).catch(function(err) {
+      showCopyError(copyBtn, copyBtnText, toast);
+    });
+  } else {
+    fallbackCopy(textContent, copyBtn, copyBtnText, toast);
+  }
+});
+
+// 2. 处理复制成功
+function handleCopySuccess(copyBtn, copyBtnText, toast) {
+  copyBtn.classList.add('copied');
+  copyBtnText.textContent = '已复制';
+  
+  // 显示toast
+  toast.textContent = '脚本已复制到剪贴板';
+  toast.classList.add('show');
+  
+  // 2 秒后恢复按钮状态
+  setTimeout(function() {
+    copyBtn.classList.remove('copied');
+    copyBtnText.textContent = '复制';
+  }, 2000);
+  
+  // 3 秒后隐藏toast
+  setTimeout(function() {
+    toast.classList.remove('show');
+  }, 3000);
+}
+
+// 3. 备用复制方法
+function fallbackCopy(text, copyBtn, copyBtnText, toast) {
+  const textArea = document.createElement('textarea');
+  textArea.value = text;
+  textArea.style.position = 'fixed';
+  textArea.style.opacity = '0';
+  document.body.appendChild(textArea);
+  textArea.focus();
+  textArea.select();
+  
+  try {
+    const successful = document.execCommand('copy');
+    if (successful) {
+      handleCopySuccess(copyBtn, copyBtnText, toast);
+    } else {
+      showCopyError(copyBtn, copyBtnText, toast);
+    }
+  } catch (err) {
+    showCopyError(copyBtn, copyBtnText, toast);
+  }
+  
+  document.body.removeChild(textArea);
+}
+
+// 4. 显示复制错误
+function showCopyError(copyBtn, copyBtnText, toast) {
+  toast.textContent = '复制失败，请手动选择复制';
+  toast.style.background = '#e74c3c';
+  toast.classList.add('show');
+  
+  setTimeout(function() {
+    toast.classList.remove('show');
+    toast.style.background = '#e91e63';
+  }, 3000);
+}
+</script> 
+</body> 
+</html>

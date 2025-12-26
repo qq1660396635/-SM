@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>灵光飞行游戏</title>
+    
+         <!-- 引入数据库管理器 -->
+    <script src="/db.js"></script>
+    
+        <!-- 引入插件工具箱 🏄-->
+    <script src="/A2_全局中心/B_插件工具/toolbox.js"></script>  
+  
+  
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(to bottom, #1e3c72, #2a5298);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+        
+        .game-container {
+            width: 100%;
+            max-width: 400px;
+            height: 100vh;
+            max-height: 700px;
+            background: #87CEEB;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .game-header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+        }
+        
+        .score {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        .high-score {
+            font-size: 16px;
+            color: #FFD700;
+        }
+        
+        .game-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .bird {
+            position: absolute;
+            width: 40px;
+            height: 30px;
+            background: #FFD700;
+            border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+            transition: transform 0.1s;
+            z-index: 10;
+        }
+        
+        .bird::before {
+            content: '';
+            position: absolute;
+            width: 15px;
+            height: 10px;
+            background: #FFA500;
+            border-radius: 50%;
+            top: 5px;
+            left: 5px;
+        }
+        
+        .bird::after {
+            content: '';
+            position: absolute;
+            width: 8px;
+            height: 5px;
+            background: black;
+            border-radius: 50%;
+            top: 10px;
+            left: 12px;
+        }
+        
+        .pipe {
+            position: absolute;
+            width: 60px;
+            background: #228B22;
+            border: 2px solid #1e5f1e;
+        }
+        
+        .pipe-top {
+            border-bottom: 5px solid #228B22;
+        }
+        
+        .pipe-bottom {
+            border-top: 5px solid #228B22;
+        }
+        
+        .pipe-gap {
+            position: absolute;
+            background: #87CEEB;
+        }
+        
+        .start-screen, .game-over-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            z-index: 200;
+        }
+        
+        .start-screen h1, .game-over-screen h1 {
+            font-size: 36px;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+        
+        .start-screen p, .game-over-screen p {
+            font-size: 18px;
+            margin-bottom: 30px;
+            text-align: center;
+            max-width: 80%;
+        }
+        
+        .btn {
+            padding: 15px 30px;
+            font-size: 20px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: background 0.3s;
+            margin: 10px;
+        }
+        
+        .btn:hover {
+            background: #45a049;
+        }
+        
+        .btn:active {
+            transform: scale(0.95);
+        }
+        
+        .level-selector {
+            position: absolute;
+            bottom: 20px;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            z-index: 150;
+        }
+        
+        .level-btn {
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid white;
+            border-radius: 50%;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .level-btn.active {
+            background: #4CAF50;
+            transform: scale(1.2);
+        }
+        
+        .level-btn.locked {
+            background: rgba(255, 255, 255, 0.1);
+            cursor: not-allowed;
+        }
+        
+        .mode-selector {
+            position: absolute;
+            top: 60px;
+            right: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 150;
+        }
+        
+        .mode-btn {
+            padding: 8px 15px;
+            font-size: 14px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid white;
+            border-radius: 15px;
+            color: white;
+            cursor: pointer;
+        }
+        
+        .mode-btn.active {
+            background: #FFD700;
+            color: black;
+        }
+        
+        .cloud {
+            position: absolute;
+            background: white;
+            border-radius: 50px;
+            opacity: 0.8;
+        }
+        
+        .ground {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 80px;
+            background: linear-gradient(to bottom, #8B7355, #654321);
+            z-index: 5;
+        }
+        
+        .grass {
+            position: absolute;
+            bottom: 80px;
+            width: 100%;
+            height: 20px;
+            background: #228B22;
+            z-index: 4;
+        }
+        
+        .city {
+            position: absolute;
+            bottom: 100px;
+            width: 100%;
+            height: 100px;
+            z-index: 3;
+        }
+        
+        .building {
+            position: absolute;
+            bottom: 0;
+            background: #4169E1;
+            border: 1px solid #1E3A8A;
+        }
+        
+        .building::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 20px;
+            background: #87CEEB;
+        }
+        
+        .building::after {
+            content: '';
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            right: 10px;
+            bottom: 10px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .window {
+            position: absolute;
+            width: 8px;
+            height: 12px;
+            background: #FFD700;
+            margin: 2px;
+        }
+        
+        .speed-control {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 15px;
+            color: white;
+            z-index: 150;
+            display: none;
+            width: 80%;
+            max-width: 300px;
+        }
+        
+        .speed-control.show {
+            display: block;
+        }
+        
+        .speed-slider {
+            margin: 15px 0;
+        }
+        
+        .speed-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        
+        .speed-value {
+            color: #FFD700;
+            font-weight: bold;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            background: #ddd;
+            border-radius: 3px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            background: #4CAF50;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        
+        .speed-toggle {
+            position: absolute;
+            top: 60px;
+            left: 10px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid white;
+            border-radius: 15px;
+            color: white;
+            padding: 5px 10px;
+            font-size: 14px;
+            cursor: pointer;
+            z-index: 150;
+        }
+        
+        @media (max-width: 400px) {
+            .game-container {
+                height: 100vh;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="game-header">
+            <div class="score"> 分 数 : <span id="current-score">0</span></div>
+            <div class="high-score"> 最 高 分 : <span id="high-score">0</span></div>
+        </div>
+        
+        <button class="speed-toggle" id="speed-toggle">速度设置</button>
+        
+        <div class="mode-selector">
+            <button class="mode-btn active" id="level-mode"> 关卡模式 </button>
+            <button class="mode-btn" id="endless-mode"> 无 尽 模 式 </button>
+        </div>
+        
+        <div class="speed-control" id="speed-control">
+            <div class="speed-slider">
+                <div class="speed-label">
+                    <span>上升速度</span> 
+                    <span class="speed-value" id="jump-value">-8</span> 
+                </div>
+                <input type="range" id="jump-speed" min="-15" max="-3" value="-8" step="0.5">
+            </div>
+            
+            <div class="speed-slider">
+                <div class="speed-label">
+                    <span>下坠速度</span> 
+                    <span class="speed-value" id="gravity-value">0.2</span>
+                </div>
+                <input type="range" id="gravity-speed" min="0.1" max="0.5" value="0.2" step="0.05">
+            </div>
+            
+            <div class="speed-slider">
+                <div class="speed-label">
+                    <span>管道速度</span> 
+                    <span class="speed-value" id="pipe-value">1.5</span> 
+                </div>
+                <input type="range" id="pipe-speed" min="0.5" max="3" value="1.5" step="0.1">
+            </div>
+        </div>
+        
+        <div class="level-selector" id="level-selector">
+            <!-- 动态生成关卡按钮-->
+        </div>
+        
+        <canvas class="game-canvas" id="game-canvas"></canvas>
+        <div class="ground"></div>
+        <div class="grass"></div>
+        <div class="city" id="city"></div>
+        
+        <div class="start-screen" id="start-screen">
+            <h1>灵光飞行</h1>
+            <p>点击屏幕让小鸟飞翔，避开管道！</p>
+            <p style="font-size: 14px; margin-bottom: 20px;">可点击"速度设置" 调整游戏速度</p>
+            <button class="btn" id="start-btn">开始游戏</button>
+        </div>
+        
+        <div class="game-over-screen" id="game-over-screen" style="display: none;">
+            <h1>游戏结束</h1>
+            <p>最终得分: <span id="final-score">0</span></p>
+            <p id="new-record" style="display: none; color: #FFD700;">🎉新纪录！</p>
+            <button class="btn" id="restart-btn">重新开始</button>
+        </div>
+    </div>
+
+    <script>
+        class FlappyGame {
+            constructor() {
+                this.canvas = document.getElementById('game-canvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.gameContainer = document.querySelector('.game-container');
+                
+                // 速度参数- 可调节
+                this.speedSettings = {
+                    jump: -8,
+                    gravity: 0.2,
+                    pipeSpeed: 1.5
+                };
+                
+                // 暂停状态
+                this.isPaused = false;
+                
+                this.bird = {
+                    x: 100,
+                    y: 250,
+                    width: 40,
+                    height: 30,
+                    velocity: 0,
+                    rotation: 0
+                };
+                
+                this.pipes = [];
+                this.score = 0;
+                this.highScore = 0;
+                this.gameState = 'start'; // start, playing, gameover
+                this.currentLevel = 1;
+                this.totalLevels = 12;
+                this.unlockedLevels = 1;
+                this.gameMode = 'level'; // level, endless
+                this.pipeGap = 180;
+                this.pipeInterval = 5000; // 从2500改为5000，管道间隔翻倍
+                this.lastPipeTime = 0;
+                
+                this.init();
+            }
+            
+            init() {
+                this.setupCanvas();
+                this.loadGameData();
+                this.createCity();
+                this.createClouds();
+                this.setupEventListeners();
+                this.renderLevelSelector();
+                this.updateHighScore();
+                this.gameLoop();
+            }
+            
+            setupCanvas() {
+                this.canvas.width = this.gameContainer.clientWidth;
+                this.canvas.height = this.gameContainer.clientHeight;
+            }
+            
+            setupEventListeners() {
+                document.getElementById('start-btn').addEventListener('click', () => this.startGame());
+                document.getElementById('restart-btn').addEventListener('click', () => this.restartGame());
+                
+                document.getElementById('level-mode').addEventListener('click', () => {
+                    this.gameMode = 'level';
+                    document.getElementById('level-mode').classList.add('active');
+                    document.getElementById('endless-mode').classList.remove('active');
+                    this.renderLevelSelector();
+                });
+                
+                document.getElementById('endless-mode').addEventListener('click', () => {
+                    this.gameMode = 'endless';
+                    document.getElementById('endless-mode').classList.add('active');
+                    document.getElementById('level-mode').classList.remove('active');
+                    document.getElementById('level-selector').style.display = 'none';
+                });
+                
+                this.canvas.addEventListener('click', () => this.jump());
+                
+                // 速度控制
+                document.getElementById('speed-toggle').addEventListener('click', () => {
+                    const speedControl = document.getElementById('speed-control');
+                    speedControl.classList.toggle('show');
+                    
+                    // 游戏进行中时才处理暂停
+                    if (this.gameState === 'playing') {
+                        this.isPaused = speedControl.classList.contains('show');
+                    }
+                });
+                
+                // 上升速度滑块
+                document.getElementById('jump-speed').addEventListener('input', (e) => {
+                    this.speedSettings.jump = parseFloat(e.target.value);
+                    document.getElementById('jump-value').textContent = e.target.value;
+                    this.saveSpeedSettings();
+                });
+                
+                // 下坠速度滑块
+                document.getElementById('gravity-speed').addEventListener('input', (e) => {
+                    this.speedSettings.gravity = parseFloat(e.target.value);
+                    document.getElementById('gravity-value').textContent = e.target.value;
+                    this.saveSpeedSettings();
+                });
+                
+                // 管道速度滑块
+                document.getElementById('pipe-speed').addEventListener('input', (e) => {
+                    this.speedSettings.pipeSpeed = parseFloat(e.target.value);
+                    document.getElementById('pipe-value').textContent = e.target.value;
+                    this.saveSpeedSettings();
+                });
+                
+                window.addEventListener('resize', () => this.setupCanvas());
+            }
+            
+            // 保存速度设置
+            saveSpeedSettings() {
+                localStorage.setItem('flappySpeedSettings', JSON.stringify(this.speedSettings));
+            }
+            
+            createCity() {
+                const city = document.getElementById('city');
+                city.innerHTML = '';
+                
+                for (let i = 0; i < 8; i++) {
+                    const building = document.createElement('div');
+                    building.className = 'building';
+                    
+                    const width = 30 + Math.random() * 40;
+                    const height = 50 + Math.random() * 50;
+                    const left = i * 50 + Math.random() * 20;
+                    
+                    building.style.width = width + 'px';
+                    building.style.height = height + 'px';
+                    building.style.left = left + 'px';
+                    
+                    // 添加窗户
+                    for (let j = 0; j < 3; j++) {
+                        for (let k = 0; k < 2; k++) {
+                            const window = document.createElement('div');
+                            window.className = 'window';
+                            window.style.left = (k * 15 + 5) + 'px';
+                            window.style.top = (j * 15 + 10) + 'px';
+                            building.appendChild(window);
+                        }
+                    }
+                    
+                    city.appendChild(building);
+                }
+            }
+            
+            createClouds() {
+                const container = this.gameContainer;
+                
+                for (let i = 0; i < 3; i++) {
+                    const cloud = document.createElement('div');
+                    cloud.className = 'cloud';
+                    
+                    const size = 40 + Math.random() * 40;
+                    cloud.style.width = size + 'px';
+                    cloud.style.height = size / 2 + 'px';
+                    cloud.style.left = Math.random() * (this.canvas.width - size) + 'px';
+                    cloud.style.top = 50 + Math.random() * 150 + 'px';
+                    
+                    container.appendChild(cloud);
+                }
+            }
+            
+            renderLevelSelector() {
+                const selector = document.getElementById('level-selector');
+                selector.innerHTML = '';
+                
+                if (this.gameMode === 'level') {
+                    selector.style.display = 'flex';
+                    
+                    for (let i = 1; i <= this.totalLevels; i++) {
+                        const btn = document.createElement('button');
+                        btn.className = 'level-btn';
+                        
+                        if (i <= this.unlockedLevels) {
+                            btn.textContent = i;
+                            btn.classList.add('active');
+                            btn.addEventListener('click', () => this.selectLevel(i));
+                        } else {
+                            btn.textContent = '?';
+                            btn.classList.add('locked');
+                        }
+                        
+                        selector.appendChild(btn);
+                    }
+                } else {
+                    selector.style.display = 'none';
+                }
+            }
+            
+            selectLevel(level) {
+                this.currentLevel = level;
+                this.startGame();
+            }
+            
+            startGame() {
+                this.gameState = 'playing';
+                this.score = 0;
+                this.pipes = [];
+                this.bird.y = 250;
+                this.bird.velocity = 0;
+                this.bird.rotation = 0;
+                this.isPaused = false;
+                
+                // 关闭速度设置面板
+                document.getElementById('speed-control').classList.remove('show');
+                
+                document.getElementById('start-screen').style.display = 'none';
+                document.getElementById('game-over-screen').style.display = 'none';
+                this.updateScore();
+            }
+            
+            restartGame() {
+                this.startGame();
+            }
+            
+            jump() {
+                if (this.gameState === 'playing' && !this.isPaused) {
+                    this.bird.velocity = this.speedSettings.jump;
+                    this.bird.rotation = -20;
+                }
+            }
+            
+            update() {
+                if (this.gameState !== 'playing' || this.isPaused) return;
+                
+                // 更新小鸟位置
+                this.bird.velocity += this.speedSettings.gravity;
+                this.bird.y += this.bird.velocity;
+                
+                // 旋转小鸟
+                if (this.bird.velocity < 0) {
+                    this.bird.rotation = Math.max(this.bird.rotation - 5, -20);
+                } else {
+                    this.bird.rotation = Math.min(this.bird.rotation + 3, 90);
+                }
+                
+                // 生成管道
+                const now = Date.now();
+                if (now - this.lastPipeTime > this.pipeInterval) {
+                    this.generatePipe();
+                    this.lastPipeTime = now;
+                }
+                
+                // 更新管道
+                this.pipes = this.pipes.filter(pipe => {
+                    pipe.x -= this.speedSettings.pipeSpeed;
+                    
+                    // 检查是否通过管道
+                    if (pipe.x + pipe.width < this.bird.x && !pipe.passed) {
+                        pipe.passed = true;
+                        this.score++;
+                        this.updateScore();
+                    }
+                    
+                    return pipe.x > -pipe.width;
+                });
+                
+                // 碰撞检测
+                this.checkCollisions();
+            }
+            
+            generatePipe() {
+                const minTopHeight = 120;
+                const minBottomHeight = 120;
+                const maxHeight = this.canvas.height - this.pipeGap - minTopHeight - minBottomHeight;
+                const height = minTopHeight + Math.random() * maxHeight;
+                
+                this.pipes.push({
+                    x: this.canvas.width,
+                    y: 0,
+                    width: 60,
+                    height: height,
+                    passed: false,
+                    type: 'top'
+                });
+                
+                this.pipes.push({
+                    x: this.canvas.width,
+                    y: height + this.pipeGap,
+                    width: 60,
+                    height: this.canvas.height - height - this.pipeGap,
+                    passed: false,
+                    type: 'bottom'
+                });
+            }
+            
+            checkCollisions() {
+                if (this.bird.y <= 0 || this.bird.y + this.bird.height >= this.canvas.height - 80) {
+                    this.gameOver();
+                    return;
+                }
+                
+                for (let pipe of this.pipes) {
+                    if (this.bird.x < pipe.x + pipe.width &&
+                        this.bird.x + this.bird.width > pipe.x &&
+                        this.bird.y < pipe.y + pipe.height &&
+                        this.bird.y + this.bird.height > pipe.y) {
+                        this.gameOver();
+                        return;
+                    }
+                }
+            }
+            
+            gameOver() {
+                this.gameState = 'gameover';
+                this.saveGameData();
+                
+                const isNewRecord = this.score > this.highScore;
+                if (isNewRecord) {
+                    this.highScore = this.score;
+                    document.getElementById('new-record').style.display = 'block';
+                } else {
+                    document.getElementById('new-record').style.display = 'none';
+                }
+                
+                document.getElementById('final-score').textContent = this.score;
+                document.getElementById('game-over-screen').style.display = 'flex';
+                
+                if (this.gameMode === 'level' && this.score > 0) {
+                    const newUnlocked = Math.min(Math.floor(this.score / 5) + 1, this.totalLevels);
+                    if (newUnlocked > this.unlockedLevels) {
+                        this.unlockedLevels = newUnlocked;
+                        this.renderLevelSelector();
+                    }
+                }
+            }
+            
+            draw() {
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                // 绘制天空背景
+                const gradient = this.ctx.createLinearGradient(0, 0, 0, this.canvas.height);
+                gradient.addColorStop(0, '#87CEEB');
+                gradient.addColorStop(1, '#98D8E8');
+                this.ctx.fillStyle = gradient;
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                // 绘制管道
+                this.ctx.fillStyle = '#228B22';
+                this.ctx.strokeStyle = '#1e5f1e';
+                this.ctx.lineWidth = 2;
+                
+                for (let pipe of this.pipes) {
+                    this.ctx.fillRect(pipe.x, pipe.y, pipe.width, pipe.height);
+                    this.ctx.strokeRect(pipe.x, pipe.y, pipe.width, pipe.height);
+                }
+                
+                // 绘制小鸟
+                this.ctx.save();
+                this.ctx.translate(this.bird.x + this.bird.width / 2, this.bird.y + this.bird.height / 2);
+                this.ctx.rotate(this.bird.rotation * Math.PI / 180);
+                
+                this.ctx.fillStyle = '#FFD700';
+                this.ctx.beginPath();
+                this.ctx.ellipse(0, 0, this.bird.width / 2, this.bird.height / 2, 0, 0, Math.PI * 2);
+                this.ctx.fill();
+                
+                this.ctx.fillStyle = '#FFA500';
+                this.ctx.beginPath();
+                this.ctx.arc(-8, -5, 7, 0, Math.PI * 2);
+                this.ctx.fill();
+                
+                this.ctx.fillStyle = 'black';
+                this.ctx.beginPath();
+                this.ctx.arc(-8, -5, 3, 0, Math.PI * 2);
+                this.ctx.fill();
+                
+                this.ctx.restore();
+            }
+            
+            gameLoop() {
+                this.update();
+                this.draw();
+                requestAnimationFrame(() => this.gameLoop());
+            }
+            
+            updateScore() {
+                document.getElementById('current-score').textContent = this.score;
+            }
+            
+            updateHighScore() {
+                document.getElementById('high-score').textContent = this.highScore;
+            }
+            
+            saveGameData() {
+                const gameData = {
+                    highScore: this.highScore,
+                    unlockedLevels: this.unlockedLevels
+                };
+                localStorage.setItem('flappyGameData', JSON.stringify(gameData));
+            }
+            
+            loadGameData() {
+                // 加载游戏数据
+                const savedData = localStorage.getItem('flappyGameData');
+                if (savedData) {
+                    const data = JSON.parse(savedData);
+                    this.highScore = data.highScore || 0;
+                    this.unlockedLevels = data.unlockedLevels || 1;
+                }
+                
+                // 加载速度设置
+                const savedSpeed = localStorage.getItem('flappySpeedSettings');
+                if (savedSpeed) {
+                    const speedData = JSON.parse(savedSpeed);
+                    this.speedSettings = {
+                        jump: speedData.jump || -8,
+                        gravity: speedData.gravity || 0.2,
+                        pipeSpeed: speedData.pipeSpeed || 1.5
+                    };
+                    
+                    // 更新UI显示
+                    document.getElementById('jump-speed').value = this.speedSettings.jump;
+                    document.getElementById('jump-value').textContent = this.speedSettings.jump;
+                    document.getElementById('gravity-speed').value = this.speedSettings.gravity;
+                    document.getElementById('gravity-value').textContent = this.speedSettings.gravity;
+                    document.getElementById('pipe-speed').value = this.speedSettings.pipeSpeed;
+                    document.getElementById('pipe-value').textContent = this.speedSettings.pipeSpeed;
+                }
+            }
+        }
+        
+        window.addEventListener('DOMContentLoaded', () => {
+            new FlappyGame();
+        });
+    </script>
+</body>
+</html>

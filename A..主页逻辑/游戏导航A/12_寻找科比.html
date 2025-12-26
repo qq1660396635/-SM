@@ -1,0 +1,1877 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>3D手机游戏 - 建筑与冒险世界</title>
+    
+    <!-- 引入数据库管理器 -->
+    <script src="/db.js"></script>
+    
+    <!-- 引入在线时长插件（只需要这一行！） -->
+    <script src="/A2_全局中心/B_插件工具/2.插件_在线时长.js"></script>
+    
+    
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+            background: #000;
+            touch-action: manipulation;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        
+        #gameCanvas {
+            width: 100vw;
+            height: 100vh;
+            display: block;
+        }
+        
+        /* 菜单按钮 - 完全防误触 */
+        #menuButton {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            width: 55px;
+            height: 55px;
+            background: rgba(0, 0, 0, 0.95);
+            border: 2px solid rgba(255, 255, 255, 0.9);
+            border-radius: 12px;
+            color: white;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            transition: all 0.2s ease;
+        }
+        
+        #menuButton:active {
+            transform: scale(0.95);
+            background: rgba(50, 50, 50, 0.95);
+        }
+        
+        /* 可滚动菜单面板 */
+        #menuPanel {
+            position: absolute;
+            top: 85px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.95);
+            border: 2px solid rgba(255, 255, 255, 0.9);
+            border-radius: 12px;
+            padding: 15px;
+            color: white;
+            display: none;
+            z-index: 999;
+            backdrop-filter: blur(10px);
+            width: 240px;
+            max-height: 65vh;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+        
+        .menu-item {
+            padding: 14px 16px;
+            margin: 8px 0;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            user-select: none;
+            -webkit-user-select: none;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .menu-item:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateX(5px);
+        }
+        
+        .menu-item:active {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(0.98);
+        }
+        
+        /* 建筑物生成菜单 */
+        #buildingMenu {
+            position: absolute;
+            top: 85px;
+            left: 270px;
+            background: rgba(0, 0, 0, 0.95);
+            border: 2px solid rgba(255, 255, 255, 0.9);
+            border-radius: 12px;
+            padding: 15px;
+            color: white;
+            display: none;
+            z-index: 999;
+            backdrop-filter: blur(10px);
+            width: 200px;
+            max-height: 65vh;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+        
+        /* 迷你轮盘控制 */
+        #joystickContainer {
+            position: absolute;
+            bottom: 25px;
+            left: 25px;
+            width: 100px;
+            height: 100px;
+            z-index: 100;
+        }
+        
+        #joystickBase {
+            position: absolute;
+            width: 100px;
+            height: 100px;
+            background: rgba(255, 255, 255, 0.15);
+            border: 3px solid rgba(255, 255, 255, 0.8);
+            border-radius: 50%;
+            backdrop-filter: blur(10px);
+            box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.2);
+        }
+        
+        #joystickStick {
+            position: absolute;
+            width: 38px;
+            height: 38px;
+            background: radial-gradient(circle, rgba(255,255,255,0.9) 0%, rgba(200,200,200,0.8) 100%);
+            border-radius: 50%;
+            top: 31px;
+            left: 31px;
+            cursor: pointer;
+            transition: none;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+        }
+        
+        /* 建筑控制面板 */
+        #buildingControls {
+            position: absolute;
+            bottom: 25px;
+            right: 25px;
+            background: rgba(0, 0, 0, 0.9);
+            border: 2px solid rgba(255, 255, 255, 0.8);
+            border-radius: 12px;
+            padding: 15px;
+            color: white;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+            display: none;
+        }
+        
+        .building-btn {
+            width: 55px;
+            height: 55px;
+            background: rgba(100, 200, 100, 0.8);
+            border: 2px solid rgba(255, 255, 255, 0.8);
+            border-radius: 50%;
+            color: white;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+            transition: all 0.2s ease;
+            margin: 6px;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
+        }
+        
+        .building-btn:active {
+            transform: scale(0.9);
+            background: rgba(120, 220, 120, 0.9);
+        }
+        
+        /* 状态信息面板 */
+        #statusPanel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            color: white;
+            font-size: 12px;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 12px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+            min-width: 140px;
+        }
+        
+        /* 交互提示 */
+        #interactionHint {
+            position: absolute;
+            top: 45%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(135deg, rgba(0, 200, 0, 0.9), rgba(0, 150, 0, 0.9));
+            color: white;
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-size: 14px;
+            display: none;
+            z-index: 150;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 0.9; transform: translate(-50%, -50%) scale(1); }
+            50% { opacity: 1; transform: translate(-50%, -50%) scale(1.05); }
+        }
+        
+        /* 天气系统面板 */
+        #weatherPanel {
+            position: absolute;
+            top: 120px;
+            left: 20px;
+            background: rgba(100, 150, 200, 0.9);
+            border: 2px solid rgba(255, 255, 255, 0.8);
+            border-radius: 10px;
+            padding: 10px;
+            color: white;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+            display: none;
+        }
+        
+        /* 动画效果 */
+        @keyframes slideIn {
+            from { transform: translateX(-100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.8); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        
+        .menu-show {
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        /* 自定义滚动条 */
+        #menuPanel::-webkit-scrollbar,
+        #buildingMenu::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        #menuPanel::-webkit-scrollbar-track,
+        #buildingMenu::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+        }
+        
+        #menuPanel::-webkit-scrollbar-thumb,
+        #buildingMenu::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+    
+    <!-- 菜单按钮 -->
+    <div id="menuButton">☰</div>
+    
+    <!-- 主菜单 -->
+    <div id="menuPanel">
+        <div class="menu-item" id="generateBuilding">🏗️ 建筑系统</div>
+        <div class="menu-item" id="weatherControl">🌤️ 天气控制</div>
+        <div class="menu-item" id="dayNightToggle">🌙 昼夜切换</div>
+        <div class="menu-item" id="soundToggle">🔊 音效: 开</div>
+        <div class="menu-item" id="ambientToggle">🌿 自然音: 开</div>
+        <div class="menu-item" id="buildingMode">🏠 建筑模式</div>
+        <div class="menu-item" id="settings">⚙️ 设置</div>
+        <div class="menu-item" id="about">ℹ️ 关于</div>
+    </div>
+    
+    <!-- 建筑物生成菜单 -->
+    <div id="buildingMenu">
+        <div class="submenu-title">🏗️ 建筑系统</div>
+        <div class="menu-item" id="genHouse">🏠 民居</div>
+        <div class="menu-item" id="genApartment">🏢 公寓楼</div>
+        <div class="menu-item" id="genShop">🏪 商店</div>
+        <div class="menu-item" id="genOffice">🏬 办公楼</div>
+        <div class="menu-item" id="genChurch">⛪ 教堂</div>
+        <div class="menu-item" id="genTower">🗼 塔楼</div>
+        <div class="menu-item" id="genBridge">🌉 桥梁</div>
+        <div class="menu-item" id="genPark">🌳 公园</div>
+        <div class="menu-item" id="genKobeStatue">🏀 科比雕像</div>
+    </div>
+    
+    <!-- 建筑控制面板 -->
+    <div id="buildingControls">
+        <div style="text-align: center; margin-bottom: 10px; font-size: 12px;">建筑模式</div>
+        <div style="display: flex; flex-wrap: wrap; justify-content: center;">
+            <div class="building-btn" id="buildHouse">🏠</div>
+            <div class="building-btn" id="buildRoad">🛣️</div>
+            <div class="building-btn" id="buildWall">🧱</div>
+            <div class="building-btn" id="buildTree">🌳</div>
+        </div>
+    </div>
+    
+    <!-- 天气系统面板 -->
+    <div id="weatherPanel">
+        <div style="font-size: 12px; text-align: center;">天气控制</div>
+        <div style="display: flex; gap: 5px; margin-top: 8px;">
+            <div class="building-btn" id="sunnyWeather" style="font-size: 16px;">☀️</div>
+            <div class="building-btn" id="rainyWeather" style="font-size: 16px;">🌧️</div>
+            <div class="building-btn" id="snowyWeather" style="font-size: 16px;">❄️</div>
+            <div class="building-btn" id="foggyWeather" style="font-size: 16px;">🌫️</div>
+        </div>
+    </div>
+    
+    <!-- 迷你轮盘控制 -->
+    <div id="joystickContainer">
+        <div id="joystickBase"></div>
+        <div id="joystickStick"></div>
+    </div>
+    
+    <!-- 状态信息面板 -->
+    <div id="statusPanel">
+        <div>🏃 拖动屏幕旋转视角</div>
+        <div id="buildingCount">🏠 建筑: 0</div>
+        <div id="weatherStatus">☀️ 晴天</div>
+        <div id="timeStatus">🌅 白天</div>
+        <div id="kobeStatus">🏀 寻找科比...</div>
+    </div>
+    
+    <!-- 交互提示 -->
+    <div id="interactionHint">按 E 交互</div>
+
+    <script src="https://cdn.jsdelivr.net/npm/three@0.150.0/build/three.min.js"></script>
+    <script>
+        // 初始化场景
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x87CEEB);
+        scene.fog = new THREE.Fog(0x87CEEB, 50, 200);
+        
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('gameCanvas'), antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.outputColorSpace = THREE.SRGBColorSpace;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.2;
+        
+        // 动态光照系统
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+        scene.add(ambientLight);
+        
+        const sunLight = new THREE.DirectionalLight(0xffffff, 1.0);
+        sunLight.position.set(20, 30, 10);
+        sunLight.castShadow = true;
+        sunLight.shadow.camera.left = -60;
+        sunLight.shadow.camera.right = 60;
+        sunLight.shadow.camera.top = 60;
+        sunLight.shadow.camera.bottom = -60;
+        sunLight.shadow.mapSize.width = 4096;
+        sunLight.shadow.mapSize.height = 4096;
+        scene.add(sunLight);
+        
+        // 月光（夜晚模式）
+        const moonLight = new THREE.DirectionalLight(0x4169E1, 0.3);
+        moonLight.position.set(-20, 30, -10);
+        moonLight.visible = false;
+        scene.add(moonLight);
+        
+        // 创建地形
+        const groundGeometry = new THREE.PlaneGeometry(150, 150);
+        const groundMaterial = new THREE.MeshLambertMaterial({ 
+            color: 0x90EE90,
+            transparent: true,
+            opacity: 0.8
+        });
+        const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+        ground.rotation.x = -Math.PI / 2;
+        ground.receiveShadow = true;
+        scene.add(ground);
+        
+        // 网格辅助线
+        const gridHelper = new THREE.GridHelper(150, 75, 0x666666, 0x999999);
+        gridHelper.position.y = 0.01;
+        scene.add(gridHelper);
+        
+        // 创建玩家
+        const playerGroup = createImprovedPlayerModel(new THREE.Color(0x4444ff));
+        scene.add(playerGroup);
+        
+        // 建筑物计数
+        let buildingCount = 0;
+        let isDayTime = true;
+        let isBuildingMode = false;
+        let currentWeather = 'sunny';
+        
+        // 音效系统（增强版）
+        class EnhancedSoundManager {
+            constructor() {
+                this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                this.soundEnabled = true;
+                this.ambientEnabled = true;
+                this.weatherSounds = {};
+                this.setupAllSounds();
+            }
+            
+            setupAllSounds() {
+                this.setupBirdSounds();
+                this.setupWindSounds();
+                this.setupWeatherSounds();
+            }
+            
+            setupBirdSounds() {
+                const createBirdCall = () => {
+                    if (!this.ambientEnabled) return;
+                    
+                    const oscillator = this.audioContext.createOscillator();
+                    const gainNode = this.audioContext.createGain();
+                    const filter = this.audioContext.createBiquadFilter();
+                    
+                    oscillator.connect(filter);
+                    filter.connect(gainNode);
+                    gainNode.connect(this.audioContext.destination);
+                    
+                    const freq = 800 + Math.random() * 1200;
+                    oscillator.frequency.setValueAtTime(freq, this.audioContext.currentTime);
+                    oscillator.frequency.exponentialRampToValueAtTime(freq * 1.5, this.audioContext.currentTime + 0.1);
+                    oscillator.frequency.exponentialRampToValueAtTime(freq * 0.8, this.audioContext.currentTime + 0.3);
+                    
+                    filter.type = 'bandpass';
+                    filter.frequency.setValueAtTime(1000, this.audioContext.currentTime);
+                    
+                    gainNode.gain.setValueAtTime(0.05, this.audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.4);
+                    
+                    oscillator.start(this.audioContext.currentTime);
+                    oscillator.stop(this.audioContext.currentTime + 0.4);
+                };
+                
+                const scheduleNextBird = () => {
+                    if (!this.ambientEnabled) return;
+                    const delay = 3000 + Math.random() * 7000;
+                    setTimeout(() => {
+                        createBirdCall();
+                        scheduleNextBird();
+                    }, delay);
+                };
+                
+                scheduleNextBird();
+            }
+            
+            setupWindSounds() {
+                const oscillator = this.audioContext.createOscillator();
+                const gainNode = this.audioContext.createGain();
+                const filter = this.audioContext.createBiquadFilter();
+                
+                oscillator.type = 'sawtooth';
+                oscillator.connect(filter);
+                filter.connect(gainNode);
+                gainNode.connect(this.audioContext.destination);
+                
+                oscillator.frequency.setValueAtTime(50, this.audioContext.currentTime);
+                filter.type = 'lowpass';
+                filter.frequency.setValueAtTime(200, this.audioContext.currentTime);
+                gainNode.gain.setValueAtTime(0.02, this.audioContext.currentTime);
+                
+                oscillator.start();
+                
+                const windVariation = () => {
+                    if (!this.ambientEnabled) {
+                        oscillator.stop();
+                        return;
+                    }
+                    
+                    oscillator.frequency.setValueAtTime(30 + Math.random() * 40, this.audioContext.currentTime);
+                    gainNode.gain.setValueAtTime(0.01 + Math.random() * 0.02, this.audioContext.currentTime);
+                    
+                    setTimeout(windVariation, 2000 + Math.random() * 3000);
+                };
+                
+                windVariation();
+            }
+            
+            setupWeatherSounds() {
+                // 雨声
+                this.createRainSound();
+                // 雷声
+                this.createThunderSound();
+            }
+            
+            createRainSound() {
+                const rainGain = this.audioContext.createGain();
+                rainGain.gain.setValueAtTime(0, this.audioContext.currentTime);
+                rainGain.connect(this.audioContext.destination);
+                
+                for (let i = 0; i < 20; i++) {
+                    const oscillator = this.audioContext.createOscillator();
+                    const gainNode = this.audioContext.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(rainGain);
+                    
+                    oscillator.type = 'sine';
+                    oscillator.frequency.setValueAtTime(200 + Math.random() * 400, this.audioContext.currentTime);
+                    gainNode.gain.setValueAtTime(0.001, this.audioContext.currentTime);
+                    
+                    oscillator.start();
+                }
+                
+                this.weatherSounds.rain = rainGain;
+            }
+            
+            createThunderSound() {
+                const playThunder = () => {
+                    if (!this.ambientEnabled || currentWeather !== 'stormy') return;
+                    
+                    const oscillator = this.audioContext.createOscillator();
+                    const gainNode = this.audioContext.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(this.audioContext.destination);
+                    
+                    oscillator.type = 'sawtooth';
+                    oscillator.frequency.setValueAtTime(50, this.audioContext.currentTime);
+                    gainNode.gain.setValueAtTime(0.1, this.audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 2);
+                    
+                    oscillator.start(this.audioContext.currentTime);
+                    oscillator.stop(this.audioContext.currentTime + 2);
+                    
+                    setTimeout(playThunder, 10000 + Math.random() * 20000);
+                };
+                
+                setTimeout(playThunder, 5000);
+            }
+            
+            playFootstep() {
+                if (!this.soundEnabled) return;
+                
+                const oscillator = this.audioContext.createOscillator();
+                const gainNode = this.audioContext.createGain();
+                const filter = this.audioContext.createBiquadFilter();
+                
+                oscillator.connect(filter);
+                filter.connect(gainNode);
+                gainNode.connect(this.audioContext.destination);
+                
+                oscillator.frequency.setValueAtTime(150, this.audioContext.currentTime);
+                oscillator.frequency.exponentialRampToValueAtTime(80, this.audioContext.currentTime + 0.08);
+                
+                filter.type = 'lowpass';
+                filter.frequency.setValueAtTime(1000, this.audioContext.currentTime);
+                
+                gainNode.gain.setValueAtTime(0.08, this.audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.08);
+                
+                oscillator.start(this.audioContext.currentTime);
+                oscillator.stop(this.audioContext.currentTime + 0.08);
+            }
+            
+            setWeatherSound(weather) {
+                // 停止所有天气音效
+                if (this.weatherSounds.rain) {
+                    this.weatherSounds.rain.gain.setValueAtTime(0, this.audioContext.currentTime);
+                }
+                
+                switch(weather) {
+                    case 'rainy':
+                        if (this.weatherSounds.rain) {
+                            this.weatherSounds.rain.gain.setValueAtTime(0.03, this.audioContext.currentTime);
+                        }
+                        break;
+                    case 'stormy':
+                        if (this.weatherSounds.rain) {
+                            this.weatherSounds.rain.gain.setValueAtTime(0.05, this.audioContext.currentTime);
+                        }
+                        this.createThunderSound();
+                        break;
+                }
+            }
+        }
+        
+        const soundManager = new EnhancedSoundManager();
+        
+        // 程序化建筑生成系统
+        class BuildingGenerator {
+            static createHouse(color = 0xDEB887) {
+                const house = new THREE.Group();
+                
+                // 房屋主体
+                const wallGeometry = new THREE.BoxGeometry(4, 3, 6);
+                const wallMaterial = new THREE.MeshPhongMaterial({ color: color });
+                const walls = new THREE.Mesh(wallGeometry, wallMaterial);
+                walls.position.y = 1.5;
+                walls.castShadow = true;
+                walls.receiveShadow = true;
+                house.add(walls);
+                
+                // 屋顶
+                const roofGeometry = new THREE.ConeGeometry(3.5, 2, 4);
+                const roofMaterial = new THREE.MeshPhongMaterial({ color: 0x8B4513 });
+                const roof = new THREE.Mesh(roofGeometry, roofMaterial);
+                roof.position.y = 4;
+                roof.rotation.y = Math.PI / 4;
+                roof.castShadow = true;
+                house.add(roof);
+                
+                // 门
+                const doorGeometry = new THREE.BoxGeometry(0.8, 1.8, 0.1);
+                const doorMaterial = new THREE.MeshPhongMaterial({ color: 0x654321 });
+                const door = new THREE.Mesh(doorGeometry, doorMaterial);
+                door.position.set(0, 0.9, 3.05);
+                house.add(door);
+                
+                // 窗户
+                const windowGeometry = new THREE.BoxGeometry(0.8, 0.8, 0.05);
+                const windowMaterial = new THREE.MeshPhongMaterial({ color: 0x87CEEB });
+                
+                [-1.5, 1.5].forEach(x => {
+                    const window = new THREE.Mesh(windowGeometry, windowMaterial);
+                    window.position.set(x, 1.5, 3.05);
+                    house.add(window);
+                });
+                
+                // 烟囱
+                const chimneyGeometry = new THREE.BoxGeometry(0.5, 1, 0.5);
+                const chimneyMaterial = new THREE.MeshPhongMaterial({ color: 0x696969 });
+                const chimney = new THREE.Mesh(chimneyGeometry, chimneyMaterial);
+                chimney.position.set(1.5, 4.5, -1);
+                chimney.castShadow = true;
+                house.add(chimney);
+                
+                return house;
+            }
+            
+            static createApartment(floors = 5) {
+                const apartment = new THREE.Group();
+                
+                // 主体建筑
+                const buildingGeometry = new THREE.BoxGeometry(6, floors * 2.5, 4);
+                const buildingMaterial = new THREE.MeshPhongMaterial({ color: 0x708090 });
+                const building = new THREE.Mesh(buildingGeometry, buildingMaterial);
+                building.position.y = floors * 1.25;
+                building.castShadow = true;
+                building.receiveShadow = true;
+                apartment.add(building);
+                
+                // 阳台
+                for (let i = 1; i <= floors; i++) {
+                    const balconyGeometry = new THREE.BoxGeometry(0.3, 0.1, 3);
+                    const balconyMaterial = new THREE.MeshPhongMaterial({ color: 0xA9A9A9 });
+                    const balcony = new THREE.Mesh(balconyGeometry, balconyMaterial);
+                    balcony.position.set(3.15, i * 2.5, 0);
+                    balcony.castShadow = true;
+                    apartment.add(balcony);
+                }
+                
+                // 入口大厅
+                const lobbyGeometry = new THREE.BoxGeometry(2, 3, 2);
+                const lobbyMaterial = new THREE.MeshPhongMaterial({ color: 0x2F4F4F });
+                const lobby = new THREE.Mesh(lobbyGeometry, lobbyMaterial);
+                lobby.position.set(0, 1.5, 2.5);
+                lobby.castShadow = true;
+                apartment.add(lobby);
+                
+                return apartment;
+            }
+            
+            static createShop() {
+                const shop = new THREE.Group();
+                
+                // 商店主体
+                const shopGeometry = new THREE.BoxGeometry(5, 2.5, 4);
+                const shopMaterial = new THREE.MeshPhongMaterial({ color: 0xFF6347 });
+                const shopBody = new THREE.Mesh(shopGeometry, shopMaterial);
+                shopBody.position.y = 1.25;
+                shopBody.castShadow = true;
+                shopBody.receiveShadow = true;
+                shop.add(shopBody);
+                
+                // 大型展示窗
+                const windowGeometry = new THREE.BoxGeometry(4.5, 1.5, 0.1);
+                const windowMaterial = new THREE.MeshPhongMaterial({ 
+                    color: 0x87CEEB,
+                    transparent: true,
+                    opacity: 0.7
+                });
+                const window = new THREE.Mesh(windowGeometry, windowMaterial);
+                window.position.set(0, 1.5, 2.05);
+                shop.add(window);
+                
+                // 招牌
+                const signGeometry = new THREE.BoxGeometry(4, 0.5, 0.2);
+                const signMaterial = new THREE.MeshPhongMaterial({ color: 0xFFD700 });
+                const sign = new THREE.Mesh(signGeometry, signMaterial);
+                sign.position.set(0, 3, 2.2);
+                sign.castShadow = true;
+                shop.add(sign);
+                
+                // 入口门
+                const doorGeometry = new THREE.BoxGeometry(1, 2, 0.1);
+                const doorMaterial = new THREE.MeshPhongMaterial({ color: 0x8B4513 });
+                const door = new THREE.Mesh(doorGeometry, doorMaterial);
+                door.position.set(1.5, 1, 2.05);
+                shop.add(door);
+                
+                return shop;
+            }
+            
+            static createChurch() {
+                const church = new THREE.Group();
+                
+                // 主体建筑
+                const naveGeometry = new THREE.BoxGeometry(8, 4, 12);
+                const naveMaterial = new THREE.MeshPhongMaterial({ color: 0xF5F5DC });
+                const nave = new THREE.Mesh(naveGeometry, naveMaterial);
+                nave.position.y = 2;
+                nave.castShadow = true;
+                nave.receiveShadow = true;
+                church.add(nave);
+                
+                // 尖塔
+                const spireGeometry = new THREE.ConeGeometry(2, 6, 8);
+                const spireMaterial = new THREE.MeshPhongMaterial({ color: 0x8B7355 });
+                const spire = new THREE.Mesh(spireGeometry, spireMaterial);
+                spire.position.y = 7;
+                spire.castShadow = true;
+                church.add(spire);
+                
+                // 十字架
+                const crossV = new THREE.BoxGeometry(0.2, 2, 0.2);
+                const crossH = new THREE.BoxGeometry(1, 0.2, 0.2);
+                const crossMaterial = new THREE.MeshPhongMaterial({ color: 0xFFD700 });
+                
+                const crossVertical = new THREE.Mesh(crossV, crossMaterial);
+                crossVertical.position.y = 11;
+                church.add(crossVertical);
+                
+                const crossHorizontal = new THREE.Mesh(crossH, crossMaterial);
+                crossHorizontal.position.set(0, 11.5, 0);
+                church.add(crossHorizontal);
+                
+                // 彩色玻璃窗
+                const colors = [0xFF0000, 0x00FF00, 0x0000FF, 0xFFFF00];
+                for (let i = 0; i < 4; i++) {
+                    const windowGeometry = new THREE.BoxGeometry(0.8, 2, 0.1);
+                    const windowMaterial = new THREE.MeshPhongMaterial({ 
+                        color: colors[i],
+                        transparent: true,
+                        opacity: 0.8
+                    });
+                    const window = new THREE.Mesh(windowGeometry, windowMaterial);
+                    window.position.set(-3.5 + i * 2.3, 2, 6.05);
+                    church.add(window);
+                }
+                
+                return church;
+            }
+            
+            static createPark() {
+                const park = new THREE.Group();
+                
+                // 草地基础
+                const grassGeometry = new THREE.CircleGeometry(8, 32);
+                const grassMaterial = new THREE.MeshLambertMaterial({ color: 0x228B22 });
+                const grass = new THREE.Mesh(grassGeometry, grassMaterial);
+                grass.rotation.x = -Math.PI / 2;
+                grass.position.y = 0.01;
+                grass.receiveShadow = true;
+                park.add(grass);
+                
+                // 树木
+                for (let i = 0; i < 8; i++) {
+                    const tree = this.createTree();
+                    const angle = (i / 8) * Math.PI * 2;
+                    const radius = 5 + Math.random() * 2;
+                    tree.position.set(
+                        Math.cos(angle) * radius,
+                        0,
+                        Math.sin(angle) * radius
+                    );
+                    park.add(tree);
+                }
+                
+                // 长椅
+                for (let i = 0; i < 4; i++) {
+                    const bench = this.createBench();
+                    const angle = (i / 4) * Math.PI * 2;
+                    const radius = 6;
+                    bench.position.set(
+                        Math.cos(angle) * radius,
+                        0,
+                        Math.sin(angle) * radius
+                    );
+                    bench.rotation.y = angle + Math.PI / 2;
+                    park.add(bench);
+                }
+                
+                // 喷泉
+                const fountain = this.createFountain();
+                fountain.position.y = 0;
+                park.add(fountain);
+                
+                return park;
+            }
+            
+            static createTree() {
+                const tree = new THREE.Group();
+                
+                // 树干
+                const trunkGeometry = new THREE.CylinderGeometry(0.3, 0.4, 3);
+                const trunkMaterial = new THREE.MeshPhongMaterial({ color: 0x8B4513 });
+                const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
+                trunk.position.y = 1.5;
+                trunk.castShadow = true;
+                tree.add(trunk);
+                
+                // 树冠
+                const leavesGeometry = new THREE.SphereGeometry(2, 8, 8);
+                const leavesMaterial = new THREE.MeshLambertMaterial({ color: 0x228B22 });
+                const leaves = new THREE.Mesh(leavesGeometry, leavesMaterial);
+                leaves.position.y = 4;
+                leaves.castShadow = true;
+                tree.add(leaves);
+                
+                return tree;
+            }
+            
+            static createBench() {
+                const bench = new THREE.Group();
+                
+                // 座椅
+                const seatGeometry = new THREE.BoxGeometry(2, 0.1, 0.5);
+                const seatMaterial = new THREE.MeshPhongMaterial({ color: 0x8B4513 });
+                const seat = new THREE.Mesh(seatGeometry, seatMaterial);
+                seat.position.y = 0.8;
+                seat.castShadow = true;
+                bench.add(seat);
+                
+                // 靠背
+                const backGeometry = new THREE.BoxGeometry(2, 0.8, 0.1);
+                const backMaterial = new THREE.MeshPhongMaterial({ color: 0x8B4513 });
+                const back = new THREE.Mesh(backGeometry, backMaterial);
+                back.position.set(0, 1.2, -0.2);
+                back.castShadow = true;
+                bench.add(back);
+                
+                // 腿
+                const legGeometry = new THREE.BoxGeometry(0.1, 0.8, 0.1);
+                const legMaterial = new THREE.MeshPhongMaterial({ color: 0x654321 });
+                
+                const positions = [
+                    [-0.9, 0.4, -0.2],
+                    [0.9, 0.4, -0.2],
+                    [-0.9, 0.4, 0.2],
+                    [0.9, 0.4, 0.2]
+                ];
+                
+                positions.forEach(pos => {
+                    const leg = new THREE.Mesh(legGeometry, legMaterial);
+                    leg.position.set(...pos);
+                    leg.castShadow = true;
+                    bench.add(leg);
+                });
+                
+                return bench;
+            }
+            
+            static createFountain() {
+                const fountain = new THREE.Group();
+                
+                // 基座
+                const baseGeometry = new THREE.CylinderGeometry(2, 2.5, 0.5);
+                const baseMaterial = new THREE.MeshPhongMaterial({ color: 0x708090 });
+                const base = new THREE.Mesh(baseGeometry, baseMaterial);
+                base.position.y = 0.25;
+                base.castShadow = true;
+                base.receiveShadow = true;
+                fountain.add(base);
+                
+                // 水池
+                const poolGeometry = new THREE.CylinderGeometry(1.8, 1.8, 0.3);
+                const poolMaterial = new THREE.MeshPhongMaterial({ 
+                    color: 0x4169E1,
+                    transparent: true,
+                    opacity: 0.7
+                });
+                const pool = new THREE.Mesh(poolGeometry, poolMaterial);
+                pool.position.y = 0.65;
+                fountain.add(pool);
+                
+                // 中央柱
+                const pillarGeometry = new THREE.CylinderGeometry(0.3, 0.3, 1.5);
+                const pillarMaterial = new THREE.MeshPhongMaterial({ color: 0x696969 });
+                const pillar = new THREE.Mesh(pillarGeometry, pillarMaterial);
+                pillar.position.y = 1.25;
+                pillar.castShadow = true;
+                fountain.add(pillar);
+                
+                return fountain;
+            }
+        }
+        
+        // 科比雕像生成函数
+        function createKobeStatue() {
+            const statueGroup = new THREE.Group();
+            
+            // 大理石基座
+            const baseGeometry = new THREE.CylinderGeometry(3, 3.5, 1.2, 8);
+            const baseMaterial = new THREE.MeshPhongMaterial({ 
+                color: 0xF5F5DC,
+                shininess: 30
+            });
+            const base = new THREE.Mesh(baseGeometry, baseMaterial);
+            base.position.y = 0.6;
+            base.castShadow = true;
+            base.receiveShadow = true;
+            statueGroup.add(base);
+            
+            // 科比身体（24号球衣）
+            const bodyGeometry = new THREE.CylinderGeometry(0.6, 0.8, 4, 8);
+            const bodyMaterial = new THREE.MeshPhongMaterial({ 
+                color: 0x552583, // 湖人紫色
+                shininess: 50
+            });
+            const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+            body.position.y = 3.2;
+            body.castShadow = true;
+            body.receiveShadow = true;
+            statueGroup.add(body);
+            
+            // 手臂 - 标志性投篮姿势
+            const armGeometry = new THREE.CapsuleGeometry(0.2, 1.5, 6, 8);
+            const armMaterial = new THREE.MeshPhongMaterial({ color: 0x552583 });
+            
+            // 投篮手（右手）
+            const shootingArm = new THREE.Mesh(armGeometry, armMaterial);
+            shootingArm.position.set(0.8, 4.5, 0.5);
+            shootingArm.rotation.z = -Math.PI / 3;
+            shootingArm.rotation.x = -Math.PI / 6;
+            shootingArm.castShadow = true;
+            statueGroup.add(shootingArm);
+            
+            // 辅助手（左手）
+            const guideArm = new THREE.Mesh(armGeometry, armMaterial);
+            guideArm.position.set(-0.6, 4.2, 0);
+            guideArm.rotation.z = Math.PI / 6;
+            guideArm.castShadow = true;
+            statueGroup.add(guideArm);
+            
+            // 头部
+            const headGeometry = new THREE.SphereGeometry(0.4, 16, 16);
+            const headMaterial = new THREE.MeshPhongMaterial({ 
+                color: 0xDEB887,
+                shininess: 20
+            });
+            const head = new THREE.Mesh(headGeometry, headMaterial);
+            head.position.y = 5.4;
+            head.castShadow = true;
+            head.receiveShadow = true;
+            statueGroup.add(head);
+            
+            // 篮球
+            const ballGeometry = new THREE.SphereGeometry(0.25, 16, 16);
+            const ballMaterial = new THREE.MeshPhongMaterial({ 
+                color: 0xFF6347,
+                shininess: 100
+            });
+            const basketball = new THREE.Mesh(ballGeometry, ballMaterial);
+            basketball.position.set(1.2, 5.2, 0.8);
+            basketball.castShadow = true;
+            basketball.userData = { type: 'hidden_basketball', collectable: true };
+            statueGroup.add(basketball);
+            
+            // 24号数字标牌
+            const plaqueGeometry = new THREE.BoxGeometry(2, 0.3, 1.5);
+            const plaqueMaterial = new THREE.MeshPhongMaterial({ color: 0xFFD700 });
+            const plaque = new THREE.Mesh(plaqueGeometry, plaqueMaterial);
+            plaque.position.set(0, 1.5, 1.8);
+            plaque.rotation.x = -Math.PI / 8;
+            statueGroup.add(plaque);
+            
+            // 刻字效果（简化）
+            const numberGeometry = new THREE.BoxGeometry(0.8, 0.1, 0.8);
+            const numberMaterial = new THREE.MeshPhongMaterial({ color: 0x000000 });
+            const number24 = new THREE.Mesh(numberGeometry, numberMaterial);
+            number24.position.set(0, 1.6, 1.85);
+            statueGroup.add(number24);
+            
+            statueGroup.position.set(25, 0, -25);
+            statueGroup.userData = { type: 'kobe_statue', special: true };
+            
+            return statueGroup;
+        }
+        
+        // 天气系统
+        class WeatherSystem {
+            constructor() {
+                this.currentWeather = 'sunny';
+                this.particles = [];
+                this.createWeatherParticles();
+            }
+            
+            createWeatherParticles() {
+                // 雨粒子系统
+                const rainGeometry = new THREE.BufferGeometry();
+                const rainCount = 1000;
+                const rainPositions = new Float32Array(rainCount * 3);
+                
+                for (let i = 0; i < rainCount * 3; i += 3) {
+                    rainPositions[i] = (Math.random() - 0.5) * 100;
+                    rainPositions[i + 1] = Math.random() * 50;
+                    rainPositions[i + 2] = (Math.random() - 0.5) * 100;
+                }
+                
+                rainGeometry.setAttribute('position', new THREE.BufferAttribute(rainPositions, 3));
+                
+                const rainMaterial = new THREE.PointsMaterial({
+                    color: 0x4169E1,
+                    size: 0.1,
+                    transparent: true,
+                    opacity: 0
+                });
+                
+                this.rain = new THREE.Points(rainGeometry, rainMaterial);
+                scene.add(this.rain);
+                
+                // 雪粒子系统
+                const snowGeometry = new THREE.BufferGeometry();
+                const snowCount = 500;
+                const snowPositions = new Float32Array(snowCount * 3);
+                
+                for (let i = 0; i < snowCount * 3; i += 3) {
+                    snowPositions[i] = (Math.random() - 0.5) * 100;
+                    snowPositions[i + 1] = Math.random() * 50;
+                    snowPositions[i + 2] = (Math.random() - 0.5) * 100;
+                }
+                
+                snowGeometry.setAttribute('position', new THREE.BufferAttribute(snowPositions, 3));
+                
+                const snowMaterial = new THREE.PointsMaterial({
+                    color: 0xFFFFFF,
+                    size: 0.3,
+                    transparent: true,
+                    opacity: 0
+                });
+                
+                this.snow = new THREE.Points(snowGeometry, snowMaterial);
+                scene.add(this.snow);
+            }
+            
+            setWeather(weather) {
+                this.currentWeather = weather;
+                
+                // 重置所有天气效果
+                this.rain.material.opacity = 0;
+                this.snow.material.opacity = 0;
+                scene.background = new THREE.Color(0x87CEEB);
+                scene.fog.color = new THREE.Color(0x87CEEB);
+                
+                switch(weather) {
+                    case 'rainy':
+                        this.rain.material.opacity = 0.6;
+                        scene.background = new THREE.Color(0x607D8B);
+                        scene.fog.color = new THREE.Color(0x607D8B);
+                        soundManager.setWeatherSound('rainy');
+                        break;
+                        
+                    case 'snowy':
+                        this.snow.material.opacity = 0.8;
+                        scene.background = new THREE.Color(0xE0E0E0);
+                        scene.fog.color = new THREE.Color(0xE0E0E0);
+                        break;
+                        
+                    case 'stormy':
+                        this.rain.material.opacity = 0.8;
+                        scene.background = new THREE.Color(0x37474F);
+                        scene.fog.color = new THREE.Color(0x37474F);
+                        soundManager.setWeatherSound('stormy');
+                        break;
+                        
+                    case 'foggy':
+                        scene.fog.near = 10;
+                        scene.fog.far = 50;
+                        scene.background = new THREE.Color(0xB0BEC5);
+                        scene.fog.color = new THREE.Color(0xB0BEC5);
+                        break;
+                        
+                    default: // sunny
+                        scene.fog.near = 50;
+                        scene.fog.far = 200;
+                        soundManager.setWeatherSound('sunny');
+                        break;
+                }
+                
+                document.getElementById('weatherStatus').textContent = this.getWeatherIcon(weather);
+            }
+            
+            getWeatherIcon(weather) {
+                const icons = {
+                    'sunny': '☀️ 晴天',
+                    'rainy': '🌧️ 雨天',
+                    'snowy': '❄️ 雪天',
+                    'stormy': '⛈️ 暴风雨',
+                    'foggy': '🌫️ 雾天'
+                };
+                return icons[weather] || '☀️ 晴天';
+            }
+            
+            update() {
+                // 更新粒子动画
+                if (this.rain.material.opacity > 0) {
+                    const positions = this.rain.geometry.attributes.position.array;
+                    for (let i = 1; i < positions.length; i += 3) {
+                        positions[i] -= 0.5;
+                        if (positions[i] < 0) {
+                            positions[i] = 50;
+                        }
+                    }
+                    this.rain.geometry.attributes.position.needsUpdate = true;
+                }
+                
+                if (this.snow.material.opacity > 0) {
+                    const positions = this.snow.geometry.attributes.position.array;
+                    for (let i = 0; i < positions.length; i += 3) {
+                        positions[i] += Math.sin(Date.now() * 0.001 + i) * 0.02;
+                        positions[i + 1] -= 0.1;
+                        if (positions[i + 1] < 0) {
+                            positions[i + 1] = 50;
+                        }
+                    }
+                    this.snow.geometry.attributes.position.needsUpdate = true;
+                }
+            }
+        }
+        
+        const weatherSystem = new WeatherSystem();
+        
+        // 建筑系统
+        class BuildingSystem {
+            constructor() {
+                this.buildings = [];
+                this.buildingMode = false;
+                this.selectedBuildingType = 'house';
+            }
+            
+            addBuilding(type, position) {
+                let building;
+                
+                switch(type) {
+                    case 'house':
+                        building = BuildingGenerator.createHouse();
+                        break;
+                    case 'apartment':
+                        building = BuildingGenerator.createApartment(Math.floor(Math.random() * 3) + 3);
+                        break;
+                    case 'shop':
+                        building = BuildingGenerator.createShop();
+                        break;
+                    case 'church':
+                        building = BuildingGenerator.createChurch();
+                        break;
+                    case 'park':
+                        building = BuildingGenerator.createPark();
+                        break;
+                }
+                
+                if (building) {
+                    building.position.copy(position);
+                    building.userData = { type: type, interactable: true };
+                    scene.add(building);
+                    this.buildings.push(building);
+                    buildingCount++;
+                    document.getElementById('buildingCount').textContent = `🏠 建筑: ${buildingCount}`;
+                }
+            }
+            
+            generateRandomCity(center, radius, density = 0.3) {
+                const buildingTypes = ['house', 'apartment', 'shop', 'church'];
+                const count = Math.floor(radius * radius * density);
+                
+                for (let i = 0; i < count; i++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const distance = Math.random() * radius;
+                    const position = new THREE.Vector3(
+                        center.x + Math.cos(angle) * distance,
+                        0,
+                        center.z + Math.sin(angle) * distance
+                    );
+                    
+                    const type = buildingTypes[Math.floor(Math.random() * buildingTypes.length)];
+                    this.addBuilding(type, position);
+                }
+            }
+        }
+        
+        const buildingSystem = new BuildingSystem();
+        
+        // 改进的人物建模
+        function createImprovedPlayerModel(clothesColor = null) {
+            if (!clothesColor) {
+                clothesColor = new THREE.Color(Math.random(), Math.random(), Math.random());
+            }
+            
+            const playerGroup = new THREE.Group();
+            
+            // 身体
+            const bodyGeometry = new THREE.CapsuleGeometry(0.6, 1.8, 8, 16);
+            const bodyMaterial = new THREE.MeshPhongMaterial({ 
+                color: clothesColor,
+                shininess: 30
+            });
+            const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+            body.position.y = 1.5;
+            body.castShadow = true;
+            body.receiveShadow = true;
+            body.name = 'Body';
+            playerGroup.add(body);
+            
+            // 头部
+            const headGeometry = new THREE.SphereGeometry(0.35, 16, 16);
+            const headMaterial = new THREE.MeshPhongMaterial({ 
+                color: 0xffdbac,
+                shininess: 20
+            });
+            const head = new THREE.Mesh(headGeometry, headMaterial);
+            head.position.y = 2.8;
+            head.castShadow = true;
+            head.receiveShadow = true;
+            head.name = 'Head';
+            playerGroup.add(head);
+            
+            // 头发系统
+            const hairStyle = Math.floor(Math.random() * 4);
+            const hairColor = new THREE.Color().setHSL(0.1, 0.3, 0.2 + Math.random() * 0.3);
+            
+            if (hairStyle === 0) {
+                // 短发
+                const hairGeometry = new THREE.SphereGeometry(0.4, 12, 12);
+                const hairMaterial = new THREE.MeshPhongMaterial({ color: hairColor });
+                const hair = new THREE.Mesh(hairGeometry, hairMaterial);
+                hair.position.y = 3.0;
+                hair.scale.set(1, 0.8, 1);
+                hair.castShadow = true;
+                hair.name = 'Hair';
+                playerGroup.add(hair);
+            } else if (hairStyle === 1) {
+                // 中分
+                for (let i = 0; i < 5; i++) {
+                    const hairGeometry = new THREE.BoxGeometry(0.1, 0.3, 0.2);
+                    const hairMaterial = new THREE.MeshPhongMaterial({ color: hairColor });
+                    const hair = new THREE.Mesh(hairGeometry, hairMaterial);
+                    hair.position.set((i - 2) * 0.15, 3.1, 0.2);
+                    hair.rotation.x = -0.3;
+                    hair.castShadow = true;
+                    hair.name = 'Hair';
+                    playerGroup.add(hair);
+                }
+            } else if (hairStyle === 2) {
+                // 卷发
+                const hairGeometry = new THREE.SphereGeometry(0.45, 8, 8);
+                const hairMaterial = new THREE.MeshPhongMaterial({ color: hairColor });
+                const hair = new THREE.Mesh(hairGeometry, hairMaterial);
+                hair.position.y = 3.1;
+                hair.scale.set(1, 0.6, 1);
+                hair.castShadow = true;
+                hair.name = 'Hair';
+                playerGroup.add(hair);
+            } else {
+                // 帽子
+                const hatGeometry = new THREE.CylinderGeometry(0.4, 0.4, 0.3);
+                const hatMaterial = new THREE.MeshPhongMaterial({ color: 0x333333 });
+                const hat = new THREE.Mesh(hatGeometry, hatMaterial);
+                hat.position.y = 3.2;
+                hat.castShadow = true;
+                hat.name = 'Hat';
+                playerGroup.add(hat);
+            }
+            
+            // 手臂
+            const armGeometry = new THREE.CapsuleGeometry(0.18, 1.2, 6, 12);
+            const armMaterial = new THREE.MeshPhongMaterial({ 
+                color: 0xffdbac,
+                shininess: 20
+            });
+            
+            const leftArm = new THREE.Mesh(armGeometry, armMaterial);
+            leftArm.position.set(-0.7, 1.8, 0);
+            leftArm.rotation.z = 0.2;
+            leftArm.castShadow = true;
+            leftArm.receiveShadow = true;
+            leftArm.name = 'Arm_Left';
+            playerGroup.add(leftArm);
+            
+            const rightArm = new THREE.Mesh(armGeometry, armMaterial);
+            rightArm.position.set(0.7, 1.8, 0);
+            rightArm.rotation.z = -0.2;
+            rightArm.castShadow = true;
+            rightArm.receiveShadow = true;
+            rightArm.name = 'Arm_Right';
+            playerGroup.add(rightArm);
+            
+            // 腿部
+            const legGeometry = new THREE.CapsuleGeometry(0.25, 1.5, 6, 12);
+            const legMaterial = new THREE.MeshPhongMaterial({ 
+                color: 0x2c2c2c,
+                shininess: 10
+            });
+            
+            const leftLeg = new THREE.Mesh(legGeometry, legMaterial);
+            leftLeg.position.set(-0.3, 0.75, 0);
+            leftLeg.castShadow = true;
+            leftLeg.receiveShadow = true;
+            leftLeg.name = 'Leg_Left';
+            playerGroup.add(leftLeg);
+            
+            const rightLeg = new THREE.Mesh(legGeometry, legMaterial);
+            rightLeg.position.set(0.3, 0.75, 0);
+            rightLeg.castShadow = true;
+            rightLeg.receiveShadow = true;
+            rightLeg.name = 'Leg_Right';
+            playerGroup.add(rightLeg);
+            
+            // 脚部
+            const footGeometry = new THREE.BoxGeometry(0.4, 0.2, 0.8);
+            const footMaterial = new THREE.MeshPhongMaterial({ color: 0x1a1a1a });
+            
+            const leftFoot = new THREE.Mesh(footGeometry, footMaterial);
+            leftFoot.position.set(-0.3, 0.1, 0.2);
+            leftFoot.castShadow = true;
+            leftFoot.receiveShadow = true;
+            leftFoot.name = 'Foot_Left';
+            playerGroup.add(leftFoot);
+            
+            const rightFoot = new THREE.Mesh(footGeometry, footMaterial);
+            rightFoot.position.set(0.3, 0.1, 0.2);
+            rightFoot.castShadow = true;
+            rightFoot.receiveShadow = true;
+            rightFoot.name = 'Foot_Right';
+            playerGroup.add(rightFoot);
+            
+            return playerGroup;
+        }
+        
+        // 轮盘控制系统（超小型）
+        class MicroJoystick {
+            constructor() {
+                this.base = document.getElementById('joystickBase');
+                this.stick = document.getElementById('joystickStick');
+                this.container = document.getElementById('joystickContainer');
+                
+                this.isDragging = false;
+                this.centerX = 50;
+                this.centerY = 50;
+                this.maxDistance = 35;
+                
+                this.x = 0;
+                this.y = 0;
+                
+                this.setupEvents();
+            }
+            
+            setupEvents() {
+                // 触摸事件 - 完全阻止默认行为
+                this.stick.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    this.isDragging = true;
+                }, { passive: false, capture: true });
+                
+                document.addEventListener('touchmove', (e) => {
+                    if (this.isDragging) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        this.updatePosition(e.touches[0]);
+                    }
+                }, { passive: false, capture: true });
+                
+                document.addEventListener('touchend', (e) => {
+                    e.preventDefault();
+                    this.isDragging = false;
+                    this.reset();
+                }, { passive: false });
+                
+                // 鼠标事件
+                this.stick.addEventListener('mousedown', (e) => {
+                    this.isDragging = true;
+                });
+                
+                document.addEventListener('mousemove', (e) => {
+                    if (this.isDragging) {
+                        this.updatePosition(e);
+                    }
+                });
+                
+                document.addEventListener('mouseup', (e) => {
+                    this.isDragging = false;
+                    this.reset();
+                });
+            }
+            
+            updatePosition(event) {
+                const rect = this.container.getBoundingClientRect();
+                const x = event.clientX - rect.left - this.centerX;
+                const y = event.clientY - rect.top - this.centerY;
+                
+                const distance = Math.sqrt(x * x + y * y);
+                
+                if (distance <= this.maxDistance) {
+                    this.stick.style.left = (x + this.centerX - 19) + 'px';
+                    this.stick.style.top = (y + this.centerY - 19) + 'px';
+                    this.x = x / this.maxDistance;
+                    this.y = y / this.maxDistance;
+                } else {
+                    const angle = Math.atan2(y, x);
+                    const limitedX = Math.cos(angle) * this.maxDistance;
+                    const limitedY = Math.sin(angle) * this.maxDistance;
+                    
+                    this.stick.style.left = (limitedX + this.centerX - 19) + 'px';
+                    this.stick.style.top = (limitedY + this.centerY - 19) + 'px';
+                    this.x = limitedX / this.maxDistance;
+                    this.y = limitedY / this.maxDistance;
+                }
+            }
+            
+            reset() {
+                this.stick.style.left = (this.centerX - 19) + 'px';
+                this.stick.style.top = (this.centerY - 19) + 'px';
+                this.x = 0;
+                this.y = 0;
+            }
+            
+            getMovement() {
+                return { x: this.x, y: this.y };
+            }
+        }
+        
+        const joystick = new MicroJoystick();
+        
+        // 菜单系统（完全修复版）
+        const menuButton = document.getElementById('menuButton');
+        const menuPanel = document.getElementById('menuPanel');
+        const buildingMenu = document.getElementById('buildingMenu');
+        
+        // 菜单按钮 - 完全独立的触摸处理
+        menuButton.addEventListener('click', toggleMenu);
+        menuButton.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+            toggleMenu();
+        }, { passive: false, capture: true });
+        
+        function toggleMenu() {
+            menuPanel.style.display = menuPanel.style.display === 'none' ? 'block' : 'none';
+            if (menuPanel.style.display === 'none') {
+                buildingMenu.style.display = 'none';
+            }
+        }
+        
+        // 建筑菜单
+        document.getElementById('generateBuilding').addEventListener('click', (e) => {
+            e.stopPropagation();
+            buildingMenu.style.display = buildingMenu.style.display === 'none' ? 'block' : 'none';
+        });
+        
+        document.getElementById('generateBuilding').addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            buildingMenu.style.display = buildingMenu.style.display === 'none' ? 'block' : 'none';
+        }, { passive: false });
+        
+        // 天气控制
+        document.getElementById('weatherControl').addEventListener('click', (e) => {
+            e.stopPropagation();
+            const weatherPanel = document.getElementById('weatherPanel');
+            weatherPanel.style.display = weatherPanel.style.display === 'none' ? 'block' : 'none';
+        });
+        
+        // 昼夜切换
+        document.getElementById('dayNightToggle').addEventListener('click', (e) => {
+            e.stopPropagation();
+            isDayTime = !isDayTime;
+            
+            if (isDayTime) {
+                sunLight.visible = true;
+                moonLight.visible = false;
+                ambientLight.intensity = 0.4;
+                scene.background = new THREE.Color(0x87CEEB);
+                scene.fog.color = new THREE.Color(0x87CEEB);
+                document.getElementById('dayNightToggle').textContent = '🌙 夜晚模式';
+                document.getElementById('timeStatus').textContent = '🌅 白天';
+            } else {
+                sunLight.visible = false;
+                moonLight.visible = true;
+                ambientLight.intensity = 0.1;
+                scene.background = new THREE.Color(0x191970);
+                scene.fog.color = new THREE.Color(0x191970);
+                document.getElementById('dayNightToggle').textContent = '☀️ 白天模式';
+                document.getElementById('timeStatus').textContent = '🌙 夜晚';
+            }
+        });
+        
+        // 建筑模式切换
+        document.getElementById('buildingMode').addEventListener('click', (e) => {
+            e.stopPropagation();
+            isBuildingMode = !isBuildingMode;
+            const controls = document.getElementById('buildingControls');
+            controls.style.display = isBuildingMode ? 'block' : 'none';
+            document.getElementById('buildingMode').textContent = isBuildingMode ? '🔧 关闭建筑' : '🏠 建筑模式';
+        });
+        
+        // 音效控制
+        document.getElementById('soundToggle').addEventListener('click', (e) => {
+            e.stopPropagation();
+            const enabled = soundManager.soundEnabled;
+            soundManager.soundEnabled = !enabled;
+            e.target.textContent = `🔊 音效: ${!enabled ? '开' : '关'}`;
+        });
+        
+        document.getElementById('ambientToggle').addEventListener('click', (e) => {
+            e.stopPropagation();
+            const enabled = soundManager.ambientEnabled;
+            soundManager.ambientEnabled = !enabled;
+            e.target.textContent = `🌿 自然音: ${!enabled ? '开' : '关'}`;
+        });
+        
+        // 建筑物生成事件（完全防冲突）
+        const buildingGenerators = {
+            'genHouse': () => BuildingGenerator.createHouse(),
+            'genApartment': () => BuildingGenerator.createApartment(Math.floor(Math.random() * 4) + 3),
+            'genShop': () => BuildingGenerator.createShop(),
+            'genOffice': () => BuildingGenerator.createApartment(8),
+            'genChurch': () => BuildingGenerator.createChurch(),
+            'genTower': () => BuildingGenerator.createApartment(12),
+            'genBridge': () => BuildingGenerator.createApartment(2), // 简化版桥梁
+            'genPark': () => BuildingGenerator.createPark(),
+            'genKobeStatue': () => createKobeStatue()
+        };
+        
+        Object.keys(buildingGenerators).forEach(id => {
+            const element = document.getElementById(id);
+            
+            const handler = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+                
+                const building = buildingGenerators[id]();
+                const position = new THREE.Vector3(
+                    (Math.random() - 0.5) * 60,
+                    0,
+                    (Math.random() - 0.5) * 60
+                );
+                
+                building.position.copy(position);
+                building.userData = { type: id.replace('gen', '').toLowerCase(), interactable: true };
+                scene.add(building);
+                buildingCount++;
+                document.getElementById('buildingCount').textContent = `🏠 建筑: ${buildingCount}`;
+                buildingMenu.style.display = 'none';
+                
+                // 添加生成音效
+                if (soundManager.soundEnabled) {
+                    const oscillator = soundManager.audioContext.createOscillator();
+                    const gainNode = soundManager.audioContext.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(soundManager.audioContext.destination);
+                    
+                    oscillator.frequency.setValueAtTime(400, soundManager.audioContext.currentTime);
+                    oscillator.frequency.exponentialRampToValueAtTime(800, soundManager.audioContext.currentTime + 0.2);
+                    
+                    gainNode.gain.setValueAtTime(0.1, soundManager.audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, soundManager.audioContext.currentTime + 0.2);
+                    
+                    oscillator.start(soundManager.audioContext.currentTime);
+                    oscillator.stop(soundManager.audioContext.currentTime + 0.2);
+                }
+            };
+            
+            element.addEventListener('click', handler, { capture: true });
+            element.addEventListener('touchstart', handler, { passive: false, capture: true });
+        });
+        
+        // 天气控制
+        const weatherControls = {
+            'sunnyWeather': 'sunny',
+            'rainyWeather': 'rainy',
+            'snowyWeather': 'snowy',
+            'foggyWeather': 'foggy'
+        };
+        
+        Object.keys(weatherControls).forEach(id => {
+            document.getElementById(id).addEventListener('click', (e) => {
+                e.stopPropagation();
+                weatherSystem.setWeather(weatherControls[id]);
+                document.getElementById('weatherPanel').style.display = 'none';
+            });
+        });
+        
+        // 点击外部关闭所有菜单
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('#menuPanel') && !e.target.closest('#menuButton') && 
+                !e.target.closest('#buildingMenu') && !e.target.closest('#weatherPanel')) {
+                menuPanel.style.display = 'none';
+                buildingMenu.style.display = 'none';
+                document.getElementById('weatherPanel').style.display = 'none';
+            }
+        });
+        
+        document.addEventListener('touchstart', (e) => {
+            if (!e.target.closest('#menuPanel') && !e.target.closest('#menuButton') && 
+                !e.target.closest('#buildingMenu') && !e.target.closest('#weatherPanel')) {
+                menuPanel.style.display = 'none';
+                buildingMenu.style.display = 'none';
+                document.getElementById('weatherPanel').style.display = 'none';
+            }
+        }, { passive: false });
+        
+        // 游戏状态
+        let lastStepTime = 0;
+        const stepInterval = 350;
+        let isWalking = false;
+        let walkAnimationTime = 0;
+        let cameraRotationX = 0;
+        let cameraRotationY = 0;
+        let kobeStatueFound = false;
+        let basketballCollected = false;
+        
+        // 更新玩家移动
+        function updatePlayer() {
+            const movement = joystick.getMovement();
+            const moveVector = new THREE.Vector3();
+            isWalking = false;
+            
+            if (movement.x !== 0 || movement.y !== 0) {
+                moveVector.x = movement.x * 0.18;
+                moveVector.z = movement.y * 0.18;
+                isWalking = true;
+            }
+            
+            moveVector.applyAxisAngle(new THREE.Vector3(0, 1, 0), cameraRotationY);
+            playerGroup.position.add(moveVector);
+            
+            // 脚步声
+            if (isWalking) {
+                const currentTime = Date.now();
+                if (currentTime - lastStepTime > stepInterval) {
+                    soundManager.playFootstep();
+                    lastStepTime = currentTime;
+                }
+            }
+            
+            // 走路动画
+            if (isWalking) {
+                walkAnimationTime += 0.15;
+                
+                playerGroup.traverse((child) => {
+                    if (child.name === 'Arm_Left') {
+                        child.rotation.x = Math.sin(walkAnimationTime) * 0.5;
+                    }
+                    if (child.name === 'Arm_Right') {
+                        child.rotation.x = -Math.sin(walkAnimationTime) * 0.5;
+                    }
+                    if (child.name === 'Leg_Left') {
+                        child.rotation.x = -Math.sin(walkAnimationTime) * 0.4;
+                    }
+                    if (child.name === 'Leg_Right') {
+                        child.rotation.x = Math.sin(walkAnimationTime) * 0.4;
+                    }
+                });
+                
+                playerGroup.rotation.y = Math.sin(walkAnimationTime * 0.5) * 0.08;
+            } else {
+                playerGroup.traverse((child) => {
+                    if (child.name.includes('Arm') || child.name.includes('Leg')) {
+                        child.rotation.x = 0;
+                    }
+                });
+                playerGroup.rotation.y = 0;
+            }
+            
+            // 检查科比雕像距离
+            scene.traverse((child) => {
+                if (child.userData && child.userData.type === 'kobe_statue') {
+                    const distance = playerGroup.position.distanceTo(child.position);
+                    if (distance < 12 && !kobeStatueFound) {
+                        kobeStatueFound = true;
+                        document.getElementById('kobeStatus').textContent = '🏀 发现科比雕像！';
+                        
+                        // 播放发现音效
+                        const oscillator = soundManager.audioContext.createOscillator();
+                        const gainNode = soundManager.audioContext.createGain();
+                        
+                        oscillator.connect(gainNode);
+                        gainNode.connect(soundManager.audioContext.destination);
+                        
+                        oscillator.frequency.setValueAtTime(600, soundManager.audioContext.currentTime);
+                        oscillator.frequency.exponentialRampToValueAtTime(1200, soundManager.audioContext.currentTime + 0.5);
+                        
+                        gainNode.gain.setValueAtTime(0.2, soundManager.audioContext.currentTime);
+                        gainNode.gain.exponentialRampToValueAtTime(0.01, soundManager.audioContext.currentTime + 0.5);
+                        
+                        oscillator.start(soundManager.audioContext.currentTime);
+                        oscillator.stop(soundManager.audioContext.currentTime + 0.5);
+                    }
+                    
+                    // 检查篮球收集
+                    child.traverse((subChild) => {
+                        if (subChild.userData && subChild.userData.type === 'hidden_basketball' && subChild.userData.collectable) {
+                            const ballDistance = playerGroup.position.distanceTo(subChild.position);
+                            if (ballDistance < 2.5 && !basketballCollected) {
+                                basketballCollected = true;
+                                child.remove(subChild);
+                                document.getElementById('kobeStatus').textContent = '🏀 篮球已收集！致敬科比！';
+                                
+                                // 播放收集音效
+                                const oscillator = soundManager.audioContext.createOscillator();
+                                const gainNode = soundManager.audioContext.createGain();
+                                
+                                oscillator.connect(gainNode);
+                                gainNode.connect(soundManager.audioContext.destination);
+                                
+                                oscillator.frequency.setValueAtTime(400, soundManager.audioContext.currentTime);
+                                oscillator.frequency.exponentialRampToValueAtTime(800, soundManager.audioContext.currentTime + 0.2);
+                                
+                                gainNode.gain.setValueAtTime(0.3, soundManager.audioContext.currentTime);
+                                gainNode.gain.exponentialRampToValueAtTime(0.01, soundManager.audioContext.currentTime + 0.2);
+                                
+                                oscillator.start(soundManager.audioContext.currentTime);
+                                oscillator.stop(soundManager.audioContext.currentTime + 0.2);
+                            }
+                        }
+                    });
+                }
+            });
+        }
+        
+        // 更新相机
+        function updateCamera() {
+            const cameraDistance = 15;
+            const cameraHeight = 10;
+            
+            camera.position.x = playerGroup.position.x + Math.sin(cameraRotationY) * cameraDistance;
+            camera.position.y = playerGroup.position.y + cameraHeight + Math.sin(cameraRotationX) * 5;
+            camera.position.z = playerGroup.position.z + Math.cos(cameraRotationY) * cameraDistance;
+            
+            camera.lookAt(playerGroup.position);
+        }
+        
+        // 触摸控制（完全优化版）
+        document.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            // 只处理屏幕右侧的触摸（避免与轮盘冲突）
+            if (e.touches[0].clientX > window.innerWidth / 2) {
+                touchStartX = e.touches[0].clientX;
+                touchStartY = e.touches[0].clientY;
+            }
+        }, { passive: false });
+        
+        document.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            if (touchStartX > 0 && e.touches[0].clientX > window.innerWidth / 2) {
+                const deltaX = e.touches[0].clientX - touchStartX;
+                const deltaY = e.touches[0].clientY - touchStartY;
+                
+                cameraRotationY -= deltaX * 0.008;
+                cameraRotationX -= deltaY * 0.008;
+                cameraRotationX = Math.max(-Math.PI / 3, Math.min(Math.PI / 3, cameraRotationX));
+                
+                touchStartX = e.touches[0].clientX;
+                touchStartY = e.touches[0].clientY;
+            }
+        }, { passive: false });
+        
+        document.addEventListener('touchend', (e) => {
+            touchStartX = 0;
+            touchStartY = 0;
+        }, { passive: false });
+        
+        // 动画循环
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            updatePlayer();
+            updateCamera();
+            weatherSystem.update();
+            
+            renderer.render(scene, camera);
+        }
+        
+        // 窗口大小调整
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+        
+        // 初始化城市
+        setTimeout(() => {
+            buildingSystem.generateRandomCity(new THREE.Vector3(0, 0, 0), 30, 0.2);
+        }, 1000);
+        
+        // 启动游戏
+        animate();
+        
+        // 创意功能：建筑模式
+        document.getElementById('buildHouse').addEventListener('click', (e) => {
+            e.stopPropagation();
+            buildingSystem.addBuilding('house', new THREE.Vector3(
+                playerGroup.position.x + (Math.random() - 0.5) * 10,
+                0,
+                playerGroup.position.z + (Math.random() - 0.5) * 10
+            ));
+        });
+        
+        document.getElementById('buildTree').addEventListener('click', (e) => {
+            e.stopPropagation();
+            const tree = BuildingGenerator.createTree();
+            tree.position.set(
+                playerGroup.position.x + (Math.random() - 0.5) * 8,
+                0,
+                playerGroup.position.z + (Math.random() - 0.5) * 8
+            );
+            scene.add(tree);
+        });
+        
+        // 创意功能：随机生成城市
+        document.getElementById('about').addEventListener('click', (e) => {
+            e.stopPropagation();
+            alert('🏗️ 建筑与冒险世界\n\n创新功能：\n• 程序化建筑生成\n• 动态天气系统\n• 昼夜循环\n• 科比纪念雕像\n• 建筑模式\n• 完整音效系统\n\n致敬科比·布莱恩特 🏀\nMamba Mentality Forever!');
+        });
+        
+        // 创意功能：一键生成城市
+        document.getElementById('settings').addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (confirm('🏙️ 生成新的随机城市？这将清除现有建筑。')) {
+                // 清除现有建筑
+                buildingSystem.buildings.forEach(building => {
+                    scene.remove(building);
+                });
+                buildingSystem.buildings = [];
+                buildingCount = 0;
+                
+                // 生成新城市
+                buildingSystem.generateRandomCity(new THREE.Vector3(0, 0, 0), 40, 0.25);
+                document.getElementById('buildingCount').textContent = `🏠 建筑: ${buildingCount}`;
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Steam游戏排行榜</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; background: #f5f5f5; padding: 8px; }
+        .container { max-width: 100%; margin: 0 auto; background: white; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); overflow: hidden; }
+        h1 { text-align: center; padding: 12px; background: linear-gradient(135deg, #2c003e 0%, #512b58 50%, #8b5a8c 100%); color: white; font-size: 1.2em; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 6px 8px; text-align: left; border-bottom: 1px solid #eee; font-size: 0.85em; }
+        th { background: #f8f9fa; font-weight: 600; }
+        tr:hover { background: #f8f9fa; }
+        .rank { width: 35px; text-align: center; font-weight: bold; color: #512b58; }
+        .players { text-align: right; color: #666; }
+        .pagination { padding: 12px; text-align: center; }
+        .pagination button { margin: 0 3px; padding: 6px 10px; border: 1px solid #ddd; background: white; cursor: pointer; border-radius: 3px; font-size: 0.85em; }
+        .pagination button:hover { background: #512b58; color: white; border-color: #512b58; }
+        .pagination button.active { background: #512b58; color: white; border-color: #512b58; }
+        .pagination button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .page-info { margin: 8px 0; color: #666; font-size: 0.85em; }
+        @media (max-width: 600px) {
+            th, td { padding: 5px; font-size: 0.75em; }
+            h1 { font-size: 1em; padding: 8px; }
+            .pagination button { padding: 5px 8px; font-size: 0.75em; margin: 1px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Steam游戏在线人数排行榜</h1>
+        <table id="gameTable">
+            <thead>
+                <tr>
+                    <th class="rank">排名</th>
+                    <th>游戏名称</th>
+                    <th class="players">在线人数</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+        </table>
+        <div class="pagination">
+            <div class="page-info" id="pageInfo"></div>
+            <div id="paginationButtons"></div>
+        </div>
+    </div>
+
+    <script>
+        const games = [
+            {rank: 1, name: "Counter-Strike 2 (反恐精英2)", players: 910949},
+            {rank: 2, name: "Dota 2 (刀塔2)", players: 508509},
+            {rank: 3, name: "PUBG: BATTLEGROUNDS (绝地求生)", players: 273480},
+            {rank: 4, name: "Bongo Cat (节奏猫)", players: 159074},
+            {rank: 5, name: "ARC Raiders (突袭：机甲)", players: 117773},
+            {rank: 6, name: "Path of Exile 2 (流放之路2)", players: 91187},
+            {rank: 7, name: "Wallpaper Engine (壁纸引擎)", players: 88734},
+            {rank: 8, name: "Warframe (星际战甲)", players: 85838},
+            {rank: 9, name: "三角洲行动", players: 75815},
+            {rank: 10, name: "Grand Theft Auto V (侠盗猎车手5) - 传承版", players: 75292},
+            {rank: 11, name: "Rust (腐蚀)", players: 71296},
+            {rank: 12, name: "Grand Theft Auto V (侠盗猎车手5) - 增强版", players: 69890},
+            {rank: 13, name: "Apex Legends™ (Apex英雄)", players: 65559},
+            {rank: 14, name: "燕云十六声", players: 60547},
+            {rank: 15, name: "War Thunder (战争雷霆)", players: 47710},
+            {rank: 16, name: "永劫无间", players: 44447},
+            {rank: 17, name: "Banana (香蕉)", players: 43820},
+            {rank: 18, name: "Monster Hunter Wilds (怪物猎人：荒野)", players: 41410},
+            {rank: 19, name: "漫威争锋", players: 40908},
+            {rank: 20, name: "战地风云™ 6 (战地6)", players: 39816},
+            {rank: 21, name: "Stardew Valley (星露谷物语)", players: 39185},
+            {rank: 22, name: "Palworld (幻兽帕鲁)", players: 37381},
+            {rank: 23, name: "Team Fortress 2 (军团要塞2)", players: 37021},
+            {rank: 24, name: "艾尔登法环 黑夜君临", players: 34186},
+            {rank: 25, name: "Limbus Company (边狱公司)", players: 32405},
+            {rank: 26, name: "World of Warships (战舰世界)", players: 30665},
+            {rank: 27, name: "VRChat", players: 30416},
+            {rank: 28, name: "Crosshair X (准星X)", players: 30203},
+            {rank: 29, name: "Geometry Dash (几何冲刺)", players: 30038},
+            {rank: 30, name: "使命召唤® (Call of Duty)", players: 27964},
+            {rank: 31, name: "博德之门3", players: 27546},
+            {rank: 32, name: "Hearts of Iron IV (钢铁雄心4)", players: 26771},
+            {rank: 33, name: "Red Dead Redemption 2 (荒野大镖客2)", players: 26308},
+            {rank: 34, name: "Mount & Blade II: Bannerlord (骑马与砍杀2：霸主)", players: 26259},
+            {rank: 35, name: "PAYDAY 2 (收获日2)", players: 25988},
+            {rank: 36, name: "足球经理26", players: 25483},
+            {rank: 37, name: "赛博朋克 2077", players: 25082},
+            {rank: 38, name: "全面战争：战锤3", players: 24398},
+            {rank: 39, name: "Sid Meier's Civilization® VI (文明6)", players: 23598},
+            {rank: 40, name: "饥荒联机版", players: 23329},
+            {rank: 41, name: "DayZ (末日生存)", players: 23300},
+            {rank: 42, name: "黎明杀机", players: 23280},
+            {rank: 43, name: "彩虹六号：围攻X", players: 23218},
+            {rank: 44, name: "EA SPORTS FC™ 26 (EA FC 26)", players: 21836},
+            {rank: 45, name: "光与影：33号远征队", players: 21180},
+            {rank: 46, name: "Euro Truck Simulator 2 (欧洲卡车模拟器2)", players: 21111},
+            {rank: 47, name: "tModLoader (泰拉模组加载器)", players: 20504},
+            {rank: 48, name: "Street Fighter 6 (街头霸王6)", players: 20196},
+            {rank: 49, name: "Escape from Tarkov (逃离塔科夫)", players: 20052},
+            {rank: 50, name: "暗黑破坏神® IV (暗黑破坏神4)", players: 19050},
+            {rank: 51, name: "边缘世界 (RimWorld)", players: 18988},
+            {rank: 52, name: "天国：拯救2", players: 18389},
+            {rank: 53, name: "命运2", players: 18104},
+            {rank: 54, name: "Project Zomboid (僵尸毁灭工程)", players: 17979},
+            {rank: 55, name: "Counter-Strike: Source (反恐精英：起源)", players: 17556},
+            {rank: 56, name: "STALCRAFT: X", players: 17401},
+            {rank: 57, name: "守望先锋® 2", players: 17222},
+            {rank: 58, name: "Terraria (泰拉瑞亚)", players: 16867},
+            {rank: 59, name: "艾尔登法环", players: 16406},
+            {rank: 60, name: "HELLDIVERS™ 2 (地狱潜兵2)", players: 16321},
+            {rank: 61, name: "7 Days to Die (七日杀)", players: 15883},
+            {rank: 62, name: "OBS Studio", players: 15731},
+            {rank: 63, name: "The Sims™ 4 (模拟人生4)", players: 15228},
+            {rank: 64, name: "ARK: Survival Evolved (方舟：生存进化)", players: 14574},
+            {rank: 65, name: "猎杀：对决 1896", players: 14539},
+            {rank: 66, name: "The Elder Scrolls V: Skyrim Special Edition (上古卷轴5：天际特别版)", players: 14527},
+            {rank: 67, name: "Farming Simulator 25 (农场模拟器25)", players: 14489},
+            {rank: 68, name: "Ashes of Creation (灰烬创生)", players: 14436},
+            {rank: 69, name: "Yu-Gi-Oh! Master Duel (游戏王：大师决斗)", players: 14418},
+            {rank: 70, name: "Slay the Spire (杀戮尖塔)", players: 14225},
+            {rank: 71, name: "IdleOn (放置类MMO)", players: 14116},
+            {rank: 72, name: "Football Manager 2024 (足球经理2024)", players: 14026},
+            {rank: 73, name: "逃离鸭科夫", players: 13948},
+            {rank: 74, name: "NBA 2K26", players: 13760},
+            {rank: 75, name: "Monster Hunter: World (怪物猎人：世界)", players: 13252},
+            {rank: 76, name: "巫师 3：狂猎", players: 12986},
+            {rank: 77, name: "Russian Fishing 4 (俄罗斯钓鱼4)", players: 12903},
+            {rank: 78, name: "The Binding of Isaac: Rebirth (以撒的结合：重生)", players: 12698},
+            {rank: 79, name: "Crusader Kings III (十字军之王3)", players: 12073},
+            {rank: 80, name: "BeamNG.drive", players: 12071},
+            {rank: 81, name: "Deadlock (死锁)", players: 12056},
+            {rank: 82, name: "方舟: 生存飞升", players: 12039},
+            {rank: 83, name: "暗区突围：无限", players: 11922},
+            {rank: 84, name: "Garry's Mod (盖瑞模组)", players: 11604},
+            {rank: 85, name: "MIR4 (传奇4)", players: 11540},
+            {rank: 86, name: "FINAL FANTASY XIV Online (最终幻想14)", players: 11502},
+            {rank: 87, name: "Europa Universalis V (欧陆风云5)", players: 11481},
+            {rank: 88, name: "Fish Idle 2: Underwater Mystery (钓鱼放置2)", players: 11303},
+            {rank: 89, name: "Age of Empires II: Definitive Edition (帝国时代2：决定版)", players: 10952},
+            {rank: 90, name: "幸福工厂", players: 10690},
+            {rank: 91, name: "Megabonk", players: 10505},
+            {rank: 92, name: "Hollow Knight: Silksong (空洞骑士：丝绸之歌)", players: 10476},
+            {rank: 93, name: "七日世界", players: 10461},
+            {rank: 94, name: "Factorio (异星工厂)", players: 10265},
+            {rank: 95, name: "Blender", players: 10261},
+            {rank: 96, name: "VTube Studio", players: 10248},
+            {rank: 97, name: "Left 4 Dead 2 (求生之路2)", players: 10058},
+            {rank: 98, name: "虚拟桌宠模拟器", players: 9998},
+            {rank: 99, name: "Unturned (未转变者)", players: 9972},
+            {rank: 100, name: "霍格沃茨之遗", players: 9779}
+        ];
+
+        let currentPage = 1;
+        const itemsPerPage = 50;
+        const totalPages = Math.ceil(games.length / itemsPerPage);
+
+        function displayPage(page) {
+            const start = (page - 1) * itemsPerPage;
+            const end = start + itemsPerPage;
+            const pageGames = games.slice(start, end);
+            
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+            
+            pageGames.forEach(game => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td class="rank">${game.rank}</td>
+                    <td>${game.name}</td>
+                    <td class="players">${game.players.toLocaleString()}</td>
+                `;
+            });
+            
+            updatePagination();
+        }
+
+        function updatePagination() {
+            const pageInfo = document.getElementById('pageInfo');
+            pageInfo.textContent = `第 ${currentPage} 页，共 ${totalPages} 页`;
+            
+            const buttonsContainer = document.getElementById('paginationButtons');
+            buttonsContainer.innerHTML = '';
+            
+            const prevBtn = document.createElement('button');
+            prevBtn.textContent = '上一页';
+            prevBtn.disabled = currentPage === 1;
+            prevBtn.onclick = () => {
+                if (currentPage > 1) {
+                    currentPage--;
+                    displayPage(currentPage);
+                }
+            };
+            buttonsContainer.appendChild(prevBtn);
+            
+            for (let i = 1; i <= totalPages; i++) {
+                const btn = document.createElement('button');
+                btn.textContent = i;
+                btn.className = i === currentPage ? 'active' : '';
+                btn.onclick = () => {
+                    currentPage = i;
+                    displayPage(currentPage);
+                };
+                buttonsContainer.appendChild(btn);
+            }
+            
+            const nextBtn = document.createElement('button');
+            nextBtn.textContent = '下一页';
+            nextBtn.disabled = currentPage === totalPages;
+            nextBtn.onclick = () => {
+                if (currentPage < totalPages) {
+                    currentPage++;
+                    displayPage(currentPage);
+                }
+            };
+            buttonsContainer.appendChild(nextBtn);
+        }
+
+        displayPage(1);
+    </script>
+</body>
+</html>

@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>人形机器人-传感器概述</title>
+    <script src="../A.插件_字体缩放.js"></script>
+    <style>
+        :root {
+            --primary-color: #0ea5e9;
+            --secondary-color: #0369a1;
+            --accent-color: #38bdf8;
+            --text-color: #e0f2fe;
+            --text-secondary: #7dd3fc;
+            --bg-color: #0c1929;
+            --border-color: #1e3a5f;
+            --hover-bg: #1e3a5f;
+            --code-bg: #0f172a;
+            --tree-line: #475569;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+            font-size: 15.6px;
+            line-height: 1.5;
+            color: var(--text-color);
+            background: linear-gradient(135deg, #0c1929 0%, #1e3a5f 50%, #0f172a 100%);
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: rgba(15, 23, 42, 0.9);
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            margin: 10px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: #fff;
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+            flex-shrink: 0;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        header::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+            animation: shimmer 3s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+        .header-content {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            flex: 1;
+        }
+
+        header h1 {
+            font-size: 21.6px;
+            font-weight: 600;
+            margin-bottom: 4px;
+            position: relative;
+        }
+
+        header p {
+            opacity: 0.9;
+            font-size: 14.4px;
+            position: relative;
+        }
+
+        .controls {
+            padding: 10px 16px;
+            background-color: var(--code-bg);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        .controls button {
+            background: linear-gradient(135deg, var(--accent-color), var(--secondary-color));
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 14.4px;
+            font-family: inherit;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .controls button:hover {
+            background: linear-gradient(135deg, var(--secondary-color), var(--primary-color));
+            transform: translateY(-1px);
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .tree-container {
+            flex: 1;
+            padding: 12px;
+            overflow: auto;
+            background-color: rgba(30, 58, 95, 0.2);
+        }
+
+        .tree-container::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .tree-container::-webkit-scrollbar-thumb {
+            background: var(--primary-color);
+            border-radius: 4px;
+        }
+
+        .tree ul {
+            list-style-type: none;
+            padding-left: 16px;
+            margin: 0;
+        }
+
+        .tree li {
+            position: relative;
+            padding: 1px 0;
+            white-space: nowrap;
+        }
+
+        .tree li::before {
+            content: "";
+            position: absolute;
+            left: -10px;
+            top: 8px;
+            width: 10px;
+            height: 1px;
+            background-color: var(--tree-line);
+        }
+
+        .tree li::after {
+            content: "";
+            position: absolute;
+            left: -10px;
+            top: -2px;
+            width: 1px;
+            height: 100%;
+            background-color: var(--tree-line);
+        }
+
+        .tree li:last-child::after {
+            height: 10px;
+        }
+
+        .tree > ul > li::before, .tree > ul > li::after {
+            display: none;
+        }
+
+        .tree-node {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            padding: 2px 4px;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+
+        .tree-node:hover {
+            background-color: var(--hover-bg);
+        }
+
+        .tree-content {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            min-width: 0;
+        }
+
+        .tree-name {
+            font-weight: 500;
+            font-size: 15.6px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: var(--text-color);
+        }
+
+        .folder-content .tree-name::before {
+            content: '▼';
+            display: inline-block;
+            width: 12px;
+            margin-right: 6px;
+            font-size: 12px;
+            color: var(--primary-color);
+        }
+
+        .collapsed .folder-content .tree-name::before {
+            content: '▶';
+        }
+
+        .file-content .tree-name::before {
+            content: '⚡';
+            display: inline-block;
+            width: 12px;
+            margin-right: 6px;
+            font-size: 12px;
+            color: var(--accent-color);
+        }
+
+        .collapsed > ul {
+            display: none;
+        }
+
+        .highlight {
+            background: linear-gradient(135deg, var(--accent-color), var(--secondary-color));
+            padding: 0 3px;
+            border-radius: 3px;
+            color: #fff;
+        }
+
+        footer {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 8px 16px;
+            text-align: center;
+            font-size: 12px;
+            border-top: 1px solid var(--border-color);
+            flex-shrink: 0;
+        }
+
+        @media (max-width: 768px) {
+            body { font-size: 14.4px; }
+            header h1 { font-size: 19.2px; }
+            header p { font-size: 13.2px; }
+            .tree ul { padding-left: 14px; }
+            .tree li { padding: 0.5px 0; }
+            .tree-name { font-size: 14.4px; }
+        }
+
+        @media (max-width: 480px) {
+            body { font-size: 15.6px; }
+            header h1 { font-size: 16.8px; }
+            header p { font-size: 12px; }
+            .tree ul { padding-left: 12px; }
+            .tree li { padding: 0; }
+            .tree-node { padding: 1px 3px; }
+            .tree-name { font-size: 13.2px; }
+            .tree-container { padding: 8px; }
+            .controls { padding: 8px 12px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <h1>人形机器人-传感器概述</h1>
+                <p>Humanoid Robot Sensor Panorama (2025-12-21)</p>
+            </div>
+        </header>
+        
+        <div class="controls">
+            <div class="action-buttons">
+                <button id="expandAll">展开全部</button>
+                <button id="collapseAll">折叠全部</button>
+            </div>
+        </div>
+        
+        <div class="tree-container">
+            <div class="tree" id="treeContainer"></div>
+        </div>
+        
+        <footer>
+            <p>© 2025 人形机器人-传感器概述 | Generated by 凉安</p>
+        </footer>
+    </div>
+
+    <script>
+        // 传感器数据结构
+        const sensorData = [
+            {
+                name: "力传感器（Force & Torque）",
+                children: [
+                    {
+                        name: "六维力/力矩传感器",
+                        children: [
+                            "腕部×2：实时测量手与环境交互的Fx/Fy/Fz/Mx/My/Mz",
+                            "踝部×2：行走/站立时地面反力完整6-DOF反馈",
+                            "核心指标：准度≤0.5%FS、串扰≤1%、过载≥5倍、带宽≥1kHz",
+                            "技术路线：金属箔片→硅基MEMS应变片→晶圆级封装+ASIC集成"
+                        ]
+                    },
+                    {
+                        name: "关节扭矩传感器",
+                        children: [
+                            "分布：肩×2、肘×2、髋×2、膝×2（共8处）",
+                            "功能：柔性示教、碰撞检测、负载惯量在线辨识",
+                            "量程：5N·m～120N·m，精度≤±0.1%FS"
+                        ]
+                    },
+                    {
+                        name: "指尖微型六维力/压力",
+                        children: [
+                            "数量：单手5指×2阵列=10颗",
+                            "尺寸：≤φ9mm×H4mm，量程10N，分辨率0.01N",
+                            "工艺：MEMS体硅+TSV通孔+柔性PCB转接"
+                        ]
+                    },
+                    {
+                        name: "谐波减速机力矩感知",
+                        children: [
+                            "原理：利用柔轮应变反算扭矩",
+                            "实现：柔轮杯口贴4片MEMS应变计",
+                            "优点：结构无冗余、成本低、温度漂移小"
+                        ]
+                    }
+                ]
+            },
+            {
+                name: "触觉传感器（Tactile / e-Skin）",
+                children: [
+                    {
+                        name: "柔性电子皮肤总览",
+                        children: [
+                            "覆盖区域：手指、手掌、四肢、前胸、后背、面部曲面",
+                            "机械指标：拉伸率≥1000%、疲劳寿命≥10⁶次、厚度≤80µm",
+                            "阵列指标：空间分辨率≤1mm、串扰≤-20dB、响应≤5ms"
+                        ]
+                    },
+                    {
+                        name: "阵列技术路线",
+                        children: [
+                            "压阻式阵列：碳纳米管+PDMS，动态范围0–200kPa",
+                            "压电式阵列：PVDF-TrFE纳米纤维，带宽1Hz–1kHz",
+                            "电容式阵列：微穹顶结构，灵敏度0.01pFkPa⁻¹",
+                            "多功能融合像素：压力+温度+粗糙度+滑动+摩擦+纹理"
+                        ]
+                    },
+                    {
+                        name: "材料体系",
+                        children: [
+                            "基底：PET、PDMS、聚酰亚胺、SEBS可拉伸封装",
+                            "敏感层：石墨烯、碳纳米管、有机聚合物、离电式离子凝胶"
+                        ]
+                    }
+                ]
+            },
+            {
+                name: "惯性传感器（Inertial）",
+                children: [
+                    {
+                        name: "IMU分布",
+                        children: [
+                            "头部×1：视觉SLAM同步，输出100Hz姿态",
+                            "胸部×2：主IMU冗余，抗冲击>10000g",
+                            "髋部×1：跌倒保护、步态积分，ZUPT修正"
+                        ]
+                    },
+                    {
+                        name: "核心器件",
+                        children: [
+                            "战术级MEMS陀螺仪：零偏不稳定性≤0.3°/h",
+                            "战术级MEMS加速度计：零偏稳定性≤0.05mg",
+                            "扩展：三轴磁力计+RTK-GPS，室外导航误差≤5cm"
+                        ]
+                    }
+                ]
+            },
+            {
+                name: "电流/磁场传感器",
+                children: [
+                    {
+                        name: "电机相电流检测",
+                        children: [
+                            "方案：分流电阻+隔离放大器、霍尔磁平衡、TMR电流传感器",
+                            "指标：带宽≥100kHz，精度≤±0.5%，响应≤1µs"
+                        ]
+                    },
+                    {
+                        name: "关节磁场编码器",
+                        children: [
+                            "原理：TMR/GMR阵列测量永磁体角度，绝对式14-bit",
+                            "优点：无接触、无磨损，抗油污粉尘，温度-40–150°C"
+                        ]
+                    }
+                ]
+            },
+            {
+                name: "视觉传感器",
+                children: [
+                    {
+                        name: "深度相机",
+                        children: [
+                            "类型：结构光、ToF、双目主动立体",
+                            "分布：头部×2（前向+下视），胸部×1（避障）",
+                            "参数：640×480@30fps，深度精度≤2mm@1m"
+                        ]
+                    },
+                    {
+                        name: "事件相机",
+                        children: [
+                            "功能：高速运动捕捉，动态范围120dB",
+                            "应用：快速手臂挥动、乒乓球击打训练"
+                        ]
+                    }
+                ]
+            },
+            {
+                name: "声学传感器",
+                children: [
+                    {
+                        name: "麦克风阵列",
+                        children: [
+                            "分布：头部环形6颗+胸部2颗，形成3D声场",
+                            "性能：48kHz采样，波束指向性±5°，支持远场唤醒"
+                        ]
+                    },
+                    {
+                        name: "骨传导拾音",
+                        children: [
+                            "原理：贴于颅骨，采集用户语音",
+                            "性能：抗环境噪声>30dB"
+                        ]
+                    }
+                ]
+            },
+            {
+                name: "支撑共性技术",
+                children: [
+                    {
+                        name: "MEMS体硅工艺",
+                        children: [
+                            "晶圆级：8英寸硅片一次切割≈1000颗芯片",
+                            "硅应变片：灵敏度50×金属箔，断裂强度>2GPa"
+                        ]
+                    },
+                    {
+                        name: "封装与集成",
+                        children: [
+                            "晶圆级封装：TSV通孔+玻璃微帽，厚度<0.3mm",
+                            "ASIC集成：24-bit ADC+DSP+CAN-FD"
+                        ]
+                    }
+                ]
+            },
+            {
+                name: "下游应用场景",
+                children: [
+                    "协作机器人：末端六维力+关节扭矩，实现柔性装配",
+                    "打磨机器人：六维力实时力控+电子皮肤防过切",
+                    "人形机器人：腕踝4颗六维力做整机力控+ZMP平衡"
+                ]
+            }
+        ];
+
+        // 转换数据为统一格式
+        function transformData(data) {
+            return data.map(item => {
+                if (typeof item === 'string') {
+                    return { name: item, type: 'file' };
+                } else if (item.children) {
+                    return {
+                        name: item.name,
+                        type: 'folder',
+                        children: transformData(item.children)
+                    };
+                } else {
+                    return { name: item.name, type: 'file' };
+                }
+            });
+        }
+
+        // 创建树节点
+        function createTreeNode(data) {
+            const li = document.createElement('li');
+            const nodeDiv = document.createElement('div');
+            nodeDiv.className = 'tree-node';
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'tree-content';
+            
+            if (data.type === 'folder') {
+                contentDiv.classList.add('folder-content');
+            } else {
+                contentDiv.classList.add('file-content');
+            }
+            
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'tree-name';
+            nameSpan.textContent = data.name;
+            contentDiv.appendChild(nameSpan);
+            
+            nodeDiv.appendChild(contentDiv);
+            li.appendChild(nodeDiv);
+            
+            if (data.children && data.children.length > 0) {
+                const ul = document.createElement('ul');
+                data.children.forEach(child => {
+                    ul.appendChild(createTreeNode(child));
+                });
+                li.appendChild(ul);
+            }
+            
+            return li;
+        }
+
+        // 初始化树形结构
+        function initTree() {
+            const treeContainer = document.getElementById('treeContainer');
+            treeContainer.innerHTML = '';
+            const ul = document.createElement('ul');
+            const transformedData = transformData(sensorData);
+            transformedData.forEach(item => {
+                ul.appendChild(createTreeNode(item));
+            });
+            treeContainer.appendChild(ul);
+            
+            // 默认折叠所有文件夹
+            document.querySelectorAll('.tree li:has(> ul)').forEach(li => {
+                li.classList.add('collapsed');
+            });
+        }
+
+        // 展开/折叠功能
+        document.getElementById('treeContainer').addEventListener('click', function(e) {
+            const treeNode = e.target.closest('.tree-node');
+            if (!treeNode) return;
+            
+            const folderContent = treeNode.querySelector('.folder-content');
+            if (!folderContent) return;
+            
+            const li = treeNode.parentElement;
+            li.classList.toggle('collapsed');
+        });
+
+        // 展开全部按钮
+        document.getElementById('expandAll').addEventListener('click', function() {
+            document.querySelectorAll('.tree li.collapsed').forEach(li => {
+                li.classList.remove('collapsed');
+            });
+        });
+
+        // 折叠全部按钮
+        document.getElementById('collapseAll').addEventListener('click', function() {
+            document.querySelectorAll('.tree li:has(.folder-content)').forEach(li => {
+                if (!li.parentElement.classList.contains('tree')) {
+                    li.classList.add('collapsed');
+                }
+            });
+        });
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            initTree();
+        });
+    </script>
+</body>
+</html>

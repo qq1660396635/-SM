@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>cflow 编译安装脚本</title>
+    
+        <!-- prism.js 语法高亮   -->
+      <script src="/A2_全局中心/B_插件缓存-CDN/1.prism代码高亮/1.prism-css-白色主题.js"></script>   
+      <script src="/A2_全局中心/B_插件缓存-CDN/1.prism代码高亮/prism-core.min.js"></script>    <!-- 核心文件 -->
+      <script src="/A2_全局中心/B_插件缓存-CDN/1.prism代码高亮/prism-bash.min.js"></script>   <!-- Bash语言支持 -->
+    <style>
+        /* 1. 全局重置和基础样式 */
+        * { 
+            margin: 0; 
+            padding: 0; 
+            box-sizing: border-box; 
+        }
+        
+        /* 2. 主体背景 - 现代简约渐变 */
+        body {
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-size: 70%; /* 调整字体大小为70% */
+            background: linear-gradient(135deg, #1a2942 0%, #2d4262 100%);
+            min-height: 100vh;
+            padding: 10px;
+            position: relative;
+            overflow-x: hidden;
+        }
+        
+        /* 3. 微妙的背景纹理 */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                radial-gradient(circle at 20% 50%, rgba(255,255,255,0.05) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255,255,255,0.03) 0%, transparent 50%),
+                radial-gradient(circle at 40% 80%, rgba(255,255,255,0.04) 0%, transparent 50%),
+                radial-gradient(circle at 90% 90%, rgba(255,255,255,0.02) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+        
+        /* 4. 容器样式 */
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+        
+        /* 5. 步骤指示器 */
+        .steps-indicator {
+            display: flex;
+            justify-content: space-between;
+            margin: 0 10px 15px 10px;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .step {
+            flex: 1;
+            text-align: center;
+            position: relative;
+            padding: 8px 5px;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.6);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .step::before {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 10%;
+            right: 10%;
+            height: 3px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+            transition: all 0.3s ease;
+        }
+        
+        .step.active::before {
+            background: linear-gradient(90deg, #4CAF50, #8BC34A);
+            height: 4px;
+        }
+        
+        .step.completed {
+            color: rgba(255, 255, 255, 0.9);
+        }
+        
+        .step.completed::before {
+            background: linear-gradient(90deg, #9E9E9E, #757575); /* 灰色 */
+            height: 4px;
+        }
+        
+        /* 6. 头部样式 */
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin: 0 10px 15px 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* 7. 标题样式 */
+        h1 {
+            font-size: 18px;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        /* 8. 复制全部按钮 */
+        .copy-all-btn {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .copy-all-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(76, 175, 80, 0.3);
+        }
+        
+        /* 9. 代码块容器 */
+        .code-block {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 10px;
+            margin: 0 10px 15px 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            position: relative;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .code-block:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+        }
+        
+        /* 10. 已完成状态遮罩和背景色 */
+        .code-block.completed {
+            background: rgba(189, 189, 189, 0.95); /* 灰色背景 */
+        }
+        
+        .code-block.completed::after {
+            content: '';
+            position: absolute;
+            top: 50px; /* 从标题栏下方开始遮罩 */
+            left: 0;
+            width: 100%;
+            height: calc(100% - 50px); /* 遮罩高度减去标题栏高度 */
+            background: rgba(0, 0, 0, 0.3);
+            z-index: 1;
+            pointer-events: none;
+        }
+        
+        .code-block.completed .module-title {
+            background: linear-gradient(135deg, #9E9E9E 0%, #757575 100%); /* 灰色标题栏 */
+        }
+        
+        .code-block.completed .module-title::after {
+            content: '✓ 已完成';
+            position: absolute;
+            right: 80px; /* 给复制按钮留出空间 */
+            top: 50%;
+            transform: translateY(-50%);
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+            z-index: 3;
+        }
+        
+        /* 11. 模块标题栏 */
+        .module-title {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            color: white;
+            padding: 10px 15px;
+            font-size: 14px;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            z-index: 3; /* 确保标题栏在遮罩层之上 */
+        }
+        
+        /* 12. 模块复制按钮 */
+        .module-copy-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background 0.2s;
+            position: relative;
+            z-index: 4; /* 确保复制按钮在最上层 */
+        }
+        
+        .module-copy-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        /* 13. 代码区域 */
+        .module-code {
+            padding: 0;
+            position: relative;
+            z-index: 2;
+        }
+        
+        /* 14. 代码预格式化 */
+        pre {
+            margin: 0;
+            padding: 15px;
+            overflow-x: auto;
+            background: #2d2d2d;
+        }
+        
+        /* 15. 代码字体样式 */
+        code {
+            font-family: 'SF Mono', 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+        
+        /* 16. 提示框样式 */
+        .toast {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 14px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+            z-index: 1000;
+        }
+        
+        .toast.show {
+            opacity: 1;
+        }
+        
+        /* 17. 信息区域 */
+        .info {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin: 0 10px 15px 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* 18. 信息标题 */
+        .info h2 {
+            color: #333;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+        
+        /* 19. 信息段落 */
+        .info p {
+            color: #666;
+            font-size: 13px;
+            line-height: 1.6;
+            margin-bottom: 8px;
+        }
+        
+        /* 20. 响应式设计 */
+        @media (max-width: 768px) {
+            body { padding: 5px; }
+            h1 { font-size: 16px; }
+            .copy-all-btn { padding: 6px 12px; font-size: 12px; }
+            code { font-size: 12px; }
+            .header, .code-block, .info {
+                margin-left: 5px;
+                margin-right: 5px;
+            }
+            .step {
+                font-size: 10px;
+                padding: 6px 3px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="steps-indicator">
+            <div class="step active" data-step="0">初始化</div>
+            <div class="step" data-step="1">准备目录</div>
+            <div class="step" data-step="2">安装依赖</div>
+            <div class="step" data-step="3">下载源码</div>
+            <div class="step" data-step="4">解压</div>
+            <div class="step" data-step="5">配置</div>
+            <div class="step" data-step="6">编译</div>
+            <div class="step" data-step="7">安装</div>
+            <div class="step" data-step="8">验证</div>
+        </div>
+        
+        <div class="header">
+            <h1>🔧 cflow 编译安装脚本</h1>
+            <button class="copy-all-btn" onclick="copyAll()">📋 复制全部</button>
+        </div>
+        
+        <div class="code-block" data-step="0" onclick="markCompleted(this)">
+            <div class="module-title">
+                <span>🚀 初始化</span>
+                <button class="module-copy-btn" onclick="copyModule(event, 0)">复制</button>
+            </div>
+            <div class="module-code">
+                <pre><code class="language-bash">#!/data/data/com.termux/files/usr/bin/bash
+set -euo pipefail
+RED='\033[0;31m'; GRN='\033[0;32m'; YLW='\033[0;33m'; RST='\033[0m'
+log_info(){ echo -e "${YLW}[INFO]${RST} $*"; }
+log_ok(){ echo -e "${GRN}[OK]${RST} $*"; }
+log_err(){ echo -e "${RED}[ERR]${RST} $*"; }
+PREFIX="/data/data/com.termux/files/usr"
+WORK="$HOME/cflow-work"
+TARBALL="$WORK/cflow-1.7.tar.gz"
+SOURCE="$WORK/cflow-1.7"</code></pre>
+            </div>
+        </div>
+        
+        <div class="code-block" data-step="1" onclick="markCompleted(this)">
+            <div class="module-title">
+                <span>① 准备工作目录</span>
+                <button class="module-copy-btn" onclick="copyModule(event, 1)">复制</button>
+            </div>
+            <div class="module-code">
+                <pre><code class="language-bash">log_info "① 创建工作目录"
+mkdir -p "$WORK"
+cd "$WORK"</code></pre>
+            </div>
+        </div>
+        
+        <div class="code-block" data-step="2" onclick="markCompleted(this)">
+            <div class="module-title">
+                <span>② 安装依赖</span>
+                <button class="module-copy-btn" onclick="copyModule(event, 2)">复制</button>
+            </div>
+            <div class="module-code">
+                <pre><code class="language-bash">log_info "② 安装依赖"
+for dep in clang make wget autoconf automake gettext binutils; do
+    command -v "$dep" &>/dev/null || pkg install -y "$dep"
+done
+log_ok "依赖就绪"</code></pre>
+            </div>
+        </div>
+        
+        <div class="code-block" data-step="3" onclick="markCompleted(this)">
+            <div class="module-title">
+                <span>③ 下载源码</span>
+                <button class="module-copy-btn" onclick="copyModule(event, 3)">复制</button>
+            </div>
+            <div class="module-code">
+                <pre><code class="language-bash">log_info "③ 下载源码"
+[[ -f $TARBALL ]] || wget -O "$TARBALL" https://ftp.gnu.org/gnu/cflow/cflow-1.7.tar.gz
+log_ok "下载完成"</code></pre>
+            </div>
+        </div>
+        
+        <div class="code-block" data-step="4" onclick="markCompleted(this)">
+            <div class="module-title">
+                <span>④ 解压</span>
+                <button class="module-copy-btn" onclick="copyModule(event, 4)">复制</button>
+            </div>
+            <div class="module-code">
+                <pre><code class="language-bash">log_info "④ 解压"
+tar -xzf "$TARBALL"
+cd "$SOURCE"
+log_ok "源码已解压到 $SOURCE"</code></pre>
+            </div>
+        </div>
+        
+        <div class="code-block" data-step="5" onclick="markCompleted(this)">
+            <div class="module-title">
+                <span>⑤ 配置</span>
+                <button class="module-copy-btn" onclick="copyModule(event, 5)">复制</button>
+            </div>
+            <div class="module-code">
+                <pre><code class="language-bash">log_info "⑤ 配置"
+./configure --prefix="$PREFIX"
+log_ok "配置完成"</code></pre>
+            </div>
+        </div>
+        
+        <div class="code-block" data-step="6" onclick="markCompleted(this)">
+            <div class="module-title">
+                <span>⑥ 编译</span>
+                <button class="module-copy-btn" onclick="copyModule(event, 6)">复制</button>
+            </div>
+            <div class="module-code">
+                <pre><code class="language-bash">log_info "⑥ 编译"
+make -j"$(nproc)"
+log_ok "编译完成"</code></pre>
+            </div>
+        </div>
+        
+        <div class="code-block" data-step="7" onclick="markCompleted(this)">
+            <div class="module-title">
+                <span>⑦ 安装</span>
+                <button class="module-copy-btn" onclick="copyModule(event, 7)">复制</button>
+            </div>
+            <div class="module-code">
+                <pre><code class="language-bash">log_info "⑦ 安装"
+make install
+log_ok "安装完成"</code></pre>
+            </div>
+        </div>
+        
+        <div class="code-block" data-step="8" onclick="markCompleted(this)">
+            <div class="module-title">
+                <span>⑧ 验证</span>
+                <button class="module-copy-btn" onclick="copyModule(event, 8)">复制</button>
+            </div>
+            <div class="module-code">
+                <pre><code class="language-bash">log_info "⑧ 验证"
+cflow --version
+log_ok "全部完成！用法：cflow <源文件>"</code></pre>
+            </div>
+        </div>
+        
+        <div class="info">
+            <h2>📋 说明</h2>
+            <p>此脚本用于在 Termux 环境中编译安装 GNU cflow 工具，cflow 是一个用于生成 C 语言控制流图的工具。</p>
+            <p>脚本执行流程：创建工作目录 → 安装依赖 → 下载源码 → 解压 → 配置 → 编译 → 安装 → 验证</p>
+            <p>使用方法：将脚本保存为 install_cflow.sh，然后执行 <code>bash install_cflow.sh</code></p>
+            <p>点击代码块可标记为已完成，步骤指示器会相应更新。</p>
+        </div>
+    </div>
+    
+    <div class="toast" id="toast">✅ 已复制</div>
+    
+    <script>
+        // 1. DOM内容加载完成事件
+        document.addEventListener('DOMContentLoaded', function() {
+            Prism.highlightAll();
+        });
+        
+        // 2. 复制单个模块代码
+        function copyModule(event, index) {
+            event.stopPropagation();
+            const modules = document.querySelectorAll('.module-code code');
+            const moduleCode = modules[index].textContent;
+            
+            navigator.clipboard.writeText(moduleCode).then(() => {
+                showToast();
+            });
+        }
+        
+        // 3. 复制全部代码
+        function copyAll() {
+            const allCode = Array.from(document.querySelectorAll('.module-code code'))
+                .map(code => code.textContent)
+                .join('\n');
+            navigator.clipboard.writeText(allCode).then(() => {
+                showToast();
+            });
+        }
+        
+        // 4. 显示提示框
+        function showToast() {
+            const toast = document.getElementById('toast');
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 1500);
+        }
+        
+        // 5. 标记代码块为已完成
+        function markCompleted(element) {
+            const step = element.getAttribute('data-step');
+            const stepIndicator = document.querySelector(`.steps-indicator .step[data-step="${step}"]`);
+            
+            if (element.classList.contains('completed')) {
+                element.classList.remove('completed');
+                stepIndicator.classList.remove('completed');
+            } else {
+                element.classList.add('completed');
+                stepIndicator.classList.add('completed');
+            }
+            
+            updateActiveStep();
+        }
+        
+        // 6. 更新活动步骤指示器
+        function updateActiveStep() {
+            const steps = document.querySelectorAll('.step');
+            const codeBlocks = document.querySelectorAll('.code-block');
+            
+            let foundActive = false;
+            for (let i = 0; i < steps.length; i++) {
+                if (!codeBlocks[i].classList.contains('completed')) {
+                    steps[i].classList.add('active');
+                    foundActive = true;
+                } else {
+                    steps[i].classList.remove('active');
+                }
+            }
+            
+            if (!foundActive) {
+                steps[steps.length - 1].classList.add('active');
+            }
+        }
+        
+        // 7. 步骤指示器点击事件
+        document.querySelectorAll('.step').forEach(step => {
+            step.addEventListener('click', function() {
+                const stepIndex = this.getAttribute('data-step');
+                const codeBlock = document.querySelector(`.code-block[data-step="${stepIndex}"]`);
+                if (codeBlock) {
+                    markCompleted(codeBlock);
+                }
+            });
+        });
+    </script>
+</body>
+</html>

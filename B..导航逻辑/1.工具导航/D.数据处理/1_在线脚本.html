@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mobile OS - 交互式手机操作系统</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; 
+            background: linear-gradient(135deg, #f9d423 0%, #ff4e50 30%, #f9d423 60%, #ffd200 100%) !important; 
+            height: 100vh; display: flex; justify-content: center; align-items: center; overflow: hidden; 
+            animation: backgroundShift 10s ease-in-out infinite !important; 
+        }
+        @keyframes backgroundShift {
+            0%,100% { background: linear-gradient(135deg, #667eea 0%, #764ba2 30%, #667eea 60%, #764ba2 100%) !important; }
+            25% { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 30%, #4facfe 60%, #00f2fe 100%) !important; }
+            50% { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 30%, #43e97b 60%, #38f9d7 100%) !important; }
+            75% { background: linear-gradient(135deg, #fa709a 0%, #fee140 30%, #fa709a 60%, #fee140 100%) !important; }
+        }
+        .phone-container { 
+            width: 375px; height: 812px; background: #000; border-radius: 40px; padding: 10px; 
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4); position: relative; 
+        }
+        .phone-screen { 
+            width: 100%; height: 100%; background: #fff; border-radius: 30px; overflow: hidden; 
+            position: relative; 
+        }
+        .status-bar { 
+            position: absolute; top: 0; left: 0; right: 0; height: 44px; 
+            background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(20px); 
+            display: flex; justify-content: space-between; align-items: center; 
+            padding: 0 20px; z-index: 1000; font-size: 14px; font-weight: 600; 
+        }
+        .status-left { display: flex; align-items: center; gap: 5px; }
+        .status-right { display: flex; align-items: center; gap: 5px; }
+        .home-screen { 
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0; 
+            padding-top: 44px; overflow-y: auto; display: block; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 30%, #f093fb 60%, #f5576c 100%); 
+            animation: backgroundShift 10s ease-in-out infinite; 
+        }
+        .app-grid { 
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; padding: 30px 20px; 
+        }
+        .app-icon { 
+            width: 60px; height: 60px; background: white; border-radius: 15px; 
+            display: flex; flex-direction: column; justify-content: center; align-items: center; 
+            cursor: pointer; transition: all 0.3s; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); 
+            position: relative; 
+        }
+        .app-icon:hover { transform: scale(1.1); box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2); }
+        .app-icon:active { transform: scale(0.95); }
+        .app-icon .icon { font-size: 28px; margin-bottom: 4px; color: white; }
+        .app-icon .name { font-size: 10px; color: #333; font-weight: 500; }
+        .bottom-nav { 
+            position: absolute; bottom: 0; left: 0; right: 0; height: 80px; 
+            background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(20px); 
+            display: flex; justify-content: space-around; align-items: center; 
+            border-top: 1px solid rgba(0, 0, 0, 0.1); 
+        }
+        .nav-item { 
+            display: flex; flex-direction: column; align-items: center; 
+            cursor: pointer; transition: all 0.3s; 
+        }
+        .nav-item:hover { transform: scale(1.1); }
+        .nav-item .icon { font-size: 24px; margin-bottom: 4px; }
+        .nav-item .label { font-size: 10px; color: #666; }
+        .settings-panel { 
+            position: absolute; top: 80px; right: 20px; width: 280px; 
+            background: rgba(255, 255, 255, 0.98); backdrop-filter: blur(10px); 
+            border-radius: 15px; padding: 20px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3); 
+            z-index: 2000; transform: scale(0.8) translateY(-20px); opacity: 0; 
+            visibility: hidden; transition: all 0.3s ease; pointer-events: none; 
+        }
+        .settings-panel.active { 
+            transform: scale(1) translateY(0); opacity: 1; visibility: visible; pointer-events: auto; 
+        }
+        .settings-header { 
+            display: flex; justify-content: space-between; align-items: center; 
+            margin-bottom: 20px; border-bottom: 2px solid #f9d423; padding-bottom: 8px; 
+        }
+        .settings-title { font-size: 18px; font-weight: 600; color: #333; }
+        .close-btn { 
+            background: none; border: none; font-size: 20px; cursor: pointer; color: #666; 
+        }
+        .close-btn:hover { color: #333; }
+        .settings-section { margin-bottom: 20px; }
+        .settings-section:last-child { margin-bottom: 0; }
+        .settings-section label { 
+            display: block; margin-bottom: 8px; color: #555; font-size: 14px; font-weight: 500; 
+        }
+        .mode-options { display: flex; gap: 15px; margin-bottom: 15px; }
+        .mode-option { display: flex; align-items: center; gap: 5px; }
+        .site-links { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .site-link { 
+            padding: 10px; background: linear-gradient(135deg, #f9d423, #ff4e50); 
+            color: white; border: none; border-radius: 10px; cursor: pointer; 
+            transition: all 0.3s; font-size: 14px; font-weight: 500; 
+        }
+        .site-link:hover { 
+            transform: translateY(-2px); box-shadow: 0 5px 15px rgba(249, 212, 35, 0.4); 
+        }
+        .site-link:active { transform: scale(0.95); }
+        #iframe-container { 
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(0, 0, 0, 0.9); z-index: 999; display: none; 
+            opacity: 0; transition: opacity 0.3s ease; 
+        }
+        #iframe-container.active { display: block; opacity: 1; }
+        #site-iframe { width: 100%; height: 100%; border: none; background: white; }
+        #back-button { 
+            position: fixed; top: 20px; left: 20px; width: 40px; height: 40px; 
+            border-radius: 50%; background: rgba(255, 255, 255, 0.9); border: none; 
+            font-size: 1.2rem; cursor: pointer; z-index: 1000; display: none; 
+            opacity: 0; transition: all 0.3s ease; box-shadow: 0 3px 15px rgba(0, 0, 0, 0.2); 
+        }
+        #back-button.show { display: block; opacity: 1; }
+        #back-button:hover { transform: scale(1.1); background: white; }
+        .debug-info { 
+            position: fixed; bottom: 5px; left: 50%; transform: translateX(-50%); 
+            font-size: 10px; color: rgba(255,255,255,0.6); text-align: center; z-index: 999; 
+        }
+        .debug-info.success { color: rgba(76, 175, 80, 0.8); }
+        .debug-info.error { color: rgba(244, 67, 54, 0.8); }
+        .error-modal { 
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(0,0,0,0.7); display: none; justify-content: center; 
+            align-items: center; z-index: 9999; 
+        }
+        .error-modal.show { display: flex; }
+        .error-content { 
+            background: white; padding: 30px; border-radius: 15px; max-width: 400px; 
+            text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.3); 
+        }
+        .error-content h3 { color: #f44336; margin-bottom: 15px; }
+        .error-content p { color: #666; margin-bottom: 20px; line-height: 1.5; }
+        .error-content button { 
+            padding: 10px 20px; background: linear-gradient(135deg, #f9d423, #ff4e50); 
+            color: white; border: none; border-radius: 8px; cursor: pointer; 
+            font-size: 14px; transition: all 0.3s ease; 
+        }
+        .error-content button:hover { 
+            transform: translateY(-2px); box-shadow: 0 4px 12px rgba(249, 212, 35, 0.4); 
+        }
+    </style>
+</head>
+<body>
+    <div class="phone-container">
+        <div class="phone-screen">
+            <!-- 状态栏-->
+            <div class="status-bar">
+                <div class="status-left">
+                    <span id="current-time">9:41</span>
+                </div>
+                <div class="status-right">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            </div>
+            
+            <!-- 主屏幕-->
+            <div class="home-screen" id="homeScreen">
+                <div class="app-grid" id="appGrid">
+                    <!-- 动态生成-->
+                </div>
+            </div>
+            
+            <!-- 底部导航栏-->
+            <div class="bottom-nav">
+                <div class="nav-item" onclick="goHome()">
+                    <div class="icon"></div>
+                    <div class="label">主屏幕</div>
+                </div>
+                <div class="nav-item" onclick="showNotification('控制中心', '控制中心功能开发中')">
+                    <div class="icon"></div>
+                    <div class="label">控制中心</div>
+                </div>
+                <div class="nav-item" onclick="openAppByIndex(2)">
+                    <div class="icon"></div>
+                    <div class="label">浏览器</div>
+                </div>
+                <div class="nav-item" onclick="toggleSettings()">
+                    <div class="icon">⚙️</div>
+                    <div class="label">设置</div>
+                </div>
+            </div>
+            
+            <!-- 设置面板- 控制面板-->
+            <div class="settings-panel" id="settingsPanel">
+                <div class="settings-header">
+                    <div class="settings-title">控制面板</div>
+                    <button class="close-btn" onclick="closeSettings()">✕</button>
+                </div>
+                <div class="settings-section">
+                    <label>打开模式</label>
+                    <div class="mode-options">
+                        <div class="mode-option">
+                            <input type="radio" id="redirect" name="openMode" value="redirect" checked>
+                            <label for="redirect">直接跳转</label>
+                        </div>
+                        <div class="mode-option">
+                            <input type="radio" id="iframe" name="openMode" value="iframe">
+                            <label for="iframe">嵌套模式</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="settings-section">
+                    <label>快速访问</label>
+                    <div class="site-links" id="siteLinks">
+                        <!-- 动态生成-->
+                    </div>
+                </div>
+                <div class="settings-section">
+                    <label>页面控制</label>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <button onclick="changeBackground()" style="padding: 8px; background: #f0f0f0; border: none; border-radius: 8px; cursor: pointer;">切换背景</button>
+                        <button onclick="resetSettings()" style="padding: 8px; background: #f0f0f0; border: none; border-radius: 8px; cursor: pointer;">重置设置</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- iframe 容器-->
+    <div id="iframe-container">
+        <iframe id="site-iframe" src="" allowfullscreen allow="fullscreen*;picture-in-picture *"></iframe>
+    </div>
+    
+    <!-- 返回按钮-->
+    <button id="back-button">←</button>
+    
+    <!-- 错误弹窗-->
+    <div class="error-modal" id="errorModal">
+        <div class="error-content">
+            <h3>⚠️配置文件加载失败</h3>
+            <p id="errorMessage">无法找到配置文件，请检查文件是否存在。</p>
+            <button onclick="closeErrorModal()">确定</button>
+        </div>
+    </div>
+    
+    <!-- 调试信息-->
+    <div class="debug-info" id="debugInfo"></div>
+
+    <script>
+        // 配置对象 - 直接内嵌，避免异步加载
+        window.phoneConfig = {
+            // 应用列表
+            apps: [
+                { 
+                    name: '脚本加速站', 
+                    url: 'https://soujiaoben.org/#/pages/list/list', 
+                    icon: '<i class="fas fa-code"></i>', 
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' 
+                },
+                { 
+                    name: '在线工具', 
+                    url: 'https://tool.lu/library/', 
+                    icon: '<i class="fas fa-tools"></i>', 
+                    background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' 
+                },
+                { 
+                    name: 'OpenUserJS', 
+                    url: 'https://openuserjs.org/?sharetype=link', 
+                    icon: '<i class="fas fa-globe"></i>', 
+                    background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)' 
+                },
+                { 
+                    name: 'XSS 速查表', 
+                    url: 'https://portswigger.net/web-security/cross-site-scripting/cheat-sheet', 
+                    icon: '<i class="fas fa-bug"></i>', 
+                    background: 'linear-gradient(135deg, #ff6b6b 0%, #feca57 100%)' 
+                }
+            ],
+            // 站点列表（用于设置面板的快速访问）
+            sites: [
+                { 
+                    name: '脚本加速站', 
+                    url: 'https://soujiaoben.org/#/pages/list/list', 
+                    icon: 'fas fa-code' 
+                },
+                { 
+                    name: '在线工具', 
+                    url: 'https://tool.lu/library/', 
+                    icon: 'fas fa-tools' 
+                }, 
+                { 
+                    name: 'OpenUserJS', 
+                    url: 'https://openuserjs.org/?sharetype=link', 
+                    icon: 'fas fa-globe' 
+                }, 
+                { 
+                    name: 'XSS 速查表', 
+                    url: 'https://portswigger.net/web-security/cross-site-scripting/cheat-sheet', 
+                    icon: 'fas fa-bug' 
+                }
+            ],
+            // 备选图标数组
+            iconPool: [
+                { icon: 'fas fa-phone', name: '电话' }, 
+                { icon: 'fas fa-comment', name: '信息' }, 
+                { icon: 'fas fa-music', name: '音乐' }, 
+                { icon: 'fas fa-sun', name: '天气' }, 
+                { icon: 'fas fa-sticky-note', name: '备忘录' }, 
+                { icon: 'fas fa-calculator', name: '计算器' }, 
+                { icon: 'fas fa-camera', name: '相机' }, 
+                { icon: 'fas fa-image', name: '相册' }, 
+                { icon: 'fas fa-cog', name: '设置' }, 
+                { icon: 'fas fa-clock', name: '时钟' }, 
+                { icon: 'fas fa-map', name: '地图' }, 
+                { icon: 'fas fa-shopping-bag', name: '商店' } 
+            ],
+            // 默认打开模式
+            defaultMode: 'redirect', // 可选值：'redirect'（直接跳转）, 'iframe'（嵌套）
+            // 公共方法 - 移除异步延迟
+            getAllApps() {
+                return this.apps;
+            },
+            getSites() {
+                return this.sites;
+            },
+            getIconPool() {
+                return this.iconPool;
+            },
+            getRandomIcon() {
+                const pool = this.iconPool;
+                return pool[Math.floor(Math.random() * pool.length)];
+            }
+        };
+
+        // 全局变量
+        let isSettingsOpen = false;
+        let allApps = [];
+        let currentBgIndex = 0;
+        const backgrounds = [
+            'linear-gradient(135deg, #f9d423 0%, #ff4e50 30%, #f9d423 60%, #ffd200 100%)',
+            'linear-gradient(135deg, #667eea 0%, #764ba2 30%, #667eea 60%, #764ba2 100%)',
+            'linear-gradient(135deg, #4facfe 0%, #00f2fe 30%, #4facfe 60%, #00f2fe 100%)',
+            'linear-gradient(135deg, #43e97b 0%, #38f9d7 30%, #43e97b 60%, #38f9d7 100%)',
+            'linear-gradient(135deg, #fa709a 0%, #fee140 30%, #fa709a 60%, #fee140 100%)',
+            'linear-gradient(135deg, #30cfd0 0%, #330867 30%, #30cfd0 60%, #330867 100%)'
+        ];
+
+        // 时间更新
+        function updateTime() {
+            const now = new Date();
+            const hours = now.getHours().toString().padStart(2, '0');
+            const minutes = now.getMinutes().toString().padStart(2, '0');
+            const timeString = `${hours}:${minutes}`;
+            document.getElementById('current-time').textContent = timeString;
+        }
+        setInterval(updateTime, 1000);
+        updateTime();
+
+        // 显示调试信息
+        function showDebugInfo(message, type = 'success') {
+            const debugInfo = document.getElementById('debugInfo');
+            debugInfo.textContent = message;
+            debugInfo.className = `debug-info ${type}`;
+            setTimeout(() => {
+                debugInfo.textContent = '';
+                debugInfo.className = 'debug-info';
+            }, 3000);
+        }
+
+        // 显示错误弹窗
+        function showErrorModal(message) {
+            document.getElementById('errorMessage').textContent = message;
+            document.getElementById('errorModal').classList.add('show');
+        }
+
+        // 关闭错误弹窗
+        function closeErrorModal() {
+            document.getElementById('errorModal').classList.remove('show');
+        }
+
+        // 初始化应用 - 移除异步加载
+        function initApps() {
+            // 检查配置文件是否加载
+            if (typeof window.phoneConfig === 'undefined') {
+                showErrorModal('无法找到配置文件，请检查文件是否存在。');
+                showDebugInfo('配置文件加载失败', 'error');
+                return;
+            }
+            
+            // 检查必要的方法是否存在
+            if (typeof window.phoneConfig.getAllApps !== 'function') {
+                showErrorModal('配置文件中缺少getAllApps 方法，请检查配置文件格式。');
+                showDebugInfo('配置文件格式错误', 'error');
+                return;
+            }
+            
+            try {
+                // 直接获取应用数据，不使用Promise
+                const apps = window.phoneConfig.getAllApps();
+                allApps = apps;
+                renderApps(apps);
+                
+                // 初始化设置面板的网站链接
+                initSiteLinks();
+                
+                showDebugInfo(`配置文件加载成功，共加载${apps.length}个应用`, 'success');
+            } catch (error) {
+                showErrorModal('配置文件解析失败：' + error.message);
+                showDebugInfo('配置文件解析失败', 'error');
+            }
+        }
+
+        // 渲染应用图标
+        function renderApps(apps) {
+            const appGrid = document.getElementById('appGrid');
+            appGrid.innerHTML = '';
+            
+            apps.forEach((app, index) => {
+                const appIcon = document.createElement('div');
+                appIcon.className = 'app-icon';
+                appIcon.style.background = app.background || 'white';
+                appIcon.onclick = () => openAppByIndex(index);
+                appIcon.innerHTML = `
+                    <div class="icon">${app.icon}</div>
+                    <div class="name">${app.name}</div>
+                `;
+                appGrid.appendChild(appIcon);
+            });
+        }
+
+        // 根据索引打开应用
+        function openAppByIndex(index) {
+            if (allApps[index]) {
+                const app = allApps[index];
+                if (app.url) {
+                    openSite(app.url);
+                } else {
+                    showNotification('提示', `${app.name} 应用正在开发中`);
+                }
+            }
+        }
+
+        // 初始化网站链接 - 移除异步加载
+        function initSiteLinks() {
+            const siteLinks = document.getElementById('siteLinks');
+            siteLinks.innerHTML = '';
+            
+            // 直接获取站点数据，不使用Promise
+            const sites = window.phoneConfig.getSites();
+            sites.forEach(site => {
+                const btn = document.createElement('button');
+                btn.className = 'site-link';
+                btn.innerHTML = `<i class="${site.icon}"></i>${site.name}`;
+                btn.onclick = () => openSite(site.url);
+                siteLinks.appendChild(btn);
+            });
+        }
+
+        // 打开网站 - 优化iframe加载
+        function openSite(url) {
+            const mode = document.querySelector('input[name="openMode"]:checked').value;
+            
+            if (mode === 'iframe') {
+                // 嵌套模式
+                const iframeContainer = document.getElementById('iframe-container');
+                const siteIframe = document.getElementById('site-iframe');
+                const backButton = document.getElementById('back-button');
+                
+                siteIframe.src = url; // 直接设置src，不使用延迟
+                iframeContainer.classList.add('active');
+                backButton.classList.add('show');
+            } else {
+                // 直接跳转
+                window.open(url, '_blank');
+            }
+        }
+
+        // 关闭iframe
+        function closeIframe() {
+            const iframeContainer = document.getElementById('iframe-container');
+            const siteIframe = document.getElementById('site-iframe');
+            const backButton = document.getElementById('back-button');
+            
+            iframeContainer.classList.remove('active');
+            backButton.classList.remove('show');
+            siteIframe.src = ''; // 直接清空src，不使用延迟
+        }
+
+        // 返回主屏幕
+        function goHome() {
+            closeIframe();
+        }
+
+        // 切换设置面板
+        function toggleSettings() {
+            const panel = document.getElementById('settingsPanel');
+            isSettingsOpen = !isSettingsOpen;
+            
+            if (isSettingsOpen) {
+                panel.classList.add('active');
+                showDebugInfo('控制面板已打开', 'success');
+            } else {
+                panel.classList.remove('active');
+            }
+        }
+
+        // 关闭设置面板
+        function closeSettings() {
+            document.getElementById('settingsPanel').classList.remove('active');
+            isSettingsOpen = false;
+        }
+
+        // 切换背景
+        function changeBackground() {
+            currentBgIndex = (currentBgIndex + 1) % backgrounds.length;
+            document.body.style.background = backgrounds[currentBgIndex];
+            showDebugInfo('背景已切换', 'success');
+        }
+
+        // 重置设置
+        function resetSettings() {
+            document.getElementById('redirect').checked = true;
+            currentBgIndex = 0;
+            document.body.style.background = backgrounds[0];
+            showDebugInfo('设置已重置', 'success');
+        }
+
+        // 显示通知
+        function showNotification(title, body) {
+            // 简化通知实现
+            alert(`${title}: ${body}`);
+        }
+
+        // 绑定返回按钮事件
+        document.getElementById('back-button').addEventListener('click', closeIframe);
+
+        // 点击页面其他地方关闭设置面板
+        document.addEventListener('click', function(event) {
+            const settingsPanel = document.getElementById('settingsPanel');
+            const settingsBtn = event.target.closest('.nav-item:nth-child(4)');
+            
+            if (!event.target.closest('.settings-panel') && !settingsBtn && isSettingsOpen) {
+                closeSettings();
+            }
+        });
+
+        // ESC 键关闭
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeErrorModal();
+                if (document.getElementById('iframe-container').classList.contains('active')) {
+                    closeIframe();
+                }
+                closeSettings();
+            }
+        });
+
+        // 页面加载时初始化
+        window.addEventListener('load', initApps);
+
+        // 强制设置初始背景
+        document.addEventListener('DOMContentLoaded', function() {
+            document.body.style.background = backgrounds[0];
+        });
+    </script>
+</body>
+</html>

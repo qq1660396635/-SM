@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MD转HTML工具</title>
+    
+    <!-- prism.js 语法高亮 -->
+    <script src="/A2_全局中心/B_插件缓存-CDN/1.prism代码高亮/1.prism-css-白色主题.js"></script>
+    <script src="/A2_全局中心/B_插件缓存-CDN/1.prism代码高亮/prism-core.min.js"></script>
+    <!-- 核心文件-->
+    <script src="/A2_全局中心/B_插件缓存-CDN/1.prism代码高亮/prism-python.min.js"></script>
+    <!-- Python 语言支持-->
+    
+    <!-- 引入缩放插件-->
+    <script src="/A2_全局中心/B_插件工具/3.插件_字体缩放.js"></script>
+    
+    <style>
+        /* 1. 基础样式重置*/
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        /* 2. 页面主体样式 - 蓝紫渐变背景*/
+        body {
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            /* 蓝紫色渐变背景 + 网格纹理*/
+            background: 
+                repeating-linear-gradient(
+                    0deg, 
+                    rgba(255, 255, 255, 0.03), 
+                    rgba(255, 255, 255, 0.03) 1px, 
+                    transparent 1px, 
+                    transparent 20px
+                ),
+                repeating-linear-gradient(
+                    90deg, 
+                    rgba(255, 255, 255, 0.03), 
+                    rgba(255, 255, 255, 0.03) 1px, 
+                    transparent 1px, 
+                    transparent 20px
+                ),
+                linear-gradient(135deg, #667eea 0%, #764ba2 25%, #6B8DD6 50%, #8E37D7 75%, #7F00FF 100%);
+            color: #2c3e50;
+            line-height: 1.6;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        /* 3. 主容器*/
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+/* 4. 页面标题 - 瘦身版 */
+h3 {
+    color: #4a90e2;
+    margin-bottom: 12px;   /* 30→12，地盘立刻小一半 */
+    font-size: 20px;       /* 28→20，字也小一圈 */
+    line-height: 1.2;      /* 再加个行高，上下空白再挤一层 */
+    display: flex;
+    align-items: center;
+    gap: 8px;              /* 图标和字间距也可以稍收一点 */
+    text-shadow: 0 1px 2px rgba(74, 144, 226, 0.3); /* 阴影轻一点 */
+    animation: slideDown 0.6s ease-out;
+}
+
+        
+        /* 5. 代码块容器*/
+        .code-container {
+            background: #ffffff;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e1e8ed;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        /* 6. 代码块悬停效果*/
+        .code-container:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+        }
+        
+        /* 7. 代码头部*/
+        .code-header {
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            padding: 15px 20px;
+            border-bottom: 1px solid #dee2e6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        /* 8. 代码标题*/
+        .code-title {
+            color: #ffffff;
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+        
+        /* 9. 复制按钮*/
+        .copy-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);
+        }
+        
+        /* 10. 复制按钮悬停效果*/
+        .copy-btn:hover {
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+            transform: scale(1.05);
+            box-shadow: 0 4px 8px rgba(102, 126, 234, 0.4);
+        }
+        
+        /* 11. 复制按钮已复制状态*/
+        .copy-btn.copied {
+            background: linear-gradient(135deg, #00d2ff 0%, #3a7bd5 100%);
+        }
+        
+        /* 12. 代码内容区*/
+        pre {
+            background: #f8f9fa;
+            padding: 20px;
+            overflow-x: auto;
+            font-size: 13px;
+            line-height: 1.5;
+            border-radius: 0 0 12px 12px;
+            margin: 0;
+        }
+        
+        /* 13. 代码标签*/
+        code {
+            color: #495057;
+            font-family: inherit;
+            white-space: pre;
+        }
+        
+        /* 14. 底部信息区 - 正常流式布局，随页面滚动*/
+        .info-section {
+            margin-top: 30px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            border: 1px solid #e1e8ed;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+        
+        /* 15. 信息区标题*/
+        .info-section h2 {
+            color: #667eea;
+            margin-bottom: 8px;
+            font-size: 18px;
+        }
+        
+        /* 16. 信息网格布局*/
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 12px;
+            margin-top: 10px;
+        }
+        
+        /* 17. 信息项*/
+        .info-item {
+            background: rgba(248, 249, 250, 0.9);
+            padding: 10px;
+            border-radius: 8px;
+            border-left: 3px solid #667eea;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        /* 18. 信息项悬停效果*/
+        .info-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* 19. 信息标签*/
+        .info-label {
+            color: #6c757d;
+            font-size: 11px;
+            margin-bottom: 3px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        /* 20. 信息内容*/
+        .info-content {
+            color: #2c3e50;
+            font-size: 12px;
+        }
+        
+        /* 21. Toast 提示*/
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #667eea;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 6px;
+            font-size: 14px;
+            z-index: 1000;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        
+        /* 22. Toast 显示状态*/
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        /* 23. 响应式设计*/
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            pre {
+                padding: 15px;
+                font-size: 12px;
+            }
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        /* 24. 动画定义*/
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        /* 25. 滑入动画*/
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h3>MD转HTML工具</h3>
+        
+        <div class="code-container">
+            <div class="code-header">
+                <span class="code-title">md_to_html.py</span>
+                <button class="copy-btn" id="copyBtn">
+                    <span>📋</span>
+                    <span id="copyBtnText">复制</span>
+                </button>
+            </div>
+            <pre><code id="codeContent" class="language-python">#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Termux 批量md →手机竖屏html
+"""
+import os
+import pathlib
+import markdown
+from datetime import datetime
+
+# 1. 待遍历的md 目录
+SRC_DIR = "/storage/emulated/0/Android/LLS_2025/Xmind/测试/Linux内核文章"
+
+# 2. 输出html 的根目录
+DST_DIR = "/storage/emulated/0/Android/LLS_2025/Xmind/测试/linux内核文章转换"
+
+# 3. 极简手机竖屏CSS
+CSS = """&lt;style&gt;
+body{margin:0;padding:1em;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans",sans-serif;line-height:1.6;font-size:15px;color:#222;background:#fff}
+h1,h2,h3,h4,h5,h6{margin-top:1.2em;margin-bottom:.6em;font-weight:600}
+pre{background:#f6f8fa;padding:.8em;border-radius:4px;overflow-x:auto}
+code{background:#f6f8fa;padding:.2em .4em;border-radius:3px;font-size:90%}
+blockquote{margin:0;padding-left:1em;border-left:4px solid #dfe2e5;color:#6a737d}
+img{max-width:100%;height:auto}
+table{border-collapse:collapse;width:100%}
+th,td{border:1px solid #ddd;padding:.4em}
+th{background:#f6f8fa}
+&lt;/style&gt;"""
+
+def ensure_dir(p: pathlib.Path):
+    p.mkdir(parents=True, exist_ok=True)
+
+def md_to_html(md_text: str) -> str:
+    """md → 完整html 字符串"""
+    md = markdown.Markdown(extensions=["extra", "codehilite", "toc"])
+    content = md.convert(md_text)
+    title = md.Meta.get("title", [""])[0] if hasattr(md, "Meta") else ""
+    if not title:
+        # 取第一行#标题或文件名
+        title = content.splitlines()[0].replace("&lt;h1&gt;", "").replace("&lt;/h1&gt;", "").strip()
+    
+    html = f"""&lt;!DOCTYPE html&gt;
+&lt;html lang="zh-CN"&gt;
+&lt;head&gt;
+    &lt;meta charset="utf-8"&gt;
+    &lt;meta name="viewport" content="width=device-width,initial-scale=1"&gt;
+    &lt;title&gt;{title}&lt;/title&gt;
+    {CSS}
+&lt;/head&gt;
+&lt;body&gt;
+    {content}
+    &lt;hr&gt;
+    &lt;small&gt;Generated by 凉安 @ {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}&lt;/small&gt;
+&lt;/body&gt;
+&lt;/html&gt;"""
+    return html
+
+def main():
+    src_path = pathlib.Path(SRC_DIR).expanduser()
+    dst_path = pathlib.Path(DST_DIR).expanduser()
+    ensure_dir(dst_path)
+    
+    if not src_path.is_dir():
+        print("源目录不存在：", src_path)
+        return
+    
+    md_files = list(src_path.rglob("*.md"))
+    if not md_files:
+        print("⚠️ 未找到任何.md 文件")
+        return
+    
+    for md_file in md_files:
+        rel = md_file.relative_to(src_path).with_suffix(".html")
+        out_file = dst_path / rel
+        ensure_dir(out_file.parent)
+        html = md_to_html(md_file.read_text(encoding="utf-8"))
+        out_file.write_text(html, encoding="utf-8")
+        print("  ", out_file)
+    
+    print(f"🎉全部完成，共转换{len(md_files)} 个文件→{dst_path}")
+
+if __name__ == "__main__":
+    main()</code></pre>
+        </div>
+        
+        <div class="info-section">
+            <h2>📋脚本功能</h2>
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label">🎯功能</div>
+                    <div class="info-content">批量将Markdown文件转换为手机竖屏适配的HTML文件</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">📁输入</div>
+                    <div class="info-content">从指定目录递归查找所有.md文件</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">📤输出</div>
+                    <div class="info-content">在目标目录生成对应HTML文件，保持原目录结构</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">⚡特性</div>
+                    <div class="info-content">支持代码高亮、目录生成，适配手机竖屏阅读</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">🛠️依赖</div>
+                    <div class="info-content">需要安装markdown库：pip install markdown</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">📱样式</div>
+                    <div class="info-content">内置极简CSS，支持响应式布局</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Toast 提示-->
+    <div class="toast" id="toast"></div>
+    
+    <script>
+        // 1. 复制按钮点击事件处理
+        document.getElementById('copyBtn').addEventListener('click', function() {
+            const copyBtn = this;
+            const copyBtnText = document.getElementById('copyBtnText');
+            const toast = document.getElementById('toast');
+            
+            // 获取纯文本内容（去除HTML标签）
+            const codeElement = document.getElementById('codeContent');
+            const textContent = codeElement.textContent || codeElement.innerText;
+            
+            // 使用现代API复制
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(textContent).then(function() {
+                    // 显示成功提示
+                    handleCopySuccess(copyBtn, copyBtnText, toast);
+                }).catch(function(err) {
+                    showCopyError(copyBtn, copyBtnText, toast);
+                });
+            } else {
+                // 备用方法
+                fallbackCopy(textContent, copyBtn, copyBtnText, toast);
+            }
+        });
+        
+        // 2. 处理复制成功
+        function handleCopySuccess(copyBtn, copyBtnText, toast) {
+            copyBtn.classList.add('copied');
+            copyBtnText.textContent = '已复制';
+            
+            // 显示toast
+            toast.textContent = '脚本已复制到剪贴板';
+            toast.classList.add('show');
+            
+            // 2秒后恢复按钮状态
+            setTimeout(function() {
+                copyBtn.classList.remove('copied');
+                copyBtnText.textContent = '复制';
+            }, 2000);
+            
+            // 3秒后隐藏toast
+            setTimeout(function() {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+        
+        // 3. 备用复制方法
+        function fallbackCopy(text, copyBtn, copyBtnText, toast) {
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            textArea.style.position = 'fixed';
+            textArea.style.opacity = '0';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    handleCopySuccess(copyBtn, copyBtnText, toast);
+                } else {
+                    showCopyError(copyBtn, copyBtnText, toast);
+                }
+            } catch (err) {
+                showCopyError(copyBtn, copyBtnText, toast);
+            }
+            
+            document.body.removeChild(textArea);
+        }
+        
+        // 4. 显示复制错误
+        function showCopyError(copyBtn, copyBtnText, toast) {
+            // 显示错误提示
+            toast.textContent = '复制失败，请手动选择复制';
+            toast.style.background = '#e74c3c';
+            toast.classList.add('show');
+            
+            // 3秒后隐藏toast
+            setTimeout(function() {
+                toast.classList.remove('show');
+                toast.style.background = '#667eea';
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,1975 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTML 代码审查报告生成器</title>
+    
+    <!-- 3. 字体缩放插件 -->
+    <script src="/A2_全局中心/B_插件工具/3.插件_字体缩放.js"></script>
+    
+    <style>
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --success-color: #28a745;
+            --warning-color: #ffc107;
+            --danger-color: #dc3545;
+            --info-color: #17a2b8;
+            --light-bg: #f8f9fa;
+            --dark-text: #333;
+            --light-text: #666;
+            --border-color: #e0e0e0;
+            --shadow: 0 6px 15px rgba(0, 0, 0, 0.06);
+            --border-radius: 0.6rem;
+            --transition: all 0.25s ease;
+            --spacing-xs: 0.3rem;
+            --spacing-sm: 0.6rem;
+            --spacing-md: 0.9rem;
+            --spacing-lg: 1.2rem;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            font-size: 14px;
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.3;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            min-height: 100vh;
+            color: var(--dark-text);
+            padding: var(--spacing-xs);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: var(--spacing-sm);
+        }
+
+        /* 输入页面样式 */
+        #input-page {
+            display: block;
+        }
+
+        #report-page {
+            display: none;
+        }
+
+        .page {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            box-shadow: var(--shadow);
+            margin-top: var(--spacing-sm);
+            min-height: auto;
+            transition: var(--transition);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            margin-bottom: var(--spacing-xs);
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 700;
+        }
+
+        .header p {
+            color: var(--light-text);
+            font-size: 0.85rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .code-input-container {
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .code-input-container label {
+            display: block;
+            margin-bottom: var(--spacing-xs);
+            color: var(--dark-text);
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+
+        textarea {
+            width: 100%;
+            height: 180px;
+            padding: var(--spacing-sm);
+            border: 2px solid var(--border-color);
+            border-radius: 0.5rem;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.8rem;
+            line-height: 1.3;
+            resize: vertical;
+            transition: var(--transition);
+            background-color: #f9f9f9;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.15);
+        }
+
+        .btn-container {
+            text-align: center;
+            margin-top: var(--spacing-md);
+        }
+
+        .btn {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            border: none;
+            padding: 0.6rem 1.5rem;
+            font-size: 0.85rem;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: var(--transition);
+            font-weight: 600;
+            box-shadow: 0 3px 8px rgba(102, 126, 234, 0.2);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        /* 报告页面样式 */
+        .report-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-sm);
+            border-bottom: 2px solid var(--border-color);
+            flex-wrap: wrap;
+            gap: var(--spacing-xs);
+        }
+
+        .back-btn {
+            background: var(--light-bg);
+            color: var(--dark-text);
+            border: none;
+            padding: 0.4rem 1rem;
+            border-radius: 18px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: var(--transition);
+            font-size: 0.8rem;
+        }
+
+        .back-btn:hover {
+            background: #e0e0e0;
+        }
+
+        /* 分页卡片容器 */
+        .cards-container {
+            position: relative;
+            overflow: hidden;
+            min-height: 250px;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .cards-wrapper {
+            display: flex;
+            transition: transform 0.4s ease;
+        }
+
+        .card {
+            flex: 0 0 100%;
+            padding: var(--spacing-sm);
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+            min-height: auto;
+        }
+
+        .card-title {
+            color: var(--dark-text);
+            font-size: 1.1rem;
+            margin-bottom: var(--spacing-sm);
+            padding-bottom: var(--spacing-xs);
+            border-bottom: 2px solid var(--primary-color);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-xs);
+        }
+
+        .card-content {
+            padding: var(--spacing-xs) 0;
+        }
+
+        /* 分页控制 */
+        .pagination {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: var(--spacing-md);
+            padding-top: var(--spacing-sm);
+            border-top: 1px solid var(--border-color);
+            flex-wrap: wrap;
+            gap: var(--spacing-xs);
+        }
+
+        .page-btn {
+            background: var(--light-bg);
+            color: var(--dark-text);
+            border: none;
+            padding: 0.4rem 1rem;
+            border-radius: 18px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: var(--transition);
+            font-size: 0.8rem;
+        }
+
+        .page-btn:hover:not(:disabled) {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .page-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .page-indicator {
+            display: flex;
+            gap: 3px;
+        }
+
+        .page-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--border-color);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .page-dot.active {
+            background: var(--primary-color);
+            transform: scale(1.3);
+        }
+
+        /* 结果样式 - 紧凑设计 */
+        .result-section {
+            margin-bottom: var(--spacing-md);
+        }
+
+        .result-title {
+            color: var(--dark-text);
+            font-size: 0.9rem;
+            margin-bottom: var(--spacing-xs);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-xs);
+        }
+
+        .result-title i {
+            font-style: normal;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 20px;
+            height: 20px;
+            background: var(--primary-color);
+            color: white;
+            border-radius: 50%;
+            font-size: 0.7rem;
+        }
+
+        .result-list {
+            background: var(--light-bg);
+            border-radius: 0.5rem;
+            padding: var(--spacing-sm);
+        }
+
+        .result-item {
+            padding: var(--spacing-xs) var(--spacing-sm);
+            margin-bottom: 3px;
+            background: white;
+            border-left: 3px solid var(--primary-color);
+            border-radius: 0.3rem;
+            font-size: 0.8rem;
+            transition: var(--transition);
+            line-height: 1.2;
+        }
+
+        .result-item:hover {
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+        }
+
+        .result-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .result-item.warning {
+            border-left-color: var(--warning-color);
+            background: #fffdf7;
+        }
+
+        .result-item.danger {
+            border-left-color: var(--danger-color);
+            background: #fff5f5;
+        }
+
+        .result-item.success {
+            border-left-color: var(--success-color);
+            background: #f8fff9;
+        }
+
+        .result-item.info {
+            border-left-color: var(--info-color);
+            background: #f7feff;
+        }
+
+        .result-code {
+            background: #2d2d2d;
+            color: #fff;
+            padding: var(--spacing-xs);
+            border-radius: 0.3rem;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.75rem;
+            overflow-x: auto;
+            margin: var(--spacing-xs) 0;
+        }
+
+        /* 紧凑的统计网格 */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: var(--spacing-xs);
+            margin: var(--spacing-sm) 0;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            padding: var(--spacing-sm);
+            border-radius: 0.5rem;
+            text-align: center;
+            transition: var(--transition);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(102, 126, 234, 0.2);
+        }
+
+        .stat-number {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin: 2px 0;
+        }
+
+        .stat-label {
+            font-size: 0.65rem;
+            opacity: 0.9;
+        }
+
+        /* 内部分页样式 */
+        .inner-pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: var(--spacing-sm);
+            gap: var(--spacing-xs);
+        }
+
+        .inner-page-btn {
+            background: var(--light-bg);
+            color: var(--dark-text);
+            border: none;
+            padding: 0.2rem 0.6rem;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: var(--transition);
+            font-size: 0.75rem;
+        }
+
+        .inner-page-btn:hover:not(:disabled) {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .inner-page-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .inner-page-info {
+            font-size: 0.75rem;
+            color: var(--light-text);
+        }
+
+        /* 安全速查清单样式 */
+        .security-checklist {
+            background: var(--light-bg);
+            border-radius: 0.5rem;
+            padding: var(--spacing-sm);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .checklist-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: var(--spacing-xs);
+            color: var(--dark-text);
+        }
+
+        .checklist-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: var(--spacing-xs);
+        }
+
+        .checklist-item {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-xs);
+            padding: var(--spacing-xs);
+            background: white;
+            border-radius: 0.3rem;
+            font-size: 0.75rem;
+            transition: var(--transition);
+        }
+
+        .checklist-item:hover {
+            background: #f0f0f0;
+        }
+
+        .checklist-checkbox {
+            width: 14px;
+            height: 14px;
+            accent-color: var(--primary-color);
+            cursor: pointer;
+        }
+
+        .checklist-text {
+            flex: 1;
+            line-height: 1.2;
+        }
+
+        /* 移动端适配 */
+        @media (max-width: 768px) {
+            html {
+                font-size: 13px;
+            }
+            
+            .container {
+                padding: var(--spacing-xs);
+            }
+            
+            .page {
+                padding: var(--spacing-sm);
+                border-radius: 0.5rem;
+            }
+            
+            .header h1 {
+                font-size: 1.3rem;
+            }
+            
+            .card {
+                padding: var(--spacing-xs);
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 2px;
+            }
+            
+            .stat-card {
+                padding: 3px var(--spacing-xs);
+            }
+            
+            .stat-number {
+                font-size: 1rem;
+            }
+            
+            .stat-label {
+                font-size: 0.6rem;
+            }
+            
+            .back-btn {
+                padding: 0.3rem 0.8rem;
+                font-size: 0.75rem;
+            }
+            
+            .btn {
+                padding: 0.5rem 1.2rem;
+                font-size: 0.8rem;
+            }
+            
+            .result-item {
+                font-size: 0.75rem;
+                padding: 2px var(--spacing-xs);
+            }
+            
+            .card-title {
+                font-size: 1rem;
+            }
+            
+            .result-title {
+                font-size: 0.85rem;
+            }
+
+            .checklist-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* 小屏幕手机优化 */
+        @media (max-width: 480px) {
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 2px;
+            }
+            
+            .stat-card {
+                padding: 2px 4px;
+            }
+            
+            .stat-number {
+                font-size: 0.9rem;
+            }
+            
+            .stat-label {
+                font-size: 0.55rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 输入页面 -->
+        <div id="input-page" class="page">
+            <div class="header">
+                <h1>HTML 代码审查报告生成器</h1>
+                <p>粘贴您的HTML 代码，生成详细的安全审查报告</p>
+            </div>
+            <div class="code-input-container">
+                <label for="htmlCode">输入HTML 代码：</label>
+                <textarea id="htmlCode" placeholder="请在此处粘贴HTML 代码...">&lt;!DOCTYPE html&gt; &lt;html lang="zh-CN"&gt; &lt;head&gt;
+&lt;meta charset="UTF-8"&gt; &lt;meta name="viewport" content="width=device-width, initial-scale=1.0"&gt;
+&lt;title&gt;示例页面&lt;/title&gt; &lt;script
+src="https://code.jquery.com/jquery-3.6.0.min.js"&gt;&lt;/script&gt;
+&lt;script&gt;
+// 这是一个示例脚本 $(document).ready(function() {
+console.log("页面加载完成"); });
+&lt;/script&gt; &lt;style&gt;
+body { font-family: Arial, sans-serif; } &lt;/style&gt; &lt;/head&gt; &lt;body&gt;
+&lt;h1&gt;欢迎&lt;/h1&gt; &lt;img src="image.jpg" alt="示例图片" onload="alert('图片加载完成')"&gt; &lt;iframe src="https://example.com"&gt;&lt;/iframe&gt; &lt;script&gt;
+// 潜在的安全问题示例 var userInput = "&lt;script&gt;alert('xss')&lt;/script&gt;"; document.write(userInput); &lt;/script&gt; &lt;link rel="stylesheet" href="styles.css"&gt;
+&lt;a href="javascript:alert('点击')"&gt;点击我&lt;/a&gt; &lt;/body&gt; &lt;/html&gt;</textarea>
+            </div>
+            <div class="btn-container">
+                <button id="generateReport" class="btn">生成审查报告</button>
+            </div>
+        </div>
+
+        <!-- 报告页面 -->
+        <div id="report-page" class="page">
+            <div class="report-header">
+                <h1>代码审查报告</h1>
+                <button id="backBtn" class="back-btn">返回编辑</button>
+            </div>
+            <div class="cards-container">
+                <div class="cards-wrapper" id="cardsWrapper">
+                    <!-- 卡片将通过JavaScript 动态生成 -->
+                </div>
+            </div>
+            <div class="pagination">
+                <button id="prevPage" class="page-btn" disabled>上一页</button>
+                <div class="page-indicator" id="pageIndicator">
+                    <!-- 分页指示器动态生成 -->
+                </div>
+                <button id="nextPage" class="page-btn">下一页</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const inputPage = document.getElementById('input-page');
+            const reportPage = document.getElementById('report-page');
+            const generateBtn = document.getElementById('generateReport');
+            const backBtn = document.getElementById('backBtn');
+            const htmlCodeTextarea = document.getElementById('htmlCode');
+            const cardsWrapper = document.getElementById('cardsWrapper');
+            const prevBtn = document.getElementById('prevPage');
+            const nextBtn = document.getElementById('nextPage');
+            const pageIndicator = document.getElementById('pageIndicator');
+
+            let currentPage = 0;
+            let totalPages = 0;
+            let auditResults = null;
+
+            // 安全速查清单数据
+            const securityChecklist = [
+                { id: 1, text: "防XSS：输出转义", checked: false },
+                { id: 2, text: "防XSS：CSP头", checked: false },
+                { id: 3, text: "防XSS：禁止innerHTML拼接", checked: false },
+                { id: 4, text: "防XSS：Vue/React自动转义开", checked: false },
+                { id: 5, text: "防点击劫持：X-Frame-Options", checked: false },
+                { id: 6, text: "防点击劫持：frame-ancestors CSP", checked: false },
+                { id: 7, text: "防CSRF：SameSite Cookie", checked: false },
+                { id: 8, text: "防CSRF：Token双检", checked: false },
+                { id: 9, text: "防CSRF：Origin/Referer校验", checked: false },
+                { id: 10, text: "防嗅探：HTTPS全站", checked: false },
+                { id: 11, text: "防嗅探：HSTS头", checked: false },
+                { id: 12, text: "防信息泄露：隐藏Server头", checked: false },
+                { id: 13, text: "防信息泄露：注释脱敏", checked: false },
+                { id: 14, text: "防上传：白名单mime+后缀", checked: false },
+                { id: 15, text: "防钓鱼：a标签rel=\"noopener\"", checked: false },
+                { id: 16, text: "防钓鱼：target=\"blank\"必加noopener", checked: false },
+                { id: 17, text: "防混合内容：https页面无http资源", checked: false },
+                { id: 18, text: "防缓存泄露：敏感页加no-cache头", checked: false }
+            ];
+
+            // 生成报告
+            generateBtn.addEventListener('click', function() {
+                const htmlCode = htmlCodeTextarea.value.trim();
+                if (!htmlCode) {
+                    alert('请输入HTML 代码');
+                    return;
+                }
+                // 执行代码审查
+                auditResults = performCodeAudit(htmlCode);
+                // 生成报告卡片
+                generateReportCards(auditResults);
+                // 切换到报告页面
+                inputPage.style.display = 'none';
+                reportPage.style.display = 'block';
+                // 重置到第一页
+                goToPage(0);
+            });
+
+            // 返回编辑页面
+            backBtn.addEventListener('click', function() {
+                reportPage.style.display = 'none';
+                inputPage.style.display = 'block';
+            });
+
+            // 分页控制
+            prevBtn.addEventListener('click', function() {
+                if (currentPage > 0) {
+                    goToPage(currentPage - 1);
+                }
+            });
+
+            nextBtn.addEventListener('click', function() {
+                if (currentPage < totalPages - 1) {
+                    goToPage(currentPage + 1);
+                }
+            });
+
+            // 执行代码审查
+            function performCodeAudit(htmlCode) {
+                const results = {
+                    srcReferences: [],
+                    securityIssues: [],
+                    htmlIssues: [],
+                    performanceIssues: [],
+                    accessibilityIssues: [],
+                    seoIssues: [],
+                    bestPractices: [],
+                    stats: {
+                        totalTags: 0,
+                        scriptTags: 0,
+                        externalRefs: 0,
+                        securityWarnings: 0,
+                        securityErrors: 0,
+                        performanceIssues: 0,
+                        accessibilityIssues: 0,
+                        seoIssues: 0,
+                        bestPracticesIssues: 0
+                    }
+                };
+
+                try {
+                    // 创建临时DOM 解析
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(htmlCode, 'text/html');
+
+                    // 1. 提取所有引用 (src, href, data, 等)
+                    const refSelectors = [
+                        '[src]', '[href]', '[data]', '[background]', 
+                        '[poster]', '[cite]', '[longdesc]', '[usemap]',
+                        '[profile]', '[action]', '[formaction]'
+                    ];
+                    
+                    refSelectors.forEach(selector => {
+                        const elements = doc.querySelectorAll(selector);
+                        elements.forEach(el => {
+                            const attr = selector.substring(1, selector.length - 1);
+                            const value = el.getAttribute(attr);
+                            const tagName = el.tagName.toLowerCase();
+                            
+                            if (value) {
+                                results.srcReferences.push({
+                                    element: tagName,
+                                    attribute: attr,
+                                    value: value,
+                                    isExternal: value.startsWith('http://') || value.startsWith('https://'),
+                                    isRelative: value.startsWith('./') || value.startsWith('../'),
+                                    isProtocol: value.startsWith('javascript:') || value.startsWith('data:'),
+                                    line: 'N/A'
+                                });
+                            }
+                        });
+                    });
+                    
+                    results.stats.externalRefs = results.srcReferences.length;
+
+                    // 2. 检查安全问题
+                    // 检查script 标签
+                    const scriptTags = doc.querySelectorAll('script');
+                    results.stats.scriptTags = scriptTags.length;
+                    
+                    scriptTags.forEach(script => {
+                        const scriptContent = script.textContent || script.innerHTML;
+                        
+                        // 检查内联脚本
+                        if (scriptContent) {
+                            const dangerousPatterns = [
+                                { pattern: /document\.write\s*\(/g, severity: 'high', desc: '使用document.write 可能导致XSS 攻击' },
+                                { pattern: /innerHTML\s*=/g, severity: 'medium', desc: '直接设置innerHTML 可能导致XSS' },
+                                { pattern: /outerHTML\s*=/g, severity: 'medium', desc: '直接设置outerHTML 可能导致XSS' },
+                                { pattern: /eval\s*\(/g, severity: 'high', desc: '使用eval 函数有安全风险' },
+                                { pattern: /Function\s*\(/g, severity: 'high', desc: '使用Function 构造函数有安全风险' },
+                                { pattern: /setTimeout\s*\(\s*["'][^"']*["']/g, severity: 'medium', desc: '字符串形式的setTimeout 可能执行恶意代码' },
+                                { pattern: /setInterval\s*\(\s*["'][^"']*["']/g, severity: 'medium', desc: '字符串形式的setInterval 可能执行恶意代码' },
+                                { pattern: /execScript\s*\(/g, severity: 'high', desc: '使用execScript 有安全风险' },
+                                { pattern: /crypto\.subtle\.decrypt/g, severity: 'medium', desc: '使用加密API 需要安全上下文' },
+                                { pattern: /localStorage\s*\./g, severity: 'low', desc: '使用localStorage 可能泄露敏感信息' }
+                            ];
+                            
+                            dangerousPatterns.forEach(pattern => {
+                                if (pattern.pattern.test(scriptContent)) {
+                                    results.securityIssues.push({
+                                        type: '脚本注入风险',
+                                        severity: pattern.severity,
+                                        description: pattern.desc,
+                                        location: '<script>标签',
+                                        recommendation: '避免使用' + 
+                                            (pattern.pattern.toString().includes('document.write') ? 'document.write' :
+                                            pattern.pattern.toString().includes('innerHTML') ? 'innerHTML 直接赋值' :
+                                            pattern.pattern.toString().includes('outerHTML') ? 'outerHTML 直接赋值' :
+                                            pattern.pattern.toString().includes('eval') ? 'eval 函数' :
+                                            pattern.pattern.toString().includes('Function') ? 'Function 构造函数' :
+                                            pattern.pattern.toString().includes('setTimeout') ? '字符串形式setTimeout' :
+                                            pattern.pattern.toString().includes('setInterval') ? '字符串形式setInterval' :
+                                            pattern.pattern.toString().includes('execScript') ? 'execScript' :
+                                            pattern.pattern.toString().includes('crypto') ? '加密API' :
+                                            'localStorage')
+                                    });
+                                }
+                            });
+                        }
+                    });
+                    
+                    // 检查事件处理器
+                    const elementsWithEvents = doc.querySelectorAll('*');
+                    elementsWithEvents.forEach(el => {
+                        Array.from(el.attributes).forEach(attr => {
+                            if (attr.name.startsWith('on')) {
+                                results.securityIssues.push({
+                                    type: '事件处理器',
+                                    severity: 'low',
+                                    description: `使用${attr.name}内联事件处理器`,
+                                    location: `${el.tagName.toLowerCase()}元素的${attr.name}属性`,
+                                    recommendation: '使用addEventListener 代替内联事件处理器'
+                                });
+                            }
+                        });
+                    });
+                    
+                    // 检查javascript:协议
+                    const jsLinks = doc.querySelectorAll('a[href^="javascript:"], button[onclick*="javascript:"]');
+                    jsLinks.forEach(link => {
+                        results.securityIssues.push({
+                            type: 'JavaScript 协议',
+                            severity: 'medium',
+                            description: '使用javascript:协议',
+                            location: `${link.tagName.toLowerCase()} 元素的href 或onclick 属性`,
+                            recommendation: '避免使用javascript:协议，改用事件监听器'
+                        });
+                    });
+                    
+                    // 检查不安全的资源
+                    const insecureResources = doc.querySelectorAll('[src^="http:"], [href^="http:"]');
+                    insecureResources.forEach(res => {
+                        results.securityIssues.push({
+                            type: '不安全资源',
+                            severity: 'medium',
+                            description: '使用非HTTPS 协议加载资源',
+                            location: `${res.tagName.toLowerCase()} 元素`,
+                            recommendation: '使用HTTPS 协议加载所有资源'
+                        });
+                    });
+                    
+                    // 检查表单安全问题
+                    const forms = doc.querySelectorAll('form');
+                    forms.forEach(form => {
+                        // 检查没有CSRF保护的表单
+                        if (!form.querySelector('input[name="_csrf"]') && 
+                            !form.querySelector('input[name="csrf_token"]') &&
+                            (form.method === 'post' || !form.hasAttribute('method'))) {
+                            results.securityIssues.push({
+                                type: 'CSRF 保护缺失',
+                                severity: 'medium',
+                                description: '表单缺少CSRF 保护',
+                                location: '<form>元素',
+                                recommendation: '添加CSRF 令牌到表单中'
+                            });
+                        }
+                        
+                        // 检查敏感字段
+                        const sensitiveInputs = form.querySelectorAll('input[type="password"], input[type="email"], input[type="tel"]');
+                        sensitiveInputs.forEach(input => {
+                            if (!input.hasAttribute('autocomplete')) {
+                                results.securityIssues.push({
+                                    type: '敏感字段',
+                                    severity: 'low',
+                                    description: `敏感字段(${input.type})缺少autocomplete 属性`,
+                                    location: `<input type="${input.type}">`,
+                                    recommendation: '为敏感字段添加适当的autocomplete 属性'
+                                });
+                            }
+                        });
+                    });
+                    
+                    // 3. 检查HTML 问题
+                    // 检查没有alt 属性的图片
+                    const imagesWithoutAlt = doc.querySelectorAll('img:not([alt])');
+                    imagesWithoutAlt.forEach(img => {
+                        results.htmlIssues.push({
+                            type: '可访问性问题',
+                            severity: 'low',
+                            description: '图片缺少alt 属性',
+                            location: '<img>标签',
+                            recommendation: '为所有图片添加alt 属性'
+                        });
+                    });
+                    
+                    // 检查没有type 属性的script 标签
+                    const scriptsWithoutType = doc.querySelectorAll('script:not([type]):not([src])');
+                    scriptsWithoutType.forEach(script => {
+                        results.htmlIssues.push({
+                            type: 'HTML 标准',
+                            severity: 'low',
+                            description: 'script 标签缺少type 属性',
+                            location: '<script>标签',
+                            recommendation: '为script 标签添加type="text/javascript"属性'
+                        });
+                    });
+                    
+                    // 检查缺少lang 属性的html 标签
+                    const htmlTag = doc.querySelector('html');
+                    if (htmlTag && !htmlTag.hasAttribute('lang')) {
+                        results.htmlIssues.push({
+                            type: 'HTML 标准',
+                            severity: 'medium',
+                            description: 'html 标签缺少lang 属性',
+                            location: '<html>标签',
+                            recommendation: '为html 标签添加lang 属性'
+                        });
+                    }
+                    
+                    // 检查缺少viewport meta 标签
+                    const viewportMeta = doc.querySelector('meta[name="viewport"]');
+                    if (!viewportMeta) {
+                        results.htmlIssues.push({
+                            type: '响应式设计',
+                            severity: 'medium',
+                            description: '缺少viewport meta 标签',
+                            location: '<head>部分',
+                            recommendation: '添加<meta name="viewport" content="width=device-width, initial-scale=1.0">'
+                        });
+                    }
+                    
+                    // 检查过时的HTML 标签
+                    const obsoleteTags = doc.querySelectorAll('font, center, strike, big, tt, applet, acronym, dir, frame, frameset, noframes, isindex');
+                    obsoleteTags.forEach(tag => {
+                        results.htmlIssues.push({
+                            type: '过时标签',
+                            severity: 'medium',
+                            description: `使用过时的HTML5 标签: ${tag.tagName.toLowerCase()}`,
+                            location: `<${tag.tagName.toLowerCase()}>标签`,
+                            recommendation: `使用现代CSS 和HTML5 替代${tag.tagName.toLowerCase()}标签`
+                        });
+                    });
+                    
+                    // 检查缺少charset meta 标签
+                    const charsetMeta = doc.querySelector('meta[charset]');
+                    if (!charsetMeta) {
+                        results.htmlIssues.push({
+                            type: '字符编码',
+                            severity: 'high',
+                            description: '缺少charset meta 标签',
+                            location: '<head>部分',
+                            recommendation: '添加<meta charset="UTF-8">'
+                        });
+                    }
+                    
+                    // 检查缺少title 标签
+                    const titleTag = doc.querySelector('title');
+                    if (!titleTag || !titleTag.textContent.trim()) {
+                        results.htmlIssues.push({
+                            type: '页面标题',
+                            severity: 'high',
+                            description: '缺少或空的title 标签',
+                            location: '<head>部分',
+                            recommendation: '添加有意义的页面标题'
+                        });
+                    }
+                    
+                    // 检查缺少description meta 标签
+                    const descMeta = doc.querySelector('meta[name="description"]');
+                    if (!descMeta) {
+                        results.seoIssues.push({
+                            type: 'SEO 优化',
+                            severity: 'medium',
+                            description: '缺少description meta 标签',
+                            location: '<head>部分',
+                            recommendation: '添加描述页面内容的meta description 标签'
+                        });
+                    }
+                    
+                    // 检查缺少keywords meta 标签
+                    const keywordsMeta = doc.querySelector('meta[name="keywords"]');
+                    if (!keywordsMeta) {
+                        results.seoIssues.push({
+                            type: 'SEO 优化',
+                            severity: 'low',
+                            description: '缺少keywords meta 标签',
+                            location: '<head>部分',
+                            recommendation: '添加描述页面关键词的meta keywords 标签'
+                        });
+                    }
+                    
+                    // 检查缺少canonical link 标签
+                    const canonicalLink = doc.querySelector('link[rel="canonical"]');
+                    if (!canonicalLink) {
+                        results.seoIssues.push({
+                            type: 'SEO 优化',
+                            severity: 'medium',
+                            description: '缺少canonical link 标签',
+                            location: '<head>部分',
+                            recommendation: '添加canonical link 标签防止重复内容问题'
+                        });
+                    }
+                    
+                    // 检查缺少robots meta 标签
+                    const robotsMeta = doc.querySelector('meta[name="robots"]');
+                    if (!robotsMeta) {
+                        results.seoIssues.push({
+                            type: 'SEO 优化',
+                            severity: 'low',
+                            description: '缺少robots meta 标签',
+                            location: '<head>部分',
+                            recommendation: '添加robots meta 标签控制搜索引擎索引'
+                        });
+                    }
+                    
+                    // 检查缺少Open Graph 标签
+                    const ogTitle = doc.querySelector('meta[property="og:title"]');
+                    const ogDesc = doc.querySelector('meta[property="og:description"]');
+                    const ogImage = doc.querySelector('meta[property="og:image"]');
+                    if (!ogTitle || !ogDesc || !ogImage) {
+                        results.seoIssues.push({
+                            type: '社交媒体优化',
+                            severity: 'medium',
+                            description: '缺少Open Graph 标签',
+                            location: '<head>部分',
+                            recommendation: '添加Open Graph 标签优化社交媒体分享效果'
+                        });
+                    }
+                    
+                    // 检查缺少Twitter Card 标签
+                    const twitterCard = doc.querySelector('meta[name="twitter:card"]');
+                    if (!twitterCard) {
+                        results.seoIssues.push({
+                            type: '社交媒体优化',
+                            severity: 'low',
+                            description: '缺少Twitter Card 标签',
+                            location: '<head>部分',
+                            recommendation: '添加Twitter Card 标签优化Twitter 分享效果'
+                        });
+                    }
+                    
+                    // 检查性能问题
+                    // 检查内联样式
+                    const inlineStyles = doc.querySelectorAll('[style]');
+                    if (inlineStyles.length > 0) {
+                        results.performanceIssues.push({
+                            type: '内联样式',
+                            severity: 'medium',
+                            description: `发现${inlineStyles.length} 个内联样式`,
+                            location: '多个元素',
+                            recommendation: '将内联样式移至CSS 文件中'
+                        });
+                    }
+                    
+                    // 检查内联脚本
+                    const inlineScripts = doc.querySelectorAll('script:not([src])');
+                    if (inlineScripts.length > 2) {
+                        results.performanceIssues.push({
+                            type: '内联脚本',
+                            severity: 'medium',
+                            description: `发现${inlineScripts.length} 个内联脚本`,
+                            location: '多个<script>标签',
+                            recommendation: '将内联脚本移至外部JS 文件中'
+                        });
+                    }
+                    
+                    // 检查缺少压缩的资源
+                    const uncompressedResources = doc.querySelectorAll('[src$=".js"], [href$=".css"], [src$=".jpg"], [src$=".png"], [src$=".gif"]');
+                    if (uncompressedResources.length > 0) {
+                        results.performanceIssues.push({
+                            type: '资源压缩',
+                            severity: 'low',
+                            description: '可能存在未压缩的资源',
+                            location: '多个资源',
+                            recommendation: '使用压缩版本的JS/CSS 和优化格式的图片'
+                        });
+                    }
+                    
+                    // 检查缺少缓存控制
+                    const resourcesWithoutCache = doc.querySelectorAll('[src], [href]');
+                    if (resourcesWithoutCache.length > 5) {
+                        results.performanceIssues.push({
+                            type: '缓存控制',
+                            severity: 'medium',
+                            description: '可能缺少缓存控制头',
+                            location: '多个资源',
+                            recommendation: '配置适当的缓存控制头提高加载速度'
+                        });
+                    }
+                    
+                    // 检查缺少预加载关键资源
+                    const criticalResources = doc.querySelectorAll('link[rel="stylesheet"], script[src]');
+                    if (criticalResources.length > 3) {
+                        results.performanceIssues.push({
+                            type: '资源预加载',
+                            severity: 'low',
+                            description: '可能缺少关键资源预加载',
+                            location: '<head>部分',
+                            recommendation: '使用rel="preload" 预加载关键资源'
+                        });
+                    }
+                    
+                    // 检查缺少图片懒加载
+                    const images = doc.querySelectorAll('img');
+                    if (images.length > 5) {
+                        results.performanceIssues.push({
+                            type: '图片懒加载',
+                            severity: 'low',
+                            description: '可能缺少图片懒加载',
+                            location: '多个<img>标签',
+                            recommendation: '为非首屏图片添加loading="lazy" 属性'
+                        });
+                    }
+                    
+                    // 检查可访问性问题
+                    // 检查缺少ARIA 标签
+                    const elementsWithoutAria = doc.querySelectorAll('button:not([aria-label]):not([aria-labelledby]), a:not([aria-label]):not([aria-labelledby])');
+                    if (elementsWithoutAria.length > 3) {
+                        results.accessibilityIssues.push({
+                            type: 'ARIA 标签',
+                            severity: 'medium',
+                            description: `发现${elementsWithoutAria.length} 个元素缺少ARIA 标签`,
+                            location: '多个交互元素',
+                            recommendation: '为交互元素添加适当的ARIA 标签'
+                        });
+                    }
+                    
+                    // 检查缺少跳转链接
+                    const skipLinks = doc.querySelectorAll('a[href^="#main"], a[href^="#content"]');
+                    if (skipLinks.length === 0) {
+                        results.accessibilityIssues.push({
+                            type: '跳转链接',
+                            severity: 'medium',
+                            description: '缺少"跳转到主内容"链接',
+                            location: '<body>开始部分',
+                            recommendation: '添加跳转到主内容的链接提高键盘导航体验'
+                        });
+                    }
+                    
+                    // 检查缺少焦点管理
+                    const focusableElements = doc.querySelectorAll('a, button, input, select, textarea, [tabindex]:not([tabindex="-1"])');
+                    if (focusableElements.length > 10) {
+                        results.accessibilityIssues.push({
+                            type: '焦点管理',
+                            severity: 'low',
+                            description: '可能缺少焦点管理',
+                            location: '多个交互元素',
+                            recommendation: '确保页面有合理的焦点顺序和焦点陷阱'
+                        });
+                    }
+                    
+                    // 检查缺少颜色对比度
+                    const coloredElements = doc.querySelectorAll('[style*="color"], [style*="background"]');
+                    if (coloredElements.length > 0) {
+                        results.accessibilityIssues.push({
+                            type: '颜色对比度',
+                            severity: 'medium',
+                            description: '可能存在颜色对比度不足',
+                            location: '多个元素',
+                            recommendation: '确保文本和背景有足够的颜色对比度'
+                        });
+                    }
+                    
+                    // 检查缺少表单标签
+                    const inputsWithoutLabels = doc.querySelectorAll('input:not([type="hidden"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([aria-label])');
+                    const inputsWithoutLabelsArray = Array.from(inputsWithoutLabels).filter(input => {
+                        const id = input.getAttribute('id');
+                        return !id || !doc.querySelector(`label[for="${id}"]`);
+                    });
+                    
+                    if (inputsWithoutLabelsArray.length > 0) {
+                        results.accessibilityIssues.push({
+                            type: '表单标签',
+                            severity: 'high',
+                            description: `发现${inputsWithoutLabelsArray.length} 个输入框缺少关联标签`,
+                            location: '多个<input>元素',
+                            recommendation: '为所有输入框添加关联的label 标签'
+                        });
+                    }
+                    
+                    // 检查最佳实践问题
+                    // 检查缺少DOCTYPE 声明
+                    if (!htmlCode.trim().startsWith('<!DOCTYPE')) {
+                        results.bestPractices.push({
+                            type: 'DOCTYPE 声明',
+                            severity: 'high',
+                            description: '缺少DOCTYPE 声明',
+                            location: '文档开始',
+                            recommendation: '添加<!DOCTYPE html> 声明'
+                        });
+                    }
+                    
+                    // 检查缺少语义化标签
+                    const nonSemanticSections = doc.querySelectorAll('div[id], div[class]');
+                    if (nonSemanticSections.length > 5) {
+                        results.bestPractices.push({
+                            type: '语义化标签',
+                            severity: 'medium',
+                            description: `发现${nonSemanticSections.length} 个div 可能应使用语义化标签`,
+                            location: '多个<div>元素',
+                            recommendation: '使用header, nav, main, section, article, aside, footer 等语义化标签'
+                        });
+                    }
+                    
+                    // 检查缺少响应式图片
+                    const responsiveImages = doc.querySelectorAll('img[srcset], picture');
+                    if (images.length > 3 && responsiveImages.length === 0) {
+                        results.bestPractices.push({
+                            type: '响应式图片',
+                            severity: 'low',
+                            description: '缺少响应式图片实现',
+                            location: '多个<img>标签',
+                            recommendation: '使用srcset 属性或<picture> 元素实现响应式图片'
+                        });
+                    }
+                    
+                    // 检查缺少错误处理
+                    const scriptsOnError = doc.querySelectorAll('script[onerror]');
+                    const imagesOnError = doc.querySelectorAll('img[onerror]');
+                    if (scriptsOnError.length === 0 && imagesOnError.length === 0) {
+                        results.bestPractices.push({
+                            type: '错误处理',
+                            severity: 'low',
+                            description: '缺少资源加载错误处理',
+                            location: '多个资源',
+                            recommendation: '为关键资源添加onerror 处理程序'
+                        });
+                    }
+                    
+                    // 检查缺少预连接
+                    const externalDomains = new Set();
+                    doc.querySelectorAll('[src^="http"], [href^="http"]').forEach(el => {
+                        const url = el.getAttribute('src') || el.getAttribute('href');
+                        try {
+                            const domain = new URL(url).hostname;
+                            if (domain) externalDomains.add(domain);
+                        } catch (e) {
+                            // 忽略无效URL
+                        }
+                    });
+                    
+                    if (externalDomains.size > 2) {
+                        results.bestPractices.push({
+                            type: '预连接',
+                            severity: 'low',
+                            description: `发现${externalDomains.size} 个外部域名可能需要预连接`,
+                            location: '<head>部分',
+                            recommendation: '使用rel="preconnect" 提前建立外部域名的连接'
+                        });
+                    }
+                    
+                    // 统计标签总数
+                    const allElements = doc.querySelectorAll('*');
+                    results.stats.totalTags = allElements.length;
+                    
+                    // 统计安全问题
+                    results.securityIssues.forEach(issue => {
+                        if (issue.severity === 'high') {
+                            results.stats.securityErrors++;
+                        } else {
+                            results.stats.securityWarnings++;
+                        }
+                    });
+                    
+                    // 统计性能问题
+                    results.stats.performanceIssues = results.performanceIssues.length;
+                    
+                    // 统计可访问性问题
+                    results.stats.accessibilityIssues = results.accessibilityIssues.length;
+                    
+                    // 统计SEO问题
+                    results.stats.seoIssues = results.seoIssues.length;
+                    
+                    // 统计最佳实践问题
+                    results.stats.bestPracticesIssues = results.bestPractices.length;
+                    
+                } catch (error) {
+                    console.error('代码解析错误:', error);
+                    results.parseError = error.message;
+                }
+                return results;
+            }
+
+            // 生成报告卡片
+            function generateReportCards(results) {
+                cardsWrapper.innerHTML = '';
+                pageIndicator.innerHTML = '';
+                
+                // 卡片1: 摘要统计
+                const summaryCard = document.createElement('div');
+                summaryCard.className = 'card';
+                summaryCard.innerHTML = `
+                    <h2 class="card-title">📊 审查摘要</h2>
+                    <div class="card-content">
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <div class="stat-number">${results.stats.totalTags}</div>
+                                <div class="stat-label">HTML 标签总数</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-number">${results.stats.externalRefs}</div>
+                                <div class="stat-label">外部引用</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-number">${results.stats.scriptTags}</div>
+                                <div class="stat-label">脚本标签</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-number">${results.stats.securityWarnings + results.stats.securityErrors}</div>
+                                <div class="stat-label">安全问题</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-number">${results.stats.performanceIssues}</div>
+                                <div class="stat-label">性能问题</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-number">${results.stats.accessibilityIssues}</div>
+                                <div class="stat-label">可访问性问题</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-number">${results.stats.seoIssues}</div>
+                                <div class="stat-label">SEO 问题</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-number">${results.stats.bestPracticesIssues}</div>
+                                <div class="stat-label">最佳实践问题</div>
+                            </div>
+                        </div>
+                        <div class="result-section">
+                            <h3 class="result-title"><i>!</i> 关键发现</h3>
+                            <div class="result-list">
+                                <div class="result-item ${results.stats.securityErrors > 0 ? 'danger' : 'success'}">
+                                    发现${results.stats.securityErrors} 个高风险安全问题
+                                </div>
+                                <div class="result-item ${results.stats.securityWarnings > 0 ? 'warning' : 'success'}">
+                                    发现${results.stats.securityWarnings} 个中低风险问题
+                                </div>
+                                <div class="result-item ${results.stats.performanceIssues > 3 ? 'warning' : 'info'}">
+                                    发现${results.stats.performanceIssues} 个性能问题
+                                </div>
+                                <div class="result-item ${results.stats.accessibilityIssues > 3 ? 'warning' : 'info'}">
+                                    发现${results.stats.accessibilityIssues} 个可访问性问题
+                                </div>
+                                <div class="result-item info">
+                                    发现${results.stats.seoIssues} 个SEO 优化点
+                                </div>
+                                <div class="result-item info">
+                                    发现${results.stats.bestPracticesIssues} 个最佳实践改进点
+                                </div>
+                            </div>
+                        </div>
+                        <div class="result-section">
+                            <h3 class="result-title"><i>ℹ️</i> 报告说明</h3>
+                            <div class="result-list">
+                                <div class="result-item info">本报告分析了HTML 代码的结构、安全性、性能、可访问性、SEO 和最佳实践</div>
+                                <div class="result-item info">点击下方分页按钮查看详细报告</div>
+                                <div class="result-item info">使用左右箭头或下方圆点切换报告页面</div>
+                                <div class="result-item info">每个类别中的项目分页显示，每页最多10项</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                cardsWrapper.appendChild(summaryCard);
+                
+                // 卡片2: 安全速查清单
+                const checklistCard = document.createElement('div');
+                checklistCard.className = 'card';
+                let checklistContent = `
+                    <h2 class="card-title">🔒 安全速查清单</h2>
+                    <div class="card-content">
+                        <div class="security-checklist">
+                            <div class="checklist-title">纯安全检查项（共18项，请对号打勾）</div>
+                            <div class="checklist-grid">
+                `;
+                
+                securityChecklist.forEach(item => {
+                    checklistContent += `
+                        <div class="checklist-item">
+                            <input type="checkbox" id="check-${item.id}" class="checklist-checkbox" ${item.checked ? 'checked' : ''}>
+                            <label for="check-${item.id}" class="checklist-text">${item.text}</label>
+                        </div>
+                    `;
+                });
+                
+                checklistContent += `
+                            </div>
+                        </div>
+                        <div class="result-section">
+                            <h3 class="result-title"><i>💡</i> 安全建议</h3>
+                            <div class="result-list">
+                                <div class="result-item success">1. 定期进行安全代码审查</div>
+                                <div class="result-item success">2. 使用最新的安全标准和最佳实践</div>
+                                <div class="result-item success">3. 实施多层安全防护策略</div>
+                                <div class="result-item success">4. 保持依赖库和框架的更新</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                checklistCard.innerHTML = checklistContent;
+                cardsWrapper.appendChild(checklistCard);
+                
+                // 卡片3: 外部引用分析
+                const refsCard = document.createElement('div');
+                refsCard.className = 'card';
+                let refsContent = '<h2 class="card-title">🔗 外部引用分析</h2><div class="card-content">';
+                
+                if (results.srcReferences.length > 0) {
+                    refsContent += `
+                        <div class="result-section">
+                            <h3 class="result-title"><i>📁</i> 发现的引用 (${results.srcReferences.length})</h3>
+                            <div class="result-list" id="refsList">
+                                <!-- 引用项目将通过JavaScript 动态生成 -->
+                            </div>
+                            <div class="inner-pagination">
+                                <button class="inner-page-btn" id="refsPrevBtn" disabled>上一页</button>
+                                <span class="inner-page-info" id="refsPageInfo">1-10 / ${results.srcReferences.length}</span>
+                                <button class="inner-page-btn" id="refsNextBtn">下一页</button>
+                            </div>
+                        </div>
+                        <div class="result-section">
+                            <h3 class="result-title"><i>💡</i> 建议</h3>
+                            <div class="result-list">
+                                <div class="result-item success">1. 检查所有外部资源是否来自可信源</div>
+                                <div class="result-item success">2. 考虑使用HTTPS 协议确保传输安全</div>
+                                <div class="result-item success">3. 为关键资源添加完整性校验(integrity 属性)</div>
+                                <div class="result-item success">4. 使用预连接(preconnect) 提高外部资源加载速度</div>
+                                <div class="result-item success">5. 避免使用javascript: 协议和data: 协议加载内容</div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    refsContent += `
+                        <div class="result-section">
+                            <h3 class="result-title"><i>✅</i> 外部引用</h3>
+                            <div class="result-list">
+                                <div class="result-item success">未发现外部资源引用</div>
+                            </div>
+                        </div>
+                    `;
+                }
+                refsContent += '</div>';
+                refsCard.innerHTML = refsContent;
+                cardsWrapper.appendChild(refsCard);
+                
+                // 卡片4: 安全问题
+                const securityCard = document.createElement('div');
+                securityCard.className = 'card';
+                let securityContent = '<h2 class="card-title">🛡️ 安全审查</h2><div class="card-content">';
+                
+                if (results.securityIssues.length > 0) {
+                    const highRisk = results.securityIssues.filter(i => i.severity === 'high');
+                    const medRisk = results.securityIssues.filter(i => i.severity === 'medium');
+                    const lowRisk = results.securityIssues.filter(i => i.severity === 'low');
+                    
+                    securityContent += `
+                        <div class="result-section">
+                            <h3 class="result-title"><i>⚠️</i> 安全问题统计</h3>
+                            <div class="stats-grid">
+                                <div class="stat-card" style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);">
+                                    <div class="stat-number">${highRisk.length}</div>
+                                    <div class="stat-label">高风险</div>
+                                </div>
+                                <div class="stat-card" style="background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);">
+                                    <div class="stat-number">${medRisk.length}</div>
+                                    <div class="stat-label">中风险</div>
+                                </div>
+                                <div class="stat-card" style="background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);">
+                                    <div class="stat-number">${lowRisk.length}</div>
+                                    <div class="stat-label">低风险</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    // 高风险问题
+                    if (highRisk.length > 0) {
+                        securityContent += `
+                            <div class="result-section">
+                                <h3 class="result-title"><i>🔥</i> 高风险问题 (${highRisk.length})</h3>
+                                <div class="result-list" id="highRiskList">
+                                    <!-- 高风险项目将通过JavaScript 动态生成 -->
+                                </div>
+                                <div class="inner-pagination">
+                                    <button class="inner-page-btn" id="highRiskPrevBtn" disabled>上一页</button>
+                                    <span class="inner-page-info" id="highRiskPageInfo">1-10 / ${highRisk.length}</span>
+                                    <button class="inner-page-btn" id="highRiskNextBtn">下一页</button>
+                                </div>
+                            </div>
+                        `;
+                    }
+                    
+                    // 中低风险问题
+                    if (medRisk.length > 0 || lowRisk.length > 0) {
+                        securityContent += `
+                            <div class="result-section">
+                                <h3 class="result-title"><i>⚠️</i> 中低风险问题 (${medRisk.length + lowRisk.length})</h3>
+                                <div class="result-list" id="medLowRiskList">
+                                    <!-- 中低风险项目将通过JavaScript 动态生成 -->
+                                </div>
+                                <div class="inner-pagination">
+                                    <button class="inner-page-btn" id="medLowRiskPrevBtn" disabled>上一页</button>
+                                    <span class="inner-page-info" id="medLowRiskPageInfo">1-10 / ${medRisk.length + lowRisk.length}</span>
+                                    <button class="inner-page-btn" id="medLowRiskNextBtn">下一页</button>
+                                </div>
+                            </div>
+                        `;
+                    }
+                } else {
+                    securityContent += `
+                        <div class="result-section">
+                            <h3 class="result-title"><i>✅</i> 安全检查结果</h3>
+                            <div class="result-list">
+                                <div class="result-item success">未发现安全问题</div>
+                            </div>
+                        </div>
+                    `;
+                }
+                securityContent += '</div>';
+                securityCard.innerHTML = securityContent;
+                cardsWrapper.appendChild(securityCard);
+                
+                // 卡片5: HTML 规范问题
+                const htmlCard = document.createElement('div');
+                htmlCard.className = 'card';
+                let htmlContent = '<h2 class="card-title">📝 HTML 规范检查</h2><div class="card-content">';
+                
+                if (results.htmlIssues.length > 0) {
+                    htmlContent += `
+                        <div class="result-section">
+                            <h3 class="result-title"><i>🔍</i> 发现的问题 (${results.htmlIssues.length})</h3>
+                            <div class="result-list" id="htmlIssuesList">
+                                <!-- HTML 问题项目将通过JavaScript 动态生成 -->
+                            </div>
+                            <div class="inner-pagination">
+                                <button class="inner-page-btn" id="htmlIssuesPrevBtn" disabled>上一页</button>
+                                <span class="inner-page-info" id="htmlIssuesPageInfo">1-10 / ${results.htmlIssues.length}</span>
+                                <button class="inner-page-btn" id="htmlIssuesNextBtn">下一页</button>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    htmlContent += `
+                        <div class="result-section">
+                            <h3 class="result-title"><i>✅</i> HTML 规范检查</h3>
+                            <div class="result-list">
+                                <div class="result-item success">未发现HTML 规范问题</div>
+                            </div>
+                        </div>
+                    `;
+                }
+                htmlContent += `
+                    <div class="result-section">
+                        <h3 class="result-title"><i>💡</i> 最佳实践建议</h3>
+                        <div class="result-list">
+                            <div class="result-item success">1. 始终使用语义化HTML 标签</div>
+                            <div class="result-item success">2. 为图片添加alt 属性提高可访问性</div>
+                            <div class="result-item success">3. 使用合适的meta 标签优化SEO</div>
+                            <div class="result-item success">4. 避免使用内联样式和脚本</div>
+                            <div class="result-item success">5. 确保HTML 代码通过W3C 验证</div>
+                        </div>
+                    </div>
+                </div>`;
+                htmlCard.innerHTML = htmlContent;
+                cardsWrapper.appendChild(htmlCard);
+                
+                // 卡片6: 性能问题
+                const perfCard = document.createElement('div');
+                perfCard.className = 'card';
+                let perfContent = '<h2 class="card-title">⚡ 性能分析</h2><div class="card-content">';
+                
+                if (results.performanceIssues.length > 0) {
+                    perfContent += `
+                        <div class="result-section">
+                            <h3 class="result-title"><i>🔍</i> 发现的问题 (${results.performanceIssues.length})</h3>
+                            <div class="result-list" id="perfIssuesList">
+                                <!-- 性能问题项目将通过JavaScript 动态生成 -->
+                            </div>
+                            <div class="inner-pagination">
+                                <button class="inner-page-btn" id="perfIssuesPrevBtn" disabled>上一页</button>
+                                <span class="inner-page-info" id="perfIssuesPageInfo">1-10 / ${results.performanceIssues.length}</span>
+                                <button class="inner-page-btn" id="perfIssuesNextBtn">下一页</button>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    perfContent += `
+                        <div class="result-section">
+                            <h3 class="result-title"><i>✅</i> 性能检查结果</h3>
+                            <div class="result-list">
+                                <div class="result-item success">未发现明显性能问题</div>
+                            </div>
+                        </div>
+                    `;
+                }
+                perfContent += `
+                    <div class="result-section">
+                        <h3 class="result-title"><i>💡</i> 性能优化建议</h3>
+                        <div class="result-list">
+                            <div class="result-item success">1. 压缩所有CSS 和JavaScript 文件</div>
+                            <div class="result-item success">2. 优化图片格式和大小</div>
+                            <div class="result-item success">3. 使用CDN 加速资源加载</div>
+                            <div class="result-item success">4. 实施适当的缓存策略</div>
+                            <div class="result-item success">5. 减少HTTP 请求数量</div>
+                        </div>
+                    </div>
+                </div>`;
+                perfCard.innerHTML = perfContent;
+                cardsWrapper.appendChild(perfCard);
+                
+                // 卡片7: 可访问性问题
+                const a11yCard = document.createElement('div');
+                a11yCard.className = 'card';
+                let a11yContent = '<h2 class="card-title">♿ 可访问性分析</h2><div class="card-content">';
+                
+                if (results.accessibilityIssues.length > 0) {
+                    a11yContent += `
+                        <div class="result-section">
+                            <h3 class="result-title"><i>🔍</i> 发现的问题 (${results.accessibilityIssues.length})</h3>
+                            <div class="result-list" id="a11yIssuesList">
+                                <!-- 可访问性问题项目将通过JavaScript 动态生成 -->
+                            </div>
+                            <div class="inner-pagination">
+                                <button class="inner-page-btn" id="a11yIssuesPrevBtn" disabled>上一页</button>
+                                <span class="inner-page-info" id="a11yIssuesPageInfo">1-10 / ${results.accessibilityIssues.length}</span>
+                                <button class="inner-page-btn" id="a11yIssuesNextBtn">下一页</button>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    a11yContent += `
+                        <div class="result-section">
+                            <h3 class="result-title"><i>✅</i> 可访问性检查结果</h3>
+                            <div class="result-list">
+                                <div class="result-item success">未发现明显可访问性问题</div>
+                            </div>
+                        </div>
+                    `;
+                }
+                a11yContent += `
+                    <div class="result-section">
+                        <h3 class="result-title"><i>💡</i> 可访问性建议</h3>
+                        <div class="result-list">
+                            <div class="result-item success">1. 确保所有交互元素可通过键盘访问</div>
+                            <div class="result-item success">2. 为所有图片提供有意义的alt 文本</div>
+                            <div class="result-item success">3. 使用语义化HTML 标签</div>
+                            <div class="result-item success">4. 确保足够的颜色对比度</div>
+                            <div class="result-item success">5. 为表单元素提供关联标签</div>
+                        </div>
+                    </div>
+                </div>`;
+                a11yCard.innerHTML = a11yContent;
+                cardsWrapper.appendChild(a11yCard);
+                
+                // 卡片8: SEO 问题
+                const seoCard = document.createElement('div');
+                seoCard.className = 'card';
+                let seoContent = '<h2 class="card-title">🔍 SEO 分析</h2><div class="card-content">';
+                
+                if (results.seoIssues.length > 0) {
+                    seoContent += `
+                        <div class="result-section">
+                            <h3 class="result-title"><i>🔍</i> 发现的问题 (${results.seoIssues.length})</h3>
+                            <div class="result-list" id="seoIssuesList">
+                                <!-- SEO 问题项目将通过JavaScript 动态生成 -->
+                            </div>
+                            <div class="inner-pagination">
+                                <button class="inner-page-btn" id="seoIssuesPrevBtn" disabled>上一页</button>
+                                <span class="inner-page-info" id="seoIssuesPageInfo">1-10 / ${results.seoIssues.length}</span>
+                                <button class="inner-page-btn" id="seoIssuesNextBtn">下一页</button>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    seoContent += `
+                        <div class="result-section">
+                            <h3 class="result-title"><i>✅</i> SEO 检查结果</h3>
+                            <div class="result-list">
+                                <div class="result-item success">未发现明显SEO 问题</div>
+                            </div>
+                        </div>
+                    `;
+                }
+                seoContent += `
+                    <div class="result-section">
+                        <h3 class="result-title"><i>💡</i> SEO 优化建议</h3>
+                        <div class="result-list">
+                            <div class="result-item success">1. 为每个页面提供唯一、描述性的标题</div>
+                            <div class="result-item success">2. 编写有价值的meta 描述</div>
+                            <div class="result-item success">3. 使用语义化HTML 标签</div>
+                            <div class="result-item success">4. 优化图片alt 属性</div>
+                            <div class="result-item success">5. 使用结构化数据标记</div>
+                        </div>
+                    </div>
+                </div>`;
+                seoCard.innerHTML = seoContent;
+                cardsWrapper.appendChild(seoCard);
+                
+                // 卡片9: 最佳实践
+                const bestCard = document.createElement('div');
+                bestCard.className = 'card';
+                let bestContent = '<h2 class="card-title">🌟 最佳实践</h2><div class="card-content">';
+                
+                if (results.bestPractices.length > 0) {
+                    bestContent += `
+                        <div class="result-section">
+                            <h3 class="result-title"><i>🔍</i> 发现的问题 (${results.bestPractices.length})</h3>
+                            <div class="result-list" id="bestIssuesList">
+                                <!-- 最佳实践问题项目将通过JavaScript 动态生成 -->
+                            </div>
+                            <div class="inner-pagination">
+                                <button class="inner-page-btn" id="bestIssuesPrevBtn" disabled>上一页</button>
+                                <span class="inner-page-info" id="bestIssuesPageInfo">1-10 / ${results.bestPractices.length}</span>
+                                <button class="inner-page-btn" id="bestIssuesNextBtn">下一页</button>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    bestContent += `
+                        <div class="result-section">
+                            <h3 class="result-title"><i>✅</i> 最佳实践检查结果</h3>
+                            <div class="result-list">
+                                <div class="result-item success">未发现明显最佳实践问题</div>
+                            </div>
+                        </div>
+                    `;
+                }
+                bestContent += `
+                    <div class="result-section">
+                        <h3 class="result-title"><i>💡</i> 最佳实践建议</h3>
+                        <div class="result-list">
+                            <div class="result-item success">1. 使用语义化HTML5 标签</div>
+                            <div class="result-item success">2. 分离内容、表现和行为</div>
+                            <div class="result-item success">3. 编写可维护、可扩展的代码</div>
+                            <div class="result-item success">4. 遵循Web 标准和规范</div>
+                            <div class="result-item success">5. 实施渐进增强和优雅降级</div>
+                        </div>
+                    </div>
+                </div>`;
+                bestCard.innerHTML = bestContent;
+                cardsWrapper.appendChild(bestCard);
+                
+                // 设置分页
+                totalPages = cardsWrapper.children.length;
+                
+                // 生成分页指示器
+                for (let i = 0; i < totalPages; i++) {
+                    const dot = document.createElement('div');
+                    dot.className = 'page-dot';
+                    if (i === 0) dot.classList.add('active');
+                    dot.dataset.page = i;
+                    dot.addEventListener('click', () => goToPage(i));
+                    pageIndicator.appendChild(dot);
+                }
+                
+                // 更新按钮状态
+                updatePaginationButtons();
+                
+                // 初始化内部分页
+                initializeInnerPagination(results);
+            }
+            
+            // 初始化内部分页
+            function initializeInnerPagination(results) {
+                // 外部引用分页
+                if (results.srcReferences.length > 0) {
+                    createInnerPagination('refs', results.srcReferences, 10, renderRefItem);
+                }
+                
+                // 高风险安全问题分页
+                const highRiskIssues = results.securityIssues.filter(i => i.severity === 'high');
+                if (highRiskIssues.length > 0) {
+                    createInnerPagination('highRisk', highRiskIssues, 10, renderSecurityItem);
+                }
+                
+                // 中低风险安全问题分页
+                const medLowRiskIssues = results.securityIssues.filter(i => i.severity !== 'high');
+                if (medLowRiskIssues.length > 0) {
+                    createInnerPagination('medLowRisk', medLowRiskIssues, 10, renderSecurityItem);
+                }
+                
+                // HTML 问题分页
+                if (results.htmlIssues.length > 0) {
+                    createInnerPagination('htmlIssues', results.htmlIssues, 10, renderHtmlItem);
+                }
+                
+                // 性能问题分页
+                if (results.performanceIssues.length > 0) {
+                    createInnerPagination('perfIssues', results.performanceIssues, 10, renderPerfItem);
+                }
+                
+                // 可访问性问题分页
+                if (results.accessibilityIssues.length > 0) {
+                    createInnerPagination('a11yIssues', results.accessibilityIssues, 10, renderA11yItem);
+                }
+                
+                // SEO 问题分页
+                if (results.seoIssues.length > 0) {
+                    createInnerPagination('seoIssues', results.seoIssues, 10, renderSeoItem);
+                }
+                
+                // 最佳实践问题分页
+                if (results.bestPractices.length > 0) {
+                    createInnerPagination('bestIssues', results.bestPractices, 10, renderBestItem);
+                }
+            }
+            
+            // 创建内部分页
+            function createInnerPagination(prefix, items, itemsPerPage, renderFunction) {
+                const listId = prefix + 'List';
+                const prevBtnId = prefix + 'PrevBtn';
+                const nextBtnId = prefix + 'NextBtn';
+                const pageInfoId = prefix + 'PageInfo';
+                
+                const list = document.getElementById(listId);
+                const prevBtn = document.getElementById(prevBtnId);
+                const nextBtn = document.getElementById(nextBtnId);
+                const pageInfo = document.getElementById(pageInfoId);
+                
+                if (!list || !prevBtn || !nextBtn || !pageInfo) return;
+                
+                let currentPage = 0;
+                const totalPages = Math.ceil(items.length / itemsPerPage);
+                
+                function renderPage() {
+                    const start = currentPage * itemsPerPage;
+                    const end = start + itemsPerPage;
+                    const pageItems = items.slice(start, end);
+                    
+                    list.innerHTML = pageItems.map(item => renderFunction(item)).join('');
+                    
+                    // 更新分页信息
+                    const startItem = start + 1;
+                    const endItem = Math.min(end, items.length);
+                    pageInfo.textContent = `${startItem}-${endItem} / ${items.length}`;
+                    
+                    // 更新按钮状态
+                    prevBtn.disabled = currentPage === 0;
+                    nextBtn.disabled = currentPage === totalPages - 1;
+                }
+                
+                prevBtn.addEventListener('click', () => {
+                    if (currentPage > 0) {
+                        currentPage--;
+                        renderPage();
+                    }
+                });
+                
+                nextBtn.addEventListener('click', () => {
+                    if (currentPage < totalPages - 1) {
+                        currentPage++;
+                        renderPage();
+                    }
+                });
+                
+                // 初始渲染
+                renderPage();
+            }
+            
+            // 渲染引用项
+            function renderRefItem(ref) {
+                const severityClass = ref.isProtocol ? 'danger' : ref.isExternal ? 'warning' : 'info';
+                const protocolText = ref.isProtocol ? '(不安全协议)' : ref.isExternal ? '(外部资源)' : ref.isRelative ? '(相对路径)' : '';
+                
+                return `
+                    <div class="result-item ${severityClass}">
+                        <strong>${ref.element}</strong> 标签的${ref.attribute}属性: 
+                        <code>${ref.value.substring(0, 50)}${ref.value.length > 50 ? '...' : ''}</code>
+                        ${protocolText ? `<span style="color: var(--danger-color); margin-left: 10px;">${protocolText}</span>` : ''}
+                    </div>
+                `;
+            }
+            
+            // 渲染安全问题项
+            function renderSecurityItem(issue) {
+                const severityClass = issue.severity === 'high' ? 'danger' : issue.severity === 'medium' ? 'warning' : 'info';
+                
+                return `
+                    <div class="result-item ${severityClass}">
+                        <strong>${issue.type}</strong><br>
+                        ${issue.description}<br>
+                        <small>位置: ${issue.location}</small><br>
+                        <small>建议: ${issue.recommendation}</small>
+                    </div>
+                `;
+            }
+            
+            // 渲染HTML问题项
+            function renderHtmlItem(issue) {
+                const severityClass = issue.severity === 'high' ? 'danger' : issue.severity === 'medium' ? 'warning' : 'info';
+                
+                return `
+                    <div class="result-item ${severityClass}">
+                        <strong>${issue.type}</strong><br>
+                        ${issue.description}<br>
+                        <small>位置: ${issue.location}</small><br>
+                        <small>建议: ${issue.recommendation}</small>
+                    </div>
+                `;
+            }
+            
+            // 渲染性能问题项
+            function renderPerfItem(issue) {
+                const severityClass = issue.severity === 'high' ? 'danger' : issue.severity === 'medium' ? 'warning' : 'info';
+                
+                return `
+                    <div class="result-item ${severityClass}">
+                        <strong>${issue.type}</strong><br>
+                        ${issue.description}<br>
+                        <small>位置: ${issue.location}</small><br>
+                        <small>建议: ${issue.recommendation}</small>
+                    </div>
+                `;
+            }
+            
+            // 渲染可访问性问题项
+            function renderA11yItem(issue) {
+                const severityClass = issue.severity === 'high' ? 'danger' : issue.severity === 'medium' ? 'warning' : 'info';
+                
+                return `
+                    <div class="result-item ${severityClass}">
+                        <strong>${issue.type}</strong><br>
+                        ${issue.description}<br>
+                        <small>位置: ${issue.location}</small><br>
+                        <small>建议: ${issue.recommendation}</small>
+                    </div>
+                `;
+            }
+            
+            // 渲染SEO问题项
+            function renderSeoItem(issue) {
+                const severityClass = issue.severity === 'high' ? 'danger' : issue.severity === 'medium' ? 'warning' : 'info';
+                
+                return `
+                    <div class="result-item ${severityClass}">
+                        <strong>${issue.type}</strong><br>
+                        ${issue.description}<br>
+                        <small>位置: ${issue.location}</small><br>
+                        <small>建议: ${issue.recommendation}</small>
+                    </div>
+                `;
+            }
+            
+            // 渲染最佳实践问题项
+            function renderBestItem(issue) {
+                const severityClass = issue.severity === 'high' ? 'danger' : issue.severity === 'medium' ? 'warning' : 'info';
+                
+                return `
+                    <div class="result-item ${severityClass}">
+                        <strong>${issue.type}</strong><br>
+                        ${issue.description}<br>
+                        <small>位置: ${issue.location}</small><br>
+                        <small>建议: ${issue.recommendation}</small>
+                    </div>
+                `;
+            }
+            
+            // 跳转到指定页面
+            function goToPage(pageIndex) {
+                if (pageIndex < 0 || pageIndex >= totalPages) return;
+                
+                currentPage = pageIndex;
+                cardsWrapper.style.transform = `translateX(-${currentPage * 100}%)`;
+                
+                // 更新分页指示器
+                document.querySelectorAll('.page-dot').forEach((dot, index) => {
+                    if (index === currentPage) {
+                        dot.classList.add('active');
+                    } else {
+                        dot.classList.remove('active');
+                    }
+                });
+                
+                // 更新按钮状态
+                updatePaginationButtons();
+            }
+            
+            // 更新分页按钮状态
+            function updatePaginationButtons() {
+                prevBtn.disabled = currentPage === 0;
+                nextBtn.disabled = currentPage === totalPages - 1;
+            }
+            
+            // 添加键盘导航支持
+            document.addEventListener('keydown', function(e) {
+                if (reportPage.style.display === 'block') {
+                    if (e.key === 'ArrowLeft' && currentPage > 0) {
+                        goToPage(currentPage - 1);
+                    } else if (e.key === 'ArrowRight' && currentPage < totalPages - 1) {
+                        goToPage(currentPage + 1);
+                    } else if (e.key === 'Escape') {
+                        backBtn.click();
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>

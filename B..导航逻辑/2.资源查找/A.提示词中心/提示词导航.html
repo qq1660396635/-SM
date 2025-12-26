@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>提示词中心</title>
+    <script src="/A2_全局中心/B_插件工具/1.插件_主页跳转.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(180deg, 
+                #87CEEB 0%,    /* 天空蓝 */
+                #FFB347 20%,   /* 橙色 */
+                #FF6B6B 40%,   /* 红橙 */
+                #FF8E53 60%,   /* 深橙 */
+                #FE6B8B 80%,   /* 粉红 */
+                #4A148C 100%   /* 深紫 */
+            );
+            min-height: 100vh;
+            padding: 10px;
+            position: relative;
+            overflow-x: hidden;
+        }
+        
+        /* 落日余晖动态背景 */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 80% 30%, rgba(255, 183, 71, 0.6) 0%, transparent 40%),
+                radial-gradient(circle at 20% 70%, rgba(254, 107, 139, 0.4) 0%, transparent 50%),
+                radial-gradient(circle at 50% 50%, rgba(255, 142, 83, 0.3) 0%, transparent 60%);
+            animation: sunsetBreath 12s ease-in-out infinite;
+            pointer-events: none;
+            z-index: 1;
+        }
+        
+        /* 飞鸟剪影 */
+        .birds {
+            position: fixed;
+            top: 10%;
+            left: 0;
+            right: 0;
+            font-size: 16px;
+            color: rgba(0, 0, 0, 0.3);
+            animation: birdsFly 20s linear infinite;
+            pointer-events: none;
+            z-index: 2;
+        }
+        
+        .birds::before {
+            content: '🦅 🦆 🦅 🦆 🦅';
+            position: absolute;
+            white-space: nowrap;
+        }
+        
+        /* 云朵飘动 */
+        .clouds {
+            position: fixed;
+            top: 5%;
+            left: 0;
+            right: 0;
+            font-size: 24px;
+            color: rgba(255, 255, 255, 0.6);
+            animation: cloudsFloat 25s linear infinite;
+            pointer-events: none;
+            z-index: 2;
+        }
+        
+        .clouds::before {
+            content: '☁️ ☁️ ☁️ ☁️ ☁️';
+            position: absolute;
+            white-space: nowrap;
+        }
+        
+        /* 星星闪烁 */
+        .stars {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            z-index: 2;
+        }
+        
+        .star {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle 3s ease-in-out infinite;
+        }
+        
+        @keyframes sunsetBreath {
+            0%, 100% { opacity: 0.7; transform: scale(1); }
+            50% { opacity: 0.9; transform: scale(1.05); }
+        }
+        
+        @keyframes birdsFly {
+            0% { transform: translateX(-100px); }
+            100% { transform: translateX(calc(100vw + 100px)); }
+        }
+        
+        @keyframes cloudsFloat {
+            0% { transform: translateX(-200px); }
+            100% { transform: translateX(calc(100vw + 200px)); }
+        }
+        
+        @keyframes twinkle {
+            0%, 100% { opacity: 0; }
+            50% { opacity: 1; }
+        }
+        
+        .container {
+            max-width: 100%;
+            position: relative;
+            z-index: 3;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+            color: white;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        h1 {
+            font-size: 1.8rem;
+            margin-bottom: 5px;
+        }
+        
+        .tools-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 40px;
+        }
+        
+        .tool-card {
+            background: rgba(255,255,255,0.92);
+            border-radius: 12px;
+            padding: 15px;
+            text-decoration: none;
+            color: #333;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            min-height: 140px;
+        }
+        
+        .tool-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+        }
+        
+        .tool-icon {
+            font-size: 2rem;
+            margin-bottom: 8px;
+        }
+        
+        .tool-number {
+            background: linear-gradient(135deg, #FF6B6B, #FE6B8B);
+            color: white;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        
+        .tool-name {
+            font-size: 0.95rem;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        
+        .tool-description {
+            font-size: 0.75rem;
+            color: #666;
+            line-height: 1.2;
+        }
+        
+        .pagination-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            margin: 30px 0;
+            flex-wrap: wrap;
+        }
+        
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .pagination button {
+            padding: 8px 12px;
+            border: none;
+            background: rgba(255,255,255,0.9);
+            color: #FF6B6B;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            min-width: 36px;
+            font-size: 14px;
+        }
+        
+        .pagination button:hover:not(:disabled) {
+            background: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        
+        .pagination button.active {
+            background: linear-gradient(135deg, #FF6B6B, #FE6B8B);
+            color: white;
+        }
+        
+        .pagination button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        
+        .pagination span {
+            color: white;
+            font-size: 14px;
+            margin: 0 5px;
+        }
+        
+        .no-results {
+            text-align: center;
+            color: white;
+            padding: 40px;
+            font-size: 18px;
+        }
+       
+    </style>
+</head>
+<body>
+    <!-- 动态背景元素 -->
+    <div class="birds"></div>
+    <div class="clouds"></div>
+    <div class="stars" id="stars"></div>
+    
+    <div class="container">
+        <header>
+            <h1>🌅 提示词中心</h1>
+        </header>
+        
+        <main>
+            <div class="tools-grid" id="toolsGrid"></div>
+            <div class="pagination-wrapper" id="paginationWrapper">
+                <div class="pagination" id="pagination"></div>
+            </div>
+        </main>
+    </div>
+    
+    <!-- 引入配置文件 -->
+    <script src="提示词-config.js"></script>
+    <script>
+        let currentPage = 1;
+        const toolsPerPage = 8;
+        let allTools = [];
+        
+        // 创建星星背景
+        function createStars() {
+            const starsContainer = document.getElementById('stars');
+            const starCount = 50;
+            
+            for (let i = 0; i < starCount; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.animationDelay = Math.random() * 3 + 's';
+                starsContainer.appendChild(star);
+            }
+        }
+        
+        // 初始化工具列表
+        function initTools() {
+            if (typeof window.toolsConfig === 'undefined') {
+                document.getElementById('toolsGrid').innerHTML = '<div class="no-results">配置文件加载失败</div>';
+                return;
+            }
+            
+            allTools = window.toolsConfig.getAllTools();
+            
+            currentPage = 1;
+            renderTools();
+            renderPagination();
+        }
+        
+        // 渲染当前页的工具
+        function renderTools() {
+            const toolsGrid = document.getElementById('toolsGrid');
+            const startIndex = (currentPage - 1) * toolsPerPage;
+            const endIndex = startIndex + toolsPerPage;
+            const toolsToShow = allTools.slice(startIndex, endIndex);
+            
+            if (toolsToShow.length === 0) {
+                toolsGrid.innerHTML = '<div class="no-results">没有找到工具</div>';
+                return;
+            }
+            
+            toolsGrid.innerHTML = toolsToShow.map((tool, index) => {
+                const globalIndex = startIndex + index + 1;
+                return `
+                    <a href="${tool.file}" class="tool-card">
+                        <span class="tool-number">#${globalIndex}</span>
+                        <span class="tool-icon">${tool.icon}</span>
+                        <div class="tool-name">${tool.name}</div>
+                        <div class="tool-description">${tool.description}</div>
+                    </a>
+                `;
+            }).join('');
+        }
+        
+        // 渲染分页控件
+        function renderPagination() {
+            const pagination = document.getElementById('pagination');
+            const wrapper = document.getElementById('paginationWrapper');
+            const totalPages = Math.ceil(allTools.length / toolsPerPage);
+            
+            if (totalPages <= 1) {
+                wrapper.innerHTML = "";
+                return;
+            }
+            
+            let paginationHTML = "";
+            
+            // 上一页按钮
+            paginationHTML += `<button onclick="changePage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>‹</button>`;
+            
+            // 页码显示逻辑
+            const startPage = Math.max(1, currentPage - 2);
+            const endPage = Math.min(totalPages, currentPage + 2);
+            
+            if (startPage > 1) {
+                paginationHTML += `<button onclick="changePage(1)">1</button>`;
+                if (startPage > 2) paginationHTML += `<span>...</span>`;
+            }
+            
+            for (let i = startPage; i <= endPage; i++) {
+                paginationHTML += `<button onclick="changePage(${i})" class="${i === currentPage ? 'active' : ''}">${i}</button>`;
+            }
+            
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) paginationHTML += `<span>...</span>`;
+                paginationHTML += `<button onclick="changePage(${totalPages})">${totalPages}</button>`;
+            }
+            
+            // 下一页按钮
+            paginationHTML += `<button onclick="changePage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>›</button>`;
+            
+            pagination.innerHTML = paginationHTML;
+        }
+        
+        // 切换页面
+        function changePage(page) {
+            const totalPages = Math.ceil(allTools.length / toolsPerPage);
+            if (page >= 1 && page <= totalPages) {
+                currentPage = page;
+                renderTools();
+                renderPagination();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+        
+        // 页面加载时初始化
+        window.addEventListener('load', function() {
+            createStars(); // 创建星星背景
+            initTools(); // 初始化工具列表
+        });
+        
+        // 键盘快捷键支持
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'ArrowLeft') {
+                changePage(currentPage - 1);
+            }
+            if (e.key === 'ArrowRight') {
+                changePage(currentPage + 1);
+            }
+        });
+    </script>
+</body>
+</html>

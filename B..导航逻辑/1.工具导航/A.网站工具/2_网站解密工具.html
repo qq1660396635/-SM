@@ -1,0 +1,1355 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>加密解密工具</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-color: #5e72e4;
+            --secondary-color: #825ee4;
+            --success-color: #2dce89;
+            --warning-color: #fb6340;
+            --info-color: #11cdef;
+            --dark: #32325d;
+            --light: #f7f8fc;
+            --white: #ffffff;
+            --shadow: 0 0 2rem 0 rgba(136, 152, 170, 0.15);
+            --shadow-sm: 0 0 0.5rem 0 rgba(136, 152, 170, 0.15);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(87deg, var(--primary-color) 0, var(--secondary-color) 100%);
+            min-height: 100vh;
+            color: var(--dark);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .app-container {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 0.75rem 1rem;
+            box-shadow: var(--shadow-sm);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .app-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--dark);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .app-icon {
+            width: 28px;
+            height: 28px;
+            background: linear-gradient(87deg, var(--primary-color) 0, var(--secondary-color) 100%);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .icon-btn {
+            width: 36px;
+            height: 36px;
+            border: none;
+            background: var(--light);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+        }
+
+        .icon-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .icon-btn.active {
+            background: linear-gradient(87deg, var(--primary-color) 0, var(--secondary-color) 100%);
+            color: white;
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 1rem;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .page {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 加密解密页面样式 */
+        .crypto-container {
+            background: var(--white);
+            border-radius: 15px;
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+        }
+
+        .mode-selector {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            background: var(--light);
+            padding: 0.25rem;
+            border-radius: 10px;
+        }
+
+        .mode-btn {
+            flex: 1;
+            padding: 0.75rem;
+            border: none;
+            background: transparent;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: var(--dark);
+            font-size: 0.9rem;
+        }
+
+        .mode-btn.active {
+            background: var(--white);
+            box-shadow: var(--shadow-sm);
+            color: var(--primary-color);
+        }
+
+        .input-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .input-label {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--dark);
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+
+        .text-input {
+            width: 100%;
+            min-height: 120px;
+            padding: 0.75rem;
+            border: 2px solid var(--light);
+            border-radius: 10px;
+            font-size: 0.9rem;
+            resize: vertical;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+
+        .text-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(94, 114, 228, 0.1);
+        }
+
+        .line-info {
+            font-size: 0.75rem;
+            color: #8898aa;
+            margin-top: 0.25rem;
+            text-align: right;
+        }
+
+        /* 紧凑的设置网格 */
+        .settings-compact {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .setting-compact {
+            background: var(--light);
+            padding: 0.75rem;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .setting-compact:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .setting-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--dark);
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+
+        .select-input {
+            width: 100%;
+            padding: 0.5rem;
+            border: 2px solid var(--white);
+            border-radius: 6px;
+            background: var(--white);
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .select-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 0.75rem 1.25rem;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(87deg, var(--primary-color) 0, var(--secondary-color) 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 7px 14px rgba(50, 50, 93, 0.1), 0 3px 6px rgba(0, 0, 0, 0.08);
+        }
+
+        .btn-secondary {
+            background: var(--light);
+            color: var(--dark);
+        }
+
+        .btn-secondary:hover {
+            background: #e9ecef;
+        }
+
+        /* URL卡片页面样式 */
+        .url-input-section {
+            background: var(--white);
+            border-radius: 15px;
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            margin-bottom: 1rem;
+        }
+
+        .url-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.75rem;
+        }
+
+        .url-item {
+            background: var(--white);
+            border-radius: 10px;
+            padding: 1rem;
+            box-shadow: var(--shadow-sm);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: 2px solid transparent;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .url-item:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow);
+            border-color: var(--primary-color);
+        }
+
+        .url-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: linear-gradient(87deg, var(--primary-color) 0, var(--secondary-color) 100%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .url-item:hover::before {
+            opacity: 1;
+        }
+
+        .url-index {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            background: linear-gradient(87deg, var(--primary-color) 0, var(--secondary-color) 100%);
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 24px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .url-domain {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--dark);
+            margin-bottom: 0.25rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .url-path {
+            font-size: 0.75rem;
+            color: #8898aa;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* 配置面板样式 */
+        .config-panel {
+            position: fixed;
+            top: 0;
+            right: -100%;
+            width: 100%;
+            max-width: 400px;
+            height: 100vh;
+            background: var(--white);
+            box-shadow: -5px 0 20px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            transition: right 0.3s ease;
+            overflow-y: auto;
+        }
+
+        .config-panel.active {
+            right: 0;
+        }
+
+        .config-header {
+            background: linear-gradient(87deg, var(--primary-color) 0, var(--secondary-color) 100%);
+            color: white;
+            padding: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .config-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .config-close {
+            width: 30px;
+            height: 30px;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            border-radius: 6px;
+            color: white;
+            font-size: 1.1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .config-close:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .config-content {
+            padding: 1.5rem;
+        }
+
+        .config-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .preset-buttons {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .preset-btn {
+            padding: 0.5rem;
+            border: 2px solid var(--light);
+            background: var(--white);
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .preset-btn:hover {
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: var(--dark);
+            color: white;
+            padding: 0.75rem 1.25rem;
+            border-radius: 10px;
+            box-shadow: var(--shadow);
+            z-index: 2000;
+            opacity: 0;
+            transition: all 0.3s ease;
+            font-size: 0.875rem;
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
+        /* 移动端适配 */
+        @media (max-width: 768px) {
+            .header {
+                padding: 0.5rem 0.75rem;
+            }
+
+            .app-title {
+                font-size: 1rem;
+            }
+
+            .main-content {
+                padding: 0.75rem;
+            }
+
+            .crypto-container {
+                padding: 1rem;
+            }
+
+            .settings-compact {
+                grid-template-columns: 1fr;
+                gap: 0.75rem;
+            }
+
+            .url-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .config-panel {
+                width: 100%;
+                max-width: 100%;
+            }
+
+            .preset-buttons {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header-content {
+                gap: 0.5rem;
+            }
+
+            .app-icon {
+                width: 24px;
+                height: 24px;
+                font-size: 0.8rem;
+            }
+
+            .icon-btn {
+                width: 32px;
+                height: 32px;
+                font-size: 0.9rem;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+            }
+
+            .text-input {
+                min-height: 100px;
+                padding: 0.5rem;
+                font-size: 0.85rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <header class="header">
+            <div class="header-content">
+                <div class="app-title">
+                    <div class="app-icon">🔐</div>
+                    <span>加密解密工具</span>
+                </div>
+                <div class="header-actions">
+                    <button class="icon-btn" onclick="openConfig()" title="配置">
+                        ⚙️
+                    </button>
+                    <button class="icon-btn" id="pageToggle" onclick="togglePage()" title="切换页面">
+                        🌐
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <!-- 加密解密页面 -->
+            <div id="cryptoPage" class="page active">
+                <div class="crypto-container">
+                    <div class="mode-selector">
+                        <button class="mode-btn active" onclick="switchMode('encrypt')">加密模式</button>
+                        <button class="mode-btn" onclick="switchMode('decrypt')">解密模式</button>
+                    </div>
+
+                    <div class="input-section">
+                        <label class="input-label">输入文本</label>
+                        <textarea id="inputText" class="text-input" placeholder="请输入要处理的文本..." oninput="updateLineCount('input')"></textarea>
+                        <div id="inputLineCount" class="line-info">行数: 0</div>
+                    </div>
+
+                    <!-- 紧凑的设置选项 -->
+                    <div class="settings-compact">
+                        <div class="setting-compact">
+                            <label class="setting-label">加密算法</label>
+                            <select id="algorithm" class="select-input">
+                                <option value="">无</option>
+                                <option value="base64">Base64</option>
+                                <option value="caesar">凯撒密码</option>
+                                <option value="xor">XOR加密</option>
+                                <option value="reverse">反转</option>
+                                <option value="rot13">ROT13</option>
+                                <option value="atbash">Atbash密码</option>
+                                <option value="vigenere">维吉尼亚密码</option>
+                                <option value="morse">摩斯密码</option>
+                                <option value="binary">二进制</option>
+                                <option value="hex">十六进制</option>
+                                <option value="url">URL编码</option>
+                                <option value="html">HTML实体</option>
+                            </select>
+                        </div>
+
+                        <div class="setting-compact">
+                            <label class="setting-label">排列方式</label>
+                            <select id="arrangement" class="select-input">
+                                <option value="none">无</option>
+                                <option value="reverse">反向排列</option>
+                                <option value="block4">4字符分组</option>
+                                <option value="block8">8字符分组</option>
+                                <option value="oddEven">奇偶交换</option>
+                                <option value="shift1">左移1位</option>
+                                <option value="shift2">左移2位</option>
+                                <option value="random">随机排列</option>
+                                <option value="zigzag">之字形排列</option>
+                            </select>
+                        </div>
+
+                        <div class="setting-compact">
+                            <label class="setting-label">自定义变换</label>
+                            <select id="custom" class="select-input">
+                                <option value="none">无</option>
+                                <option value="duplicate">重复字符</option>
+                                <option value="removeSpace">移除空格</option>
+                                <option value="addNoise">添加噪声</option>
+                                <option value="caseToggle">大小写切换</option>
+                                <option value="reverseWords">单词反转</option>
+                                <option value="shuffle">随机重排</option>
+                                <option value="insertNull">插入空字符</option>
+                                <option value="substitute">字符替换</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="input-section">
+                        <label class="input-label">处理结果</label>
+                        <textarea id="outputText" class="text-input" placeholder="处理结果将显示在这里..." readonly oninput="updateLineCount('output')"></textarea>
+                        <div id="outputLineCount" class="line-info">行数: 0</div>
+                    </div>
+
+                    <div class="action-buttons">
+                        <button id="processBtn" class="btn btn-primary" onclick="process()">开始加密</button>
+                        <button class="btn btn-secondary" onclick="copyResult()">复制结果</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- URL卡片页面 -->
+            <div id="urlPage" class="page">
+                <div class="url-input-section">
+                    <div class="input-section">
+                        <label class="input-label">输入URL列表（每行一个）</label>
+                        <textarea id="urlInput" class="text-input" placeholder="请输入URL，每行一个..." oninput="updateLineCount('url')"></textarea>
+                        <div id="urlLineCount" class="line-info">行数: 0</div>
+                    </div>
+
+                    <div class="action-buttons">
+                        <button class="btn btn-primary" onclick="processUrls()">生成卡片</button>
+                        <button class="btn btn-secondary" onclick="clearUrlCards()">清空卡片</button>
+                    </div>
+                </div>
+
+                <div id="urlGrid" class="url-grid"></div>
+            </div>
+        </main>
+    </div>
+
+    <div class="overlay" onclick="closeConfig()"></div>
+    
+    <div class="config-panel" id="configPanel">
+        <div class="config-header">
+            <h3 class="config-title">配置中心</h3>
+            <button class="config-close" onclick="closeConfig()">×</button>
+        </div>
+        <div class="config-content">
+            <div class="config-section">
+                <label class="setting-label">快速预设</label>
+                <div class="preset-buttons">
+                    <button class="preset-btn" onclick="setPreset('simple')">简单加密</button>
+                    <button class="preset-btn" onclick="setPreset('strong')">强加密</button>
+                    <button class="preset-btn" onclick="setPreset('encode')">编码模式</button>
+                </div>
+            </div>
+
+            <div class="config-section">
+                <label class="setting-label">算法参数</label>
+                <div id="algorithmSettings" style="display: none;">
+                    <!-- 动态添加算法设置 -->
+                </div>
+            </div>
+
+            <div class="config-section">
+                <label class="setting-label">帮助信息</label>
+                <button class="preset-btn" onclick="showHelp('arrange')" style="width: 100%; margin-bottom: 0.5rem;">排列方式说明</button>
+                <button class="preset-btn" onclick="showHelp('transform')" style="width: 100%;">自定义变换说明</button>
+            </div>
+
+            <div id="helpContent"></div>
+        </div>
+    </div>
+    
+    <div id="toast" class="toast"></div>
+
+    <script>
+        let currentMode = 'encrypt';
+        let currentPage = 'crypto';
+
+        function switchMode(mode) {
+            currentMode = mode;
+            const modeBtns = document.querySelectorAll('.mode-btn');
+            modeBtns.forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById('processBtn').textContent = mode === 'encrypt' ? '开始加密' : '开始解密';
+        }
+
+        function togglePage() {
+            const cryptoPage = document.getElementById('cryptoPage');
+            const urlPage = document.getElementById('urlPage');
+            const pageToggle = document.getElementById('pageToggle');
+            
+            if (currentPage === 'crypto') {
+                cryptoPage.classList.remove('active');
+                urlPage.classList.add('active');
+                pageToggle.classList.add('active');
+                currentPage = 'url';
+            } else {
+                urlPage.classList.remove('active');
+                cryptoPage.classList.add('active');
+                pageToggle.classList.remove('active');
+                currentPage = 'crypto';
+            }
+        }
+
+        function openConfig() {
+            document.getElementById('configPanel').classList.add('active');
+            document.querySelector('.overlay').classList.add('active');
+        }
+
+        function closeConfig() {
+            document.getElementById('configPanel').classList.remove('active');
+            document.querySelector('.overlay').classList.remove('active');
+        }
+
+        function showToast(message, duration = 2000) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, duration);
+        }
+
+        function updateLineCount(type) {
+            let input, counter;
+            if (type === 'input') {
+                input = document.getElementById('inputText').value;
+                counter = document.getElementById('inputLineCount');
+            } else if (type === 'output') {
+                input = document.getElementById('outputText').value;
+                counter = document.getElementById('outputLineCount');
+            } else if (type === 'url') {
+                input = document.getElementById('urlInput').value;
+                counter = document.getElementById('urlLineCount');
+            }
+            
+            const lines = input ? input.split('\n').length : 0;
+            counter.textContent = `行数: ${lines}`;
+        }
+
+        function showHelp(type) {
+            const helpContent = document.getElementById('helpContent');
+            if (type === 'arrange') {
+                helpContent.innerHTML = `
+                    <div style="margin-top: 1rem;">
+                        <h4 style="font-size: 0.95rem; margin-bottom: 0.75rem;">排列方式说明</h4>
+                        <ul style="list-style: none; padding: 0;">
+                            <li style="margin-bottom: 0.5rem; font-size: 0.8rem;">• 反向排列: 字符串倒序</li>
+                            <li style="margin-bottom: 0.5rem; font-size: 0.8rem;">• 4字符分组: 每4个字符一组</li>
+                            <li style="margin-bottom: 0.5rem; font-size: 0.8rem;">• 8字符分组: 每8个字符一组</li>
+                            <li style="margin-bottom: 0.5rem; font-size: 0.8rem;">• 奇偶交换: 奇偶位字符交换</li>
+                            <li style="margin-bottom: 0.5rem; font-size: 0.8rem;">• 左移1位: 向左循环移动1位</li>
+                            <li style="margin-bottom: 0.5rem; font-size: 0.8rem;">• 左移2位: 向左循环移动2位</li>
+                            <li style="margin-bottom: 0.5rem; font-size: 0.8rem;">• 随机排列: 随机打乱顺序</li>
+                            <li style="margin-bottom: 0.5rem; font-size: 0.8rem;">• 之字形排列: Z字形路径重排</li>
+                        </ul>
+                    </div>`;
+            } else if (type === 'transform') {
+                helpContent.innerHTML = `
+                    <div style="margin-top: 1rem;">
+                        <h4 style="font-size: 0.95rem; margin-bottom: 0.75rem;">自定义变换说明</h4>
+                        <ul style="list-style: none; padding: 0;">
+                            <li style="margin-bottom: 0.5rem; font-size: 0.8rem;">• 重复字符: 每个字符重复一次</li>
+                            <li style="margin-bottom: 0.5rem; font-size: 0.8rem;">• 移除空格: 删除所有空格</li>
+                            <li style="margin-bottom: 0.5rem; font-size: 0.8rem;">• 添加噪声: 插入随机字符</li>
+                            <li style="margin-bottom: 0.5rem; font-size: 0.8rem;">• 大小写切换: 大小写互换</li>
+                            <li style="margin-bottom: 0.5rem; font-size: 0.8rem;">• 单词反转: 每个单词反转</li>
+                            <li style="margin-bottom: 0.5rem; font-size: 0.8rem;">• 随机重排: 随机重排字符</li>
+                            <li style="margin-bottom: 0.5rem; font-size: 0.8rem;">• 插入空字符: 插入空字符</li>
+                            <li style="margin-bottom: 0.5rem; font-size: 0.8rem;">• 字符替换: 对称替换字符</li>
+                        </ul>
+                    </div>`;
+            }
+        }
+
+        function setPreset(preset) {
+            const algorithm = document.getElementById('algorithm');
+            const arrangement = document.getElementById('arrangement');
+            const custom = document.getElementById('custom');
+            
+            switch(preset) {
+                case 'simple':
+                    algorithm.value = 'base64';
+                    arrangement.value = 'none';
+                    custom.value = 'none';
+                    showToast('已应用简单加密方案');
+                    break;
+                case 'strong':
+                    algorithm.value = 'xor';
+                    arrangement.value = 'block4';
+                    custom.value = 'addNoise';
+                    showToast('已应用强加密方案');
+                    break;
+                case 'encode':
+                    algorithm.value = 'url';
+                    arrangement.value = 'none';
+                    custom.value = 'removeSpace';
+                    showToast('已应用编码模式');
+                    break;
+            }
+        }
+
+        function process() {
+            const input = document.getElementById('inputText').value;
+            if (!input) {
+                showToast('请输入要处理的文本');
+                return;
+            }
+            
+            const algorithm = document.getElementById('algorithm').value;
+            const arrangement = document.getElementById('arrangement').value;
+            const custom = document.getElementById('custom').value;
+            
+            if (!algorithm && !arrangement && !custom) {
+                showToast('请至少选择一种加密方式');
+                return;
+            }
+            
+            const lines = input.split('\n');
+            const results = [];
+            
+            for (let line of lines) {
+                let result = line;
+                
+                if (currentMode === 'encrypt') {
+                    if (algorithm) {
+                        result = applyAlgorithm(result, algorithm);
+                    }
+                    if (arrangement && arrangement !== 'none') {
+                        result = applyArrangement(result, arrangement);
+                    }
+                    if (custom && custom !== 'none') {
+                        result = applyCustom(result, custom);
+                    }
+                } else {
+                    if (custom && custom !== 'none') {
+                        result = reverseCustom(result, custom);
+                    }
+                    if (arrangement && arrangement !== 'none') {
+                        result = reverseArrangement(result, arrangement);
+                    }
+                    if (algorithm) {
+                        result = applyAlgorithm(result, algorithm);
+                    }
+                }
+                
+                results.push(result);
+            }
+            
+            document.getElementById('outputText').value = results.join('\n');
+            updateLineCount('output');
+            showToast(`${currentMode === 'encrypt' ? '加密' : '解密'}完成`);
+        }
+
+        function processUrls() {
+            const input = document.getElementById('urlInput').value;
+            if (!input) {
+                showToast('请输入URL列表');
+                return;
+            }
+            
+            const urls = input.split('\n');
+            const gridContainer = document.getElementById('urlGrid');
+            gridContainer.innerHTML = '';
+            
+            urls.forEach((url, index) => {
+                if (!url.trim()) return;
+                
+                const urlItem = document.createElement('div');
+                urlItem.className = 'url-item';
+                urlItem.onclick = () => openUrl(url.trim());
+                
+                // 提取域名作为标题
+                let domain = url.trim();
+                let path = url.trim();
+                try {
+                    const urlObj = new URL(url.trim());
+                    domain = urlObj.hostname;
+                    path = urlObj.pathname + urlObj.search + urlObj.hash;
+                } catch (e) {
+                    // 如果不是有效URL，使用原始文本
+                }
+                
+                urlItem.innerHTML = `
+                    <div class="url-index">${index + 1}</div>
+                    <div class="url-domain">${domain}</div>
+                    <div class="url-path">${path}</div>
+                `;
+                
+                gridContainer.appendChild(urlItem);
+            });
+            
+            showToast('URL列表生成完成');
+        }
+
+        function openUrl(url) {
+            // 检查是否是有效的URL
+            if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                url = 'https://' + url;
+            }
+            
+            // 在新窗口打开
+            window.open(url, '_blank');
+        }
+
+        function clearUrlCards() {
+            document.getElementById('urlGrid').innerHTML = '';
+            document.getElementById('urlInput').value = '';
+            updateLineCount('url');
+            showToast('已清空URL列表');
+        }
+
+        function copyResult() {
+            const outputText = document.getElementById('outputText');
+            outputText.select();
+            document.execCommand('copy');
+            showToast('结果已复制到剪贴板');
+        }
+
+        function applyAlgorithm(text, algorithm) {
+            switch(algorithm) {
+                case 'base64':
+                    if (currentMode === 'encrypt') {
+                        return btoa(unescape(encodeURIComponent(text)));
+                    } else {
+                        try {
+                            return decodeURIComponent(escape(atob(text)));
+                        } catch (e) {
+                            showToast('Base64解码错误，请检查输入');
+                            return text;
+                        }
+                    }
+                    
+                case 'caesar':
+                    const shift = parseInt(document.getElementById('caesarShift')?.value) || 3;
+                    return text.split('').map(char => {
+                        if (char.match(/[a-z]/i)) {
+                            const code = char.charCodeAt(0);
+                            const base = code >= 65 && code <= 90 ? 65 : 97;
+                            const offset = currentMode === 'encrypt' ? shift : -shift;
+                            return String.fromCharCode((code - base + offset + 26) % 26 + base);
+                        }
+                        return char;
+                    }).join('');
+                    
+                case 'xor':
+                    const key = parseInt(document.getElementById('xorKey')?.value) || 42;
+                    return text.split('').map(char => 
+                        String.fromCharCode(char.charCodeAt(0) ^ key)
+                    ).join('');
+                    
+                case 'reverse':
+                    return text.split('').reverse().join('');
+                    
+                case 'rot13':
+                    return text.replace(/[a-zA-Z]/g, function(char) {
+                        const code = char.charCodeAt(0);
+                        const base = code >= 65 && code <= 90 ? 65 : 97;
+                        return String.fromCharCode((code - base + 13) % 26 + base);
+                    });
+                    
+                case 'atbash':
+                    return text.replace(/[a-zA-Z]/g, function(char) {
+                        const code = char.charCodeAt(0);
+                        const base = code >= 65 && code <= 90 ? 65 : 97;
+                        return String.fromCharCode(25 - (code - base) + base);
+                    });
+                    
+                case 'vigenere':
+                    const keyStr = document.getElementById('customKey')?.value || 'KEY';
+                    let keyIndex = 0;
+                    return text.split('').map(char => {
+                        if (char.match(/[a-z]/i)) {
+                            const code = char.charCodeAt(0);
+                            const base = code >= 65 && code <= 90 ? 65 : 97;
+                            const keyChar = keyStr[keyIndex % keyStr.length].toUpperCase();
+                            const shift = currentMode === 'encrypt' ? 
+                                keyChar.charCodeAt(0) - 65 : -(keyChar.charCodeAt(0) - 65);
+                            keyIndex++;
+                            return String.fromCharCode((code - base + shift + 26) % 26 + base);
+                        }
+                        return char;
+                    }).join('');
+                    
+                case 'morse':
+                    const morseCode = {
+                        'A': '.-', 'B': '-...', 'C': '-.-.', 'D': '-..', 'E': '.', 'F': '..-.',
+                        'G': '--.', 'H': '....', 'I': '..', 'J': '.---', 'K': '-.-', 'L': '.-..',
+                        'M': '--', 'N': '-.', 'O': '---', 'P': '.--.', 'Q': '--.-', 'R': '.-.',
+                        'S': '...', 'T': '-', 'U': '..-', 'V': '...-', 'W': '.--', 'X': '-..-',
+                        'Y': '-.--', 'Z': '--..', '0': '-----', '1': '.----', '2': '..---',
+                        '3': '...--', '4': '....-', '5': '.....', '6': '-....', '7': '--...',
+                        '8': '---..', '9': '----.', '.': '.-.-.-', ',': '--..--', '?': '..--..',
+                        "'": '.----.', '!': '-.-.--', '/': '-..-.', '(': '-.--.', ')': '-.--.-',
+                        '&': '.-...', ':': '---...', ';': '-.-.-.', '=': '-...-', '+': '.-.-.',
+                        '-': '-....-', '_': '..--.-', '"': '.-..-.', '$': '...-..-', '@': '.--.-.',
+                        ' ': '/'
+                    };
+                    
+                    if (currentMode === 'encrypt') {
+                        return text.toUpperCase().split('').map(char => 
+                            morseCode[char] || char
+                        ).join(' ');
+                    } else {
+                        const reverseMorse = {};
+                        for (let char in morseCode) {
+                            reverseMorse[morseCode[char]] = char;
+                        }
+                        
+                        return text.split(' ').map(code => 
+                            reverseMorse[code] || code
+                        ).join('');
+                    }
+                    
+                case 'binary':
+                    if (currentMode === 'encrypt') {
+                        return text.split('').map(char => 
+                            char.charCodeAt(0).toString(2).padStart(8, '0')
+                        ).join(' ');
+                    } else {
+                        return text.split(' ').map(bin => {
+                            if (bin.match(/^[01]{8}$/)) {
+                                return String.fromCharCode(parseInt(bin, 2));
+                            }
+                            return bin;
+                        }).join('');
+                    }
+                    
+                case 'hex':
+                    if (currentMode === 'encrypt') {
+                        return text.split('').map(char => 
+                            char.charCodeAt(0).toString(16).padStart(2, '0')
+                        ).join(' ');
+                    } else {
+                        return text.split(' ').map(hex => {
+                            if (hex.match(/^[0-9a-fA-F]{2}$/)) {
+                                return String.fromCharCode(parseInt(hex, 16));
+                            }
+                            return hex;
+                        }).join('');
+                    }
+                    
+                case 'url':
+                    if (currentMode === 'encrypt') {
+                        return encodeURIComponent(text);
+                    } else {
+                        try {
+                            return decodeURIComponent(text);
+                        } catch (e) {
+                            showToast('URL解码错误，请检查输入');
+                            return text;
+                        }
+                    }
+                    
+                case 'html':
+                    if (currentMode === 'encrypt') {
+                        return text.replace(/[&<>"']/g, function(m) {
+                            return {
+                                '&': '&amp;',
+                                '<': '&lt;',
+                                '>': '&gt;',
+                                '"': '&quot;',
+                                "'": '&#39;'
+                            }[m];
+                        });
+                    } else {
+                        return text.replace(/&amp;|&lt;|&gt;|&quot;|&#39;/g, function(m) {
+                            return {
+                                '&amp;': '&',
+                                '&lt;': '<',
+                                '&gt;': '>',
+                                '&quot;': '"',
+                                '&#39;': "'"
+                            }[m];
+                        });
+                    }
+                    
+                default:
+                    return text;
+            }
+        }
+
+        function applyArrangement(text, arrangement) {
+            switch(arrangement) {
+                case 'reverse':
+                    return text.split('').reverse().join('');
+                    
+                case 'block4':
+                    return text.match(/.{1,4}/g).join(' ');
+                    
+                case 'block8':
+                    return text.match(/.{1,8}/g).join(' ');
+                    
+                case 'oddEven':
+                    const chars = text.split('');
+                    const result = [];
+                    for (let i = 1; i < chars.length; i += 2) {
+                        result.push(chars[i]);
+                    }
+                    for (let i = 0; i < chars.length; i += 2) {
+                        result.push(chars[i]);
+                    }
+                    return result.join('');
+                    
+                case 'shift1':
+                    return text.slice(1) + text[0];
+                    
+                case 'shift2':
+                    return text.slice(2) + text.slice(0, 2);
+                    
+                case 'random':
+                    const array = text.split('');
+                    for (let i = array.length - 1; i > 0; i--) {
+                        const j = Math.floor(Math.random() * (i + 1));
+                        [array[i], array[j]] = [array[j], array[i]];
+                    }
+                    return array.join('');
+                    
+                case 'zigzag':
+                    if (text.length <= 1) return text;
+                    let resultStr = '';
+                    for (let i = 0; i < text.length; i += 2) {
+                        resultStr += text[i];
+                    }
+                    for (let i = 1; i < text.length; i += 2) {
+                        resultStr += text[i];
+                    }
+                    return resultStr;
+                    
+                default:
+                    return text;
+            }
+        }
+
+        function reverseArrangement(text, arrangement) {
+            switch(arrangement) {
+                case 'reverse':
+                    return text.split('').reverse().join('');
+                    
+                case 'block4':
+                case 'block8':
+                    return text.replace(/\s/g, '');
+                    
+                case 'oddEven':
+                    const chars = text.split('');
+                    const mid = Math.ceil(chars.length / 2);
+                    const oddChars = chars.slice(0, mid);
+                    const evenChars = chars.slice(mid);
+                    const result = [];
+                    
+                    for (let i = 0; i < Math.max(oddChars.length, evenChars.length); i++) {
+                        if (i < evenChars.length) result.push(evenChars[i]);
+                        if (i < oddChars.length) result.push(oddChars[i]);
+                    }
+                    return result.join('');
+                    
+                case 'shift1':
+                    return text[text.length - 1] + text.slice(0, -1);
+                    
+                case 'shift2':
+                    return text.slice(-2) + text.slice(0, -2);
+                    
+                case 'zigzag':
+                    if (text.length <= 1) return text;
+                    const midPoint = Math.ceil(text.length / 2);
+                    const firstHalf = text.slice(0, midPoint);
+                    const secondHalf = text.slice(midPoint);
+                    let resultStr = '';
+                    
+                    for (let i = 0; i < Math.max(firstHalf.length, secondHalf.length); i++) {
+                        if (i < firstHalf.length) resultStr += firstHalf[i];
+                        if (i < secondHalf.length) resultStr += secondHalf[i];
+                    }
+                    return resultStr;
+                    
+                default:
+                    return text;
+            }
+        }
+
+        function applyCustom(text, custom) {
+            switch(custom) {
+                case 'duplicate':
+                    return text.split('').map(char => char + char).join('');
+                    
+                case 'removeSpace':
+                    return text.replace(/\s/g, '');
+                    
+                case 'addNoise':
+                    const noiseChars = '!@#$%^&*()_+-=[]{}|;:,.<>?';
+                    let result = '';
+                    for (let i = 0; i < text.length; i++) {
+                        result += text[i];
+                        if (Math.random() > 0.7) {
+                            result += noiseChars[Math.floor(Math.random() * noiseChars.length)];
+                        }
+                    }
+                    return result;
+                    
+                case 'caseToggle':
+                    return text.split('').map(char => {
+                        if (char >= 'a' && char <= 'z') return char.toUpperCase();
+                        if (char >= 'A' && char <= 'Z') return char.toLowerCase();
+                        return char;
+                    }).join('');
+                    
+                case 'reverseWords':
+                    return text.split(' ').map(word => word.split('').reverse().join('')).join(' ');
+                    
+                case 'shuffle':
+                    const array = text.split('');
+                    for (let i = array.length - 1; i > 0; i--) {
+                        const j = Math.floor(Math.random() * (i + 1));
+                        [array[i], array[j]] = [array[j], array[i]];
+                    }
+                    return array.join('');
+                    
+                case 'insertNull':
+                    return text.split('').join('\0');
+                    
+                case 'substitute':
+                    return text.split('').map(char => {
+                        if (char >= 'a' && char <= 'z') {
+                            return String.fromCharCode(219 - char.charCodeAt(0));
+                        }
+                        if (char >= 'A' && char <= 'Z') {
+                            return String.fromCharCode(155 - char.charCodeAt(0));
+                        }
+                        return char;
+                    }).join('');
+                    
+                default:
+                    return text;
+            }
+        }
+
+        function reverseCustom(text, custom) {
+            switch(custom) {
+                case 'duplicate':
+                    let result = '';
+                    for (let i = 0; i < text.length; i += 2) {
+                        result += text[i];
+                    }
+                    return result;
+                    
+                case 'removeSpace':
+                    return text;
+                    
+                case 'addNoise':
+                    const noiseChars = '!@#$%^&*()_+-=[]{}|;:,.<>?';
+                    return text.split('').filter(char => !noiseChars.includes(char)).join('');
+                    
+                case 'caseToggle':
+                    return text.split('').map(char => {
+                        if (char >= 'a' && char <= 'z') return char.toUpperCase();
+                        if (char >= 'A' && char <= 'Z') return char.toLowerCase();
+                        return char;
+                    }).join('');
+                    
+                case 'reverseWords':
+                    return text.split(' ').map(word => word.split('').reverse().join('')).join(' ');
+                    
+                case 'insertNull':
+                    return text.replace(/\0/g, '');
+                    
+                case 'substitute':
+                    return text.split('').map(char => {
+                        if (char >= 'a' && char <= 'z') {
+                            return String.fromCharCode(219 - char.charCodeAt(0));
+                        }
+                        if (char >= 'A' && char <= 'Z') {
+                            return String.fromCharCode(155 - char.charCodeAt(0));
+                        }
+                        return char;
+                    }).join('');
+                    
+                default:
+                    return text;
+            }
+        }
+
+        // 监听算法选择变化
+        document.getElementById('algorithm').addEventListener('change', function() {
+            const algorithm = this.value;
+            const settingsDiv = document.getElementById('algorithmSettings');
+            
+            switch(algorithm) {
+                case 'caesar':
+                    settingsDiv.innerHTML = `
+                        <input type="number" id="caesarShift" min="1" max="25" value="3" 
+                               style="width: 100%; padding: 0.5rem; border: 2px solid var(--light); border-radius: 8px;">
+                        <div style="font-size: 0.75rem; color: #8898aa; margin-top: 0.25rem;">凯撒密码偏移量 (1-25)</div>
+                    `;
+                    settingsDiv.style.display = 'block';
+                    break;
+                    
+                case 'xor':
+                    settingsDiv.innerHTML = `
+                        <input type="number" id="xorKey" min="0" max="255" value="42" 
+                               style="width: 100%; padding: 0.5rem; border: 2px solid var(--light); border-radius: 8px;">
+                        <div style="font-size: 0.75rem; color: #8898aa; margin-top: 0.25rem;">XOR密钥 (0-255)</div>
+                    `;
+                    settingsDiv.style.display = 'block';
+                    break;
+                    
+                case 'vigenere':
+                    settingsDiv.innerHTML = `
+                        <input type="text" id="customKey" placeholder="输入密钥" value="KEY" 
+                               style="width: 100%; padding: 0.5rem; border: 2px solid var(--light); border-radius: 8px;">
+                        <div style="font-size: 0.75rem; color: #8898aa; margin-top: 0.25rem;">维吉尼亚密钥</div>
+                    `;
+                    settingsDiv.style.display = 'block';
+                    break;
+                    
+                default:
+                    settingsDiv.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>

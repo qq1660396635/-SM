@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>termux安装中心</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+            background: #000;
+        }
+
+        /* 美观的渐变背景 */
+        .gradient-bg {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            z-index: 0;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #7e22ce 100%);
+            background-size: 400% 400%;
+            animation: gradientShift 20s ease infinite;
+        }
+
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* 流动几何图形 */
+        .geometric-shapes {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: 1;
+        }
+
+        .shape {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(5px);
+            animation: float 25s infinite ease-in-out;
+        }
+
+        .shape:nth-child(1) {
+            width: 250px;
+            height: 250px;
+            top: -125px;
+            left: -125px;
+            animation-duration: 30s;
+        }
+
+        .shape:nth-child(2) {
+            width: 180px;
+            height: 180px;
+            bottom: -90px;
+            right: -90px;
+            animation-duration: 25s;
+            animation-delay: 2s;
+        }
+
+        .shape:nth-child(3) {
+            width: 120px;
+            height: 120px;
+            top: 50%;
+            left: -60px;
+            animation-duration: 35s;
+            animation-delay: 5s;
+        }
+
+        .shape:nth-child(4) {
+            width: 200px;
+            height: 200px;
+            top: 20%;
+            right: -100px;
+            animation-duration: 40s;
+            animation-delay: 1s;
+        }
+
+        .shape:nth-child(5) {
+            width: 150px;
+            height: 150px;
+            bottom: 20%;
+            left: 30%;
+            animation-duration: 32s;
+            animation-delay: 3s;
+        }
+
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0) rotate(0deg);
+                opacity: 0.08;
+            }
+            25% {
+                transform: translateY(-15px) rotate(90deg);
+                opacity: 0.15;
+            }
+            50% {
+                transform: translateY(8px) rotate(180deg);
+                opacity: 0.12;
+            }
+            75% {
+                transform: translateY(-12px) rotate(270deg);
+                opacity: 0.15;
+            }
+        }
+
+        /* 光晕效果 */
+        .glow {
+            position: absolute;
+            width: 350px;
+            height: 350px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0) 70%);
+            filter: blur(35px);
+            z-index: 1;
+            animation: glowMove 25s infinite alternate;
+        }
+
+        @keyframes glowMove {
+            0% {
+                top: 15%;
+                left: 15%;
+                opacity: 0.4;
+            }
+            100% {
+                top: 65%;
+                left: 75%;
+                opacity: 0.7;
+            }
+        }
+
+        /* 主容器 */
+        .container {
+            position: relative;
+            z-index: 10;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 15px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 标题 */
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+            color: white;
+            animation: fadeInDown 0.8s ease;
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            margin-bottom: 5px;
+            background: linear-gradient(45deg, #ffffff, #e0e0e0);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes glow {
+            from { filter: brightness(1) drop-shadow(0 0 8px rgba(255, 255, 255, 0.4)); }
+            to { filter: brightness(1.2) drop-shadow(0 0 12px rgba(255, 255, 255, 0.6)); }
+        }
+
+        .subtitle {
+            font-size: 0.85rem;
+            opacity: 0.9;
+            color: rgba(255, 255, 255, 0.95);
+            text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+        }
+
+        /* 导航网格 - 居中布局 */
+        .nav-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            max-width: 600px;
+            margin: 0 auto;
+            flex: 1;
+            animation: fadeInUp 0.8s ease;
+        }
+
+        /* 玻璃态卡片 */
+        .tool-card {
+            background: rgba(255, 255, 255, 0.12);
+            backdrop-filter: blur(12px);
+            border-radius: 10px;
+            padding: 10px;
+            text-decoration: none;
+            color: white;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 
+                0 4px 15px rgba(0, 0, 0, 0.2),
+                inset 0 0 10px rgba(255, 255, 255, 0.1);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            cursor: pointer;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .tool-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, rgba(255,255,255,0.3), rgba(255,255,255,0.1), rgba(255,255,255,0.3));
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+
+        .tool-card:hover {
+            transform: translateY(-3px);
+            background: rgba(255, 255, 255, 0.18);
+            border-color: rgba(255, 255, 255, 0.25);
+            box-shadow: 
+                0 8px 25px rgba(0, 0, 0, 0.3),
+                0 0 15px rgba(255, 255, 255, 0.15),
+                inset 0 0 12px rgba(255, 255, 255, 0.12);
+        }
+
+        .tool-card:hover::before {
+            transform: scaleX(1);
+        }
+
+        /* 图标 */
+        .tool-icon {
+            font-size: 1.6rem;
+            margin-bottom: 5px;
+            display: block;
+            animation: float 3s ease-in-out infinite;
+            filter: drop-shadow(0 0 6px currentColor);
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-2px); }
+        }
+
+        /* 标题 */
+        .tool-name {
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-bottom: 3px;
+            line-height: 1.1;
+            text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+        }
+
+        /* 描述 */
+        .tool-description {
+            font-size: 0.68rem;
+            opacity: 0.85;
+            line-height: 1.2;
+            text-shadow: 0 0 3px rgba(255, 255, 255, 0.2);
+        }
+
+        /* 加载状态 */
+        .loading {
+            text-align: center;
+            color: white;
+            padding: 30px;
+            font-size: 0.9rem;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+
+        /* 空状态 */
+        .empty-state {
+            text-align: center;
+            color: white;
+            padding: 40px;
+            animation: fadeIn 1s ease;
+        }
+
+        .empty-state h2 {
+            font-size: 1.3rem;
+            margin-bottom: 10px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .empty-state p {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        /* 动画效果 */
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* 响应式 */
+        @media (max-width: 650px) {
+            .container {
+                padding: 12px;
+            }
+            h1 {
+                font-size: 1.6rem;
+            }
+            .nav-grid {
+                max-width: 100%;
+                gap: 8px;
+            }
+            .tool-card {
+                padding: 8px;
+            }
+            .tool-icon {
+                font-size: 1.4rem;
+            }
+            .tool-name {
+                font-size: 0.75rem;
+            }
+            .tool-description {
+                font-size: 0.65rem;
+            }
+        }
+
+        @media (max-width: 400px) {
+            .nav-grid {
+                gap: 6px;
+            }
+            .tool-card {
+                padding: 6px;
+            }
+            .tool-icon {
+                font-size: 1.3rem;
+            }
+            .tool-name {
+                font-size: 0.7rem;
+            }
+            .tool-description {
+                font-size: 0.6rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 渐变背景 -->
+    <div class="gradient-bg"></div>
+    
+    <!-- 流动几何图形 -->
+    <div class="geometric-shapes">
+        <div class="shape"></div>
+        <div class="shape"></div>
+        <div class="shape"></div>
+        <div class="shape"></div>
+        <div class="shape"></div>
+    </div>
+    
+    <!-- 光晕效果 -->
+    <div class="glow"></div>
+
+    <div class="container">
+        <header>
+            <h1>👻 termux安装中心</h1>
+            <p class="subtitle">精选实用工具，一键直达</p>
+        </header>
+        
+        <main>
+            <!-- 加载状态 -->
+            <div class="loading" id="loading">正在检查可用工具</div>
+
+            <!-- 导航网格 -->
+            <div class="nav-grid" id="navGrid" style="display: none;">
+                <!-- 工具卡片将在这里动态生成 -->
+            </div>
+
+            <!-- 空状态 -->
+            <div class="empty-state" id="emptyState" style="display: none;">
+                <h2>😔 暂无可用工具</h2>
+                <p>请确保工具文件在同一目录下</p>
+            </div>
+        </main>
+    </div>
+
+    <!-- 引入配置文件 -->
+    <script src="termux_nav-config.js"></script>
+    
+    <script>
+        // 初始化应用
+        class NavigationApp {
+            constructor() {
+                this.init();
+            }
+
+            async init() {
+                // 等待配置加载完成
+                if (typeof window.navConfig === 'undefined') {
+                    setTimeout(() => this.init(), 100);
+                    return;
+                }
+                
+                // 加载存在的工具
+                await this.loadExistingTools();
+            }
+
+            async loadExistingTools() {
+                try {
+                    // 获取存在的工具列表
+                    const existingTools = await window.navConfig.getExistingTools();
+                    
+                    // 隐藏加载状态
+                    document.getElementById('loading').style.display = 'none';
+                    
+                    if (existingTools.length === 0) {
+                        // 显示空状态
+                        document.getElementById('emptyState').style.display = 'block';
+                    } else {
+                        // 显示导航网格
+                        document.getElementById('navGrid').style.display = 'grid';
+                        this.renderNavigation(existingTools);
+                    }
+                } catch (error) {
+                    console.error('加载工具失败:', error);
+                    document.getElementById('loading').style.display = 'none';
+                    document.getElementById('emptyState').style.display = 'block';
+                }
+            }
+
+            renderNavigation(tools) {
+                const navGrid = document.getElementById('navGrid');
+                
+                // 使用配置文件中的分组方法
+                const groupedTools = window.navConfig.getGroupedTools(tools);
+                
+                // 展开所有工具为一个扁平数组
+                const allTools = [];
+                groupedTools.forEach(group => {
+                    if (group.left) allTools.push(group.left);
+                    if (group.right) allTools.push(group.right);
+                });
+                
+                navGrid.innerHTML = allTools.map((tool, index) => `
+                    <div class="tool-card" onclick="navigateTo('${tool.file}')">
+                        <span class="tool-icon">${tool.icon || '🔧'}</span>
+                        <div class="tool-name">${tool.name}</div>
+                        <div class="tool-description">${tool.description || '点击进入工具'}</div>
+                    </div>
+                `).join('');
+            }
+        }
+
+        // 导航到指定页面
+        function navigateTo(file) {
+            window.location.href = file;
+        }
+
+        // 启动应用
+        document.addEventListener('DOMContentLoaded', () => {
+            new NavigationApp();
+        });
+    </script>
+</body>
+</html>

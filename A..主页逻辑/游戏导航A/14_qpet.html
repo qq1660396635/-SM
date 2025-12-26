@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的企鹅宠物</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Microsoft YaHei', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* 背景装饰 */
+        .bg-decoration {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: 0;
+        }
+
+        .bubble {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            animation: float 8s infinite ease-in-out;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0) scale(1); }
+            50% { transform: translateY(-20px) scale(1.1); }
+        }
+
+        /* 主容器 */
+        .main-container {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            max-width: 800px;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 顶部状态栏 */
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .pet-info {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .pet-name {
+            font-size: 1.5rem;
+            font-weight: bold;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .pet-level {
+            background: #f0f0f0;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .stats {
+            display: flex;
+            gap: 30px;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .stat-icon {
+            font-size: 1.2rem;
+        }
+
+        .stat-value {
+            font-weight: bold;
+            color: #333;
+        }
+
+        /* 功能菜单按钮 */
+        .menu-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .menu-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        /* 宠物场景 */
+        .scene {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        .ground {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 150px;
+            background: linear-gradient(to top, rgba(255, 255, 255, 0.3), transparent);
+            border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+        }
+
+        /* 企鹅容器 */
+        .penguin-container {
+            position: relative;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+
+        .penguin-container:hover {
+            transform: scale(1.05);
+        }
+
+        .penguin {
+            width: 200px;
+            height: 250px;
+            position: relative;
+            animation: waddle 3s ease-in-out infinite;
+        }
+
+        .penguin-body {
+            width: 120px;
+            height: 150px;
+            background: #2c3e50;
+            border-radius: 50% 50% 40% 40%;
+            position: absolute;
+            top: 50px;
+            left: 40px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .penguin-belly {
+            width: 80px;
+            height: 120px;
+            background: white;
+            border-radius: 50% 50% 40% 40%;
+            position: absolute;
+            top: 65px;
+            left: 60px;
+        }
+
+        .penguin-head {
+            width: 100px;
+            height: 80px;
+            background: #2c3e50;
+            border-radius: 50%;
+            position: absolute;
+            top: 20px;
+            left: 50px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .penguin-eye {
+            width: 15px;
+            height: 15px;
+            background: white;
+            border-radius: 50%;
+            position: absolute;
+            top: 40px;
+            animation: blink 4s infinite;
+        }
+
+        .penguin-eye.left {
+            left: 65px;
+        }
+
+        .penguin-eye.right {
+            right: 65px;
+        }
+
+        .pupil {
+            width: 8px;
+            height: 8px;
+            background: black;
+            border-radius: 50%;
+            position: absolute;
+            top: 3px;
+            left: 3px;
+        }
+
+        .penguin-beak {
+            width: 0;
+            height: 0;
+            border-left: 15px solid transparent;
+            border-right: 15px solid transparent;
+            border-top: 20px solid #ff6b35;
+            position: absolute;
+            top: 55px;
+            left: 85px;
+        }
+
+        .penguin-wing {
+            width: 30px;
+            height: 80px;
+            background: #2c3e50;
+            border-radius: 50%;
+            position: absolute;
+            top: 80px;
+            animation: flap 2s ease-in-out infinite;
+        }
+
+        .penguin-wing.left {
+            left: 25px;
+            transform: rotate(-20deg);
+        }
+
+        .penguin-wing.right {
+            right: 25px;
+            transform: rotate(20deg);
+        }
+
+        .penguin-feet {
+            width: 25px;
+            height: 15px;
+            background: #ff6b35;
+            border-radius: 50%;
+            position: absolute;
+            bottom: 45px;
+        }
+
+        .penguin-feet.left {
+            left: 70px;
+        }
+
+        .penguin-feet.right {
+            right: 70px;
+        }
+
+        /* 状态气泡 */
+        .status-bubble {
+            position: absolute;
+            top: -60px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+            font-size: 0.9rem;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .status-bubble.show {
+            opacity: 1;
+        }
+
+        .status-bubble::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 8px solid transparent;
+            border-right: 8px solid transparent;
+            border-top: 8px solid white;
+        }
+
+        /* 功能面板 */
+        .function-panel {
+            position: fixed;
+            top: 80px;
+            right: -300px;
+            width: 280px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px 0 0 20px;
+            box-shadow: -5px 0 20px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            transition: right 0.3s ease;
+            z-index: 100;
+        }
+
+        .function-panel.show {
+            right: 0;
+        }
+
+        .panel-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .function-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+
+        .function-btn {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: 15px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+
+        .function-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .function-icon {
+            font-size: 1.5rem;
+        }
+
+        /* 食物选择器 */
+        .food-selector {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .food-options {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .food-option {
+            flex: 1;
+            padding: 10px;
+            background: #f5f5f5;
+            border-radius: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .food-option:hover {
+            background: #e0e0e0;
+        }
+
+        .food-option.selected {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        /* 爱心动画 */
+        .heart {
+            position: absolute;
+            color: #ff6b6b;
+            font-size: 20px;
+            animation: floatHeart 2s ease-out forwards;
+            pointer-events: none;
+        }
+
+        @keyframes floatHeart {
+            0% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-100px) scale(1.5);
+            }
+        }
+
+        /* 动画 */
+        @keyframes waddle {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(2deg); }
+            75% { transform: rotate(-2deg); }
+        }
+
+        @keyframes blink {
+            0%, 90%, 100% { transform: scaleY(1); }
+            95% { transform: scaleY(0.1); }
+        }
+
+        @keyframes flap {
+            0%, 100% { transform: rotate(0deg); }
+            50% { transform: rotate(10deg); }
+        }
+
+        /* 响应式 */
+        @media (max-width: 600px) {
+            .stats {
+                display: none;
+            }
+            
+            .function-panel {
+                width: 100%;
+                right: -100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 背景装饰 -->
+    <div class="bg-decoration">
+        <div class="bubble" style="width: 80px; height: 80px; left: 10%; top: 20%; animation-delay: 0s;"></div>
+        <div class="bubble" style="width: 60px; height: 60px; left: 80%; top: 60%; animation-delay: 1s;"></div>
+        <div class="bubble" style="width: 100px; height: 100px; left: 50%; top: 40%; animation-delay: 2s;"></div>
+        <div class="bubble" style="width: 40px; height: 40px; left: 20%; top: 80%; animation-delay: 3s;"></div>
+    </div>
+
+    <!-- 主容器 -->
+    <div class="main-container">
+        <!-- 顶部状态栏 -->
+        <header class="header">
+            <div class="pet-info">
+                <div class="pet-name">小企鹅</div>
+                <div class="pet-level">Lv.<span id="level">1</span></div>
+            </div>
+            
+            <div class="stats">
+                <div class="stat-item">
+                    <span class="stat-icon">❤️</span>
+                    <span class="stat-value" id="health">100</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-icon">😊</span>
+                    <span class="stat-value" id="mood">100</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-icon">⭐</span>
+                    <span class="stat-value" id="exp">0</span>
+                </div>
+            </div>
+            
+            <button class="menu-btn" onclick="toggleMenu()">🎮 功能</button>
+        </header>
+
+        <!-- 宠物场景 -->
+        <main class="scene">
+            <div class="ground"></div>
+            
+            <div class="penguin-container" onclick="interactWithPet()">
+                <div class="status-bubble" id="statusBubble"></div>
+                <div class="penguin" id="penguin">
+                    <div class="penguin-head"></div>
+                    <div class="penguin-eye left">
+                        <div class="pupil"></div>
+                    </div>
+                    <div class="penguin-eye right">
+                        <div class="pupil"></div>
+                    </div>
+                    <div class="penguin-beak"></div>
+                    <div class="penguin-body"></div>
+                    <div class="penguin-belly"></div>
+                    <div class="penguin-wing left"></div>
+                    <div class="penguin-wing right"></div>
+                    <div class="penguin-feet left"></div>
+                    <div class="penguin-feet right"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- 功能面板 -->
+    <div class="function-panel" id="functionPanel">
+        <h3 class="panel-title">🎯 宠物功能</h3>
+        
+        <div class="function-grid">
+            <button class="function-btn" onclick="feedPet()">
+                <span class="function-icon">🍖</span>
+                <span>喂食</span>
+            </button>
+            <button class="function-btn" onclick="playWithPet()">
+                <span class="function-icon">🎾</span>
+                <span>玩耍</span>
+            </button>
+            <button class="function-btn" onclick="cleanPet()">
+                <span class="function-icon">🧼</span>
+                <span>清洁</span>
+            </button>
+            <button class="function-btn" onclick="sleepPet()">
+                <span class="function-icon">😴</span>
+                <span>睡觉</span>
+            </button>
+            <button class="function-btn" onclick="trainPet()">
+                <span class="function-icon">💪</span>
+                <span>训练</span>
+            </button>
+            <button class="function-btn" onclick="saveGame()">
+                <span class="function-icon">💾</span>
+                <span>保存</span>
+            </button>
+        </div>
+        
+        <div class="food-selector">
+            <h4>选择食物：</h4>
+            <div class="food-options">
+                <div class="food-option selected" onclick="selectFood('fish')">
+                    <div>🐟</div>
+                    <div>小鱼</div>
+                </div>
+                <div class="food-option" onclick="selectFood('shrimp')">
+                    <div>🦐</div>
+                    <div>虾米</div>
+                </div>
+                <div class="food-option" onclick="selectFood('squid')">
+                    <div>🦑</div>
+                    <div>鱿鱼</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 游戏状态
+        let gameState = {
+            petName: '小企鹅',
+            level: 1,
+            exp: 0,
+            health: 100,
+            mood: 100,
+            lastInteraction: Date.now(),
+            selectedFood: 'fish',
+            totalInteractions: 0,
+            isSleeping: false
+        };
+
+        // 初始化游戏
+        function initGame() {
+            loadGameState();
+            updateUI();
+            startGameLoop();
+        }
+
+        // 加载游戏状态
+        function loadGameState() {
+            const saved = localStorage.getItem('penguinPetState');
+            if (saved) {
+                gameState = JSON.parse(saved);
+            }
+        }
+
+        // 保存游戏状态
+        function saveGameState() {
+            localStorage.setItem('penguinPetState', JSON.stringify(gameState));
+        }
+
+        // 更新UI
+        function updateUI() {
+            document.getElementById('level').textContent = gameState.level;
+            document.getElementById('health').textContent = gameState.health;
+            document.getElementById('mood').textContent = gameState.mood;
+            document.getElementById('exp').textContent = gameState.exp;
+        }
+
+        // 游戏循环
+        function startGameLoop() {
+            setInterval(() => {
+                // 随时间降低状态
+                if (!gameState.isSleeping) {
+                    gameState.health = Math.max(0, gameState.health - 1);
+                    gameState.mood = Math.max(0, gameState.mood - 1);
+                } else {
+                    gameState.health = Math.min(100, gameState.health + 2);
+                }
+                
+                updateUI();
+                saveGameState();
+            }, 5000); // 每5秒更新
+        }
+
+        // 切换菜单
+        function toggleMenu() {
+            const panel = document.getElementById('functionPanel');
+            panel.classList.toggle('show');
+        }
+
+        // 与宠物互动
+        function interactWithPet() {
+            if (gameState.isSleeping) {
+                showStatus('Zzz... 企鹅在睡觉');
+                return;
+            }
+
+            const messages = [
+                '咕咕咕~',
+                '嘎嘎嘎~',
+                '好开心！',
+                '想要小鱼~',
+                '一起玩吧！',
+                '摸摸我~'
+            ];
+            
+            const message = messages[Math.floor(Math.random() * messages.length)];
+            showStatus(message);
+            createHeart();
+            
+            // 增加经验
+            gameState.exp += 1;
+            gameState.totalInteractions++;
+            
+            // 检查升级
+            if (gameState.exp >= gameState.level * 10) {
+                levelUp();
+            }
+            
+            updateUI();
+        }
+
+        // 显示状态气泡
+        function showStatus(message) {
+            const bubble = document.getElementById('statusBubble');
+            bubble.textContent = message;
+            bubble.classList.add('show');
+            
+            setTimeout(() => {
+                bubble.classList.remove('show');
+            }, 2000);
+        }
+
+        // 创建爱心效果
+        function createHeart() {
+            const heart = document.createElement('div');
+            heart.className = 'heart';
+            heart.textContent = '❤️';
+            heart.style.left = Math.random() * 100 + 'px';
+            heart.style.top = '100px';
+            
+            document.querySelector('.penguin-container').appendChild(heart);
+            
+            setTimeout(() => {
+                heart.remove();
+            }, 2000);
+        }
+
+        // 喂食
+        function feedPet() {
+            if (gameState.isSleeping) {
+                showStatus('企鹅在睡觉，不要打扰');
+                return;
+            }
+
+            const foodBonus = {
+                'fish': 20,
+                'shrimp': 15,
+                'squid': 25
+            };
+            
+            const bonus = foodBonus[gameState.selectedFood];
+            gameState.health = Math.min(100, gameState.health + bonus);
+            gameState.mood = Math.min(100, gameState.mood + 10);
+            gameState.exp += 2;
+            
+            showStatus(`好吃！+${bonus}健康值`);
+            createHeart();
+            
+            // 检查升级
+            if (gameState.exp >= gameState.level * 10) {
+                levelUp();
+            }
+            
+            updateUI();
+            saveGameState();
+        }
+
+        // 玩耍
+        function playWithPet() {
+            if (gameState.isSleeping) {
+                showStatus('企鹅在睡觉，不要打扰');
+                return;
+            }
+
+            gameState.mood = Math.min(100, gameState.mood + 20);
+            gameState.health = Math.max(0, gameState.health - 5);
+            gameState.exp += 3;
+            
+            showStatus('好开心！心情+20');
+            createHeart();
+            
+            // 企鹅跳跃动画
+            const penguin = document.getElementById('penguin');
+            penguin.style.animation = 'none';
+            setTimeout(() => {
+                penguin.style.animation = 'bounce 0.5s ease, waddle 3s ease-in-out infinite';
+            }, 10);
+            
+            // 检查升级
+            if (gameState.exp >= gameState.level * 10) {
+                levelUp();
+            }
+            
+            updateUI();
+            saveGameState();
+        }
+
+        // 清洁
+        function cleanPet() {
+            if (gameState.isSleeping) {
+                showStatus('企鹅在睡觉，不要打扰');
+                return;
+            }
+
+            gameState.health = Math.min(100, gameState.health + 15);
+            gameState.mood = Math.min(100, gameState.mood + 5);
+            
+            showStatus('好舒服！健康+15');
+            createHeart();
+            
+            updateUI();
+            saveGameState();
+        }
+
+        // 睡觉
+        function sleepPet() {
+            gameState.isSleeping = !gameState.isSleeping;
+            
+            if (gameState.isSleeping) {
+                showStatus('Zzz... 晚安');
+                // 企鹅闭上眼睛
+                document.querySelectorAll('.pupil').forEach(pupil => {
+                    pupil.style.display = 'none';
+                });
+            } else {
+                showStatus('早上好！');
+                // 睁开眼睛
+                document.querySelectorAll('.pupil').forEach(pupil => {
+                    pupil.style.display = 'block';
+                });
+            }
+            
+            updateUI();
+            saveGameState();
+        }
+
+        // 训练
+        function trainPet() {
+            if (gameState.isSleeping) {
+                showStatus('企鹅在睡觉，不要打扰');
+                return;
+            }
+
+            gameState.exp += 5;
+            gameState.health = Math.max(0, gameState.health - 10);
+            gameState.mood = Math.max(0, gameState.mood - 5);
+            
+            showStatus('训练完成！经验+5');
+            
+            // 检查升级
+            if (gameState.exp >= gameState.level * 10) {
+                levelUp();
+            }
+            
+            updateUI();
+            saveGameState();
+        }
+
+        // 升级
+        function levelUp() {
+            gameState.level++;
+            gameState.exp = 0;
+            gameState.health = 100;
+            gameState.mood = 100;
+            
+            showStatus(`升级了！现在是Lv.${gameState.level}`);
+            
+            // 升级特效
+            for (let i = 0; i < 5; i++) {
+                setTimeout(() => createHeart(), i * 200);
+            }
+            
+            updateUI();
+            saveGameState();
+        }
+
+        // 选择食物
+        function selectFood(foodType) {
+            gameState.selectedFood = foodType;
+            
+            // 更新UI
+            document.querySelectorAll('.food-option').forEach(option => {
+                option.classList.remove('selected');
+            });
+            event.target.closest('.food-option').classList.add('selected');
+            
+            saveGameState();
+        }
+
+        // 保存游戏
+        function saveGame() {
+            saveGameState();
+            showStatus('游戏已保存！');
+        }
+
+        // 添加跳跃动画
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes bounce {
+                0%, 100% { transform: translateY(0); }
+                50% { transform: translateY(-30px); }
+            }
+        `;
+        document.head.appendChild(style);
+
+        // 初始化
+        window.onload = initGame;
+    </script>
+</body>
+</html>

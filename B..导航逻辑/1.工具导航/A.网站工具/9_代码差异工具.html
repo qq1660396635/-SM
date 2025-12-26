@@ -1,0 +1,1009 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>代码差异对比工具</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/lucide@latest/dist/umd/lucide.js">
+    <style>
+        /* 基础样式重置和全局变量 */
+        :root {
+            /* 主色调 */
+            --primary-500: #007AFF;
+            --primary-300: #52A6FF;
+            --primary-100: #B9DDFF;
+            
+            /* 中性色 */
+            --page-bg: #0A0A0A;
+            --surface-glass: rgba(28, 28, 30, 0.5);
+            --border-default: rgba(255, 255, 255, 0.1);
+            --border-hover: rgba(255, 255, 255, 0.2);
+            --text-primary: #E4E4E7;
+            --text-secondary: #A1A1AA;
+            
+            /* 语义色 */
+            --diff-add: #22C55E;
+            --diff-remove: #EF4444;
+            --diff-add-char: #A3E635;
+            --diff-remove-char: #F87171;
+            
+            /* 间距 */
+            --space-xs: 8px;
+            --space-sm: 16px;
+            --space-md: 24px;
+            --space-lg: 32px;
+            --space-xl: 48px;
+            --space-xxl: 96px;
+            
+            /* 圆角 */
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-full: 999px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body, html {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: linear-gradient(135deg, #0A0A0A 0%, #1a1a1a 100%);
+            background-attachment: fixed;
+            min-height: 100vh;
+            color: var(--text-primary);
+            overflow-x: hidden;
+        }
+
+        /* 页面路由 */
+        .page {
+            display: none;
+            min-height: 100vh;
+            padding: var(--space-md) var(--space-md) var(--space-xl);
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .page.active {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center;
+            padding-top: var(--space-xxl);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 主容器 */
+        .container {
+            width: 100%;
+            max-width: 1440px;
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-xl);
+        }
+
+        /* 标题区域 */
+        .header {
+            text-align: center;
+            margin-bottom: var(--space-lg);
+            margin-top: var(--space-sm);
+        }
+
+        .title {
+            font-size: 48px;
+            font-weight: 700;
+            line-height: 1.2;
+            background: linear-gradient(135deg, var(--primary-500), var(--primary-300));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: var(--space-sm);
+        }
+
+        .subtitle {
+            font-size: 18px;
+            color: var(--text-secondary);
+            font-weight: 400;
+        }
+
+        /* 代码输入区域 */
+        .input-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--space-lg);
+            width: 100%;
+        }
+
+        .code-card {
+            background: var(--surface-glass);
+            backdrop-filter: blur(24px);
+            border: 1px solid var(--border-default);
+            border-radius: var(--radius-md);
+            padding: var(--space-lg);
+            display: flex;
+            flex-direction: column;
+            transition: border-color 250ms ease-out, box-shadow 250ms ease-out;
+        }
+
+        .code-card:hover {
+            border-color: var(--border-hover);
+        }
+
+        .code-card:focus-within {
+            border-color: var(--primary-500);
+            box-shadow: 0 0 16px rgba(0, 122, 255, 0.3);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: var(--space-sm);
+        }
+
+        .card-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: var(--space-xs);
+        }
+
+        .file-label {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            background: var(--border-default);
+            padding: 4px 8px;
+            border-radius: var(--radius-sm);
+        }
+
+        .card-actions {
+            display: flex;
+            gap: var(--space-xs);
+        }
+
+        .copy-btn {
+            background: transparent;
+            border: 1px solid var(--border-default);
+            color: var(--text-secondary);
+            padding: 6px 12px;
+            border-radius: var(--radius-sm);
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 200ms ease;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            min-height: 32px;
+        }
+
+        .copy-btn:hover {
+            border-color: var(--primary-500);
+            color: var(--primary-500);
+            transform: translateY(-1px);
+        }
+
+        .copy-btn:active {
+            transform: scale(0.95);
+        }
+
+        .copy-btn.copied {
+            background: var(--primary-500);
+            border-color: var(--primary-500);
+            color: white;
+        }
+
+        .code-textarea {
+            width: 100%;
+            flex-grow: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: var(--text-primary);
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            resize: none;
+            padding: var(--space-sm);
+            border-radius: var(--radius-sm);
+            transition: background-color 200ms ease;
+        }
+
+        .code-textarea:focus {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .code-textarea::placeholder {
+            color: var(--text-secondary);
+        }
+
+        /* 操作按钮区域 */
+        .action-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: var(--space-md);
+            width: 100%;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: var(--space-sm);
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .generate-button {
+            padding: var(--space-sm) var(--space-xl);
+            background: linear-gradient(135deg, var(--primary-500), var(--primary-300));
+            color: white;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 200ms cubic-bezier(0.25, 0.8, 0.25, 1);
+            box-shadow: 0 4px 16px rgba(0, 122, 255, 0.2);
+            min-width: 240px;
+            height: 56px;
+        }
+
+        .generate-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 24px rgba(0, 122, 255, 0.4);
+        }
+
+        .generate-button:active {
+            transform: scale(0.98);
+        }
+
+        .clear-button {
+            padding: var(--space-sm) var(--space-xl);
+            background: transparent;
+            color: var(--text-secondary);
+            border: 1px solid var(--border-default);
+            border-radius: var(--radius-sm);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 200ms cubic-bezier(0.25, 0.8, 0.25, 1);
+            min-width: 120px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .clear-button:hover {
+            border-color: var(--text-secondary);
+            color: var(--text-primary);
+            transform: translateY(-1px);
+        }
+
+        .secondary-button {
+            background: rgba(239, 68, 68, 0.1);
+            border-color: var(--diff-remove);
+            color: var(--diff-remove);
+        }
+
+        .secondary-button:hover {
+            background: rgba(239, 68, 68, 0.2);
+            border-color: var(--diff-remove);
+            color: var(--diff-remove);
+        }
+
+        /* 报告页面移动端优化 */
+        .report-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--space-lg);
+            padding: 0 var(--space-md);
+            flex-wrap: wrap;
+            gap: var(--space-sm);
+        }
+
+        .report-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-primary);
+            flex: 1;
+            text-align: center;
+        }
+
+        .zoom-controls {
+            display: flex;
+            gap: var(--space-xs);
+        }
+
+        .zoom-btn {
+            width: 40px;
+            height: 40px;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 1024px) {
+            .title { font-size: 36px; }
+            .input-section { gap: var(--space-md); }
+            .code-card { padding: var(--space-md); }
+        }
+
+        @media (max-width: 768px) {
+            .page { 
+                padding: var(--space-sm) var(--space-sm) var(--space-lg);
+                padding-top: var(--space-lg);
+            }
+            .page.active {
+                padding-top: var(--space-lg);
+            }
+            .container { gap: var(--space-lg); }
+            .input-section { 
+                grid-template-columns: 1fr;
+                gap: var(--space-sm);
+            }
+            .title { font-size: 24px; }
+            .subtitle { font-size: 14px; }
+            .card-title { font-size: 18px; }
+            .card-actions { 
+                flex-direction: column;
+                gap: 4px;
+            }
+            .copy-btn {
+                font-size: 11px;
+                padding: 4px 8px;
+            }
+            .generate-button { 
+                min-width: 180px; 
+                height: 48px;
+                font-size: 14px;
+            }
+            .action-buttons {
+                flex-direction: column;
+                width: 100%;
+                max-width: 280px;
+            }
+            .clear-button {
+                width: 100%;
+                min-width: unset;
+            }
+            .report-header {
+                flex-direction: column;
+                align-items: stretch;
+                gap: var(--space-sm);
+            }
+            .report-title {
+                order: -1;
+                font-size: 18px;
+            }
+            .zoom-controls {
+                justify-content: center;
+            }
+            .zoom-btn {
+                width: 44px;
+                height: 44px;
+                font-size: 16px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .page { 
+                padding: var(--space-xs) var(--space-xs) var(--space-md);
+                padding-top: var(--space-md);
+            }
+            .page.active {
+                padding-top: var(--space-md);
+            }
+            .code-card { padding: var(--space-sm); }
+            .generate-button {
+                min-width: 160px;
+                font-size: 13px;
+            }
+            .card-title { font-size: 16px; }
+            .header {
+                margin-top: 0;
+                margin-bottom: var(--space-md);
+            }
+        }
+
+        /* 工具提示 */
+        .tooltip {
+            position: relative;
+        }
+
+        .tooltip::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--surface-glass);
+            color: var(--text-primary);
+            padding: var(--space-xs);
+            border-radius: var(--radius-sm);
+            font-size: 12px;
+            white-space: nowrap;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 200ms ease;
+            margin-bottom: var(--space-xs);
+            border: 1px solid var(--border-default);
+        }
+
+        .tooltip:hover::after {
+            opacity: 1;
+            visibility: visible;
+        }
+    </style>
+</head>
+<body>
+    <!-- 主输入页面 -->
+    <div id="main-page" class="page active">
+        <div class="container">
+            <div class="header">
+                <h1 class="title">论文/代码差异对比工具</h1>
+                <p class="subtitle">专业级代码差异分析，支持多种编程语言</p>
+            </div>
+
+            <div class="input-section">
+                <div class="code-card">
+                    <div class="card-header">
+                        <div>
+                            <h2 class="card-title">
+                                <span>📄</span>
+                                文件A
+                            </h2>
+                            <span class="file-label">原始版本</span>
+                        </div>
+                        <div class="card-actions">
+                            <button class="copy-btn" data-target="fileA">
+                                📋 复制
+                            </button>
+                        </div>
+                    </div>
+                    <textarea 
+                        id="fileA" 
+                        class="code-textarea" 
+                        placeholder="在此粘贴您的第一个文件代码..."
+                    ></textarea>
+                </div>
+
+                <div class="code-card">
+                    <div class="card-header">
+                        <div>
+                            <h2 class="card-title">
+                                <span>📄</span>
+                                文件B
+                            </h2>
+                            <span class="file-label">修改版本</span>
+                        </div>
+                        <div class="card-actions">
+                            <button class="copy-btn" data-target="fileB">
+                                📋 复制
+                            </button>
+                        </div>
+                    </div>
+                    <textarea 
+                        id="fileB" 
+                        class="code-textarea" 
+                        placeholder="在此粘贴您的第二个文件代码..."
+                    ></textarea>
+                </div>
+            </div>
+
+            <div class="action-section">
+                <button id="generate-btn" class="generate-button">
+                    ⚡ 生成差异报告
+                </button>
+                
+                <div class="action-buttons">
+                    <button id="clear-btn" class="clear-button secondary-button tooltip" data-tooltip="清空两个输入框">
+                        🗑️ 清空内容
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 差异报告页面 -->
+    <div id="report-page" class="page">
+        <div class="container" style="max-width: none; width: 100%; height: 100vh;">
+            <!-- 报告页面头部 -->
+            <div class="report-header">
+                <button id="back-btn" class="clear-button" style="display: flex; align-items: center; gap: 8px;">
+                    ← 返回编辑
+                </button>
+                
+                <h1 class="report-title">
+                    🔍 差异分析报告
+                </h1>
+                
+                <div class="zoom-controls">
+                    <button id="zoom-out-btn" class="clear-button zoom-btn" data-tooltip="缩小">
+                        🔍-
+                    </button>
+                    <button id="zoom-reset-btn" class="clear-button zoom-btn" data-tooltip="重置缩放">
+                        🎯
+                    </button>
+                    <button id="zoom-in-btn" class="clear-button zoom-btn" data-tooltip="放大">
+                        🔍+
+                    </button>
+                </div>
+            </div>
+
+            <!-- 差异对比内容区域 -->
+            <div id="diff-content" style="flex-grow: 1; background: var(--surface-glass); backdrop-filter: blur(24px); border: 1px solid var(--border-default); border-radius: var(--radius-md); padding: var(--space-lg); overflow: auto; font-family: 'JetBrains Mono', monospace; font-size: 14px; line-height: 1.6;">
+                <!-- 差异内容将在这里动态生成 -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 预置示例代码
+        const sampleCodeA = `// 文件A - 原始版本
+function calculateSum(numbers) {
+    let total = 0;
+    for (let i = 0; i < numbers.length; i++) {
+        total += numbers[i];
+    }
+    return total;
+}
+
+function greet(name) {
+    return "Hello, " + name;
+}
+
+const users = [
+    { name: "Alice", age: 25 },
+    { name: "Bob", age: 30 },
+    { name: "Charlie", age: 35 }
+];
+
+console.log(greet("World"));
+console.log("Total:", calculateSum([1, 2, 3, 4, 5]));`;
+
+        const sampleCodeB = `// 文件B - 修改版本
+function calculateSum(numbers) {
+    // 使用reduce方法优化性能
+    return numbers.reduce((total, num) => total + num, 0);
+}
+
+function greet(name, formal = false) {
+    return formal ? "Good day, " + name : "Hello, " + name;
+}
+
+function calculateAverage(numbers) {
+    const sum = calculateSum(numbers);
+    return sum / numbers.length;
+}
+
+const users = [
+    { name: "Alice", age: 25, email: "alice@example.com" },
+    { name: "Bob", age: 30, email: "bob@example.com" },
+    { name: "Charlie", age: 35, email: "charlie@example.com" }
+];
+
+console.log(greet("World"));
+console.log("Total:", calculateSum([1, 2, 3, 4, 5]));
+console.log("Average:", calculateAverage([1, 2, 3, 4, 5]));`;
+
+        // DOM 元素
+        const fileA = document.getElementById('fileA');
+        const fileB = document.getElementById('fileB');
+        const generateBtn = document.getElementById('generate-btn');
+        const clearBtn = document.getElementById('clear-btn');
+        const backBtn = document.getElementById('back-btn');
+        const mainPage = document.getElementById('main-page');
+        const reportPage = document.getElementById('report-page');
+        const diffContent = document.getElementById('diff-content');
+
+        // 缩放控制
+        let currentZoom = 100;
+        const zoomInBtn = document.getElementById('zoom-in-btn');
+        const zoomOutBtn = document.getElementById('zoom-out-btn');
+        const zoomResetBtn = document.getElementById('zoom-reset-btn');
+
+        // 页面路由
+        function showPage(pageId) {
+            document.querySelectorAll('.page').forEach(page => {
+                page.classList.remove('active');
+            });
+            document.getElementById(pageId).classList.add('active');
+        }
+
+        // 复制功能
+        function copyToClipboard(text) {
+            if (navigator.clipboard && window.isSecureContext) {
+                // 使用现代 API
+                return navigator.clipboard.writeText(text);
+            } else {
+                // 后备方案
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                textArea.style.position = 'fixed';
+                textArea.style.left = '-999999px';
+                textArea.style.top = '-999999px';
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                return new Promise((resolve, reject) => {
+                    if (document.execCommand('copy')) {
+                        resolve();
+                    } else {
+                        reject();
+                    }
+                    document.body.removeChild(textArea);
+                });
+            }
+        }
+
+        // 复制按钮事件
+        function setupCopyButtons() {
+            const copyBtns = document.querySelectorAll('.copy-btn');
+            
+            copyBtns.forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    const targetId = btn.getAttribute('data-target');
+                    const targetElement = document.getElementById(targetId);
+                    const text = targetElement.value;
+                    
+                    if (!text.trim()) {
+                        btn.textContent = '⚠️ 无内容';
+                        btn.style.color = 'var(--diff-remove)';
+                        setTimeout(() => {
+                            btn.textContent = '📋 复制';
+                            btn.style.color = '';
+                        }, 1500);
+                        return;
+                    }
+                    
+                    try {
+                        await copyToClipboard(text);
+                        btn.classList.add('copied');
+                        btn.textContent = '✅ 已复制';
+                        
+                        setTimeout(() => {
+                            btn.classList.remove('copied');
+                            btn.textContent = '📋 复制';
+                        }, 2000);
+                    } catch (err) {
+                        btn.textContent = '❌ 失败';
+                        btn.style.color = 'var(--diff-remove)';
+                        setTimeout(() => {
+                            btn.textContent = '📋 复制';
+                            btn.style.color = '';
+                        }, 2000);
+                    }
+                });
+            });
+        }
+
+        // 初始化时加载示例代码
+        function loadSamples() {
+            fileA.value = sampleCodeA;
+            fileB.value = sampleCodeB;
+        }
+
+        // 清空内容
+        function clearContent() {
+            fileA.value = '';
+            fileB.value = '';
+        }
+
+        // 简单的差异检测算法（行级别）
+        function detectDifferences(textA, textB) {
+            const linesA = textA.split('\n');
+            const linesB = textB.split('\n');
+            const maxLines = Math.max(linesA.length, linesB.length);
+            const diffs = [];
+
+            for (let i = 0; i < maxLines; i++) {
+                const lineA = linesA[i] || '';
+                const lineB = linesB[i] || '';
+                
+                if (lineA === lineB) {
+                    // 相同行
+                    diffs.push({ type: 'equal', lineA: i + 1, lineB: i + 1, content: lineA });
+                } else if (lineA && !lineB) {
+                    // 删除的行
+                    diffs.push({ type: 'removed', lineA: i + 1, lineB: '', content: lineA });
+                } else if (!lineA && lineB) {
+                    // 新增的行
+                    diffs.push({ type: 'added', lineA: '', lineB: i + 1, content: lineB });
+                } else {
+                    // 修改的行
+                    diffs.push({ 
+                        type: 'changed', 
+                        lineA: i + 1, 
+                        lineB: i + 1, 
+                        contentA: lineA, 
+                        contentB: lineB 
+                    });
+                }
+            }
+
+            return diffs;
+        }
+
+        // 生成差异报告
+        function generateDiffReport() {
+            const contentA = fileA.value.trim();
+            const contentB = fileB.value.trim();
+
+            if (!contentA && !contentB) {
+                alert('请输入要对比的代码内容');
+                return;
+            }
+
+            const diffs = detectDifferences(contentA, contentB);
+            
+            // 生成HTML
+            let html = '';
+            
+            // 统计信息
+            const stats = {
+                total: diffs.length,
+                added: diffs.filter(d => d.type === 'added').length,
+                removed: diffs.filter(d => d.type === 'removed').length,
+                changed: diffs.filter(d => d.type === 'changed').length,
+                equal: diffs.filter(d => d.type === 'equal').length
+            };
+
+            html += `<div style="margin-bottom: 32px; padding: 16px; background: var(--surface-glass); border-radius: 8px; border: 1px solid var(--border-default);">
+                <h3 style="margin: 0 0 16px 0; color: var(--text-primary); font-size: 16px;">📊 差异统计</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px;">
+                    <div style="text-align: center;">
+                        <div style="font-size: 24px; font-weight: 700; color: var(--text-primary);">${stats.total}</div>
+                        <div style="font-size: 12px; color: var(--text-secondary);">总行数</div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 24px; font-weight: 700; color: var(--diff-add);">+${stats.added}</div>
+                        <div style="font-size: 12px; color: var(--text-secondary);">新增</div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 24px; font-weight: 700; color: var(--diff-remove);">-${stats.removed}</div>
+                        <div style="font-size: 12px; color: var(--text-secondary);">删除</div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 24px; font-weight: 700; color: var(--primary-500);">~${stats.changed}</div>
+                        <div style="font-size: 12px; color: var(--text-secondary);">修改</div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 24px; font-weight: 700; color: var(--text-secondary);">${stats.equal}</div>
+                        <div style="font-size: 12px; color: var(--text-secondary);">相同</div>
+                    </div>
+                </div>
+            </div>`;
+
+            // 差异详细列表 - 移动端优化
+            const isMobile = window.innerWidth <= 768;
+            
+            if (isMobile) {
+                // 移动端：统一视图，所有行显示在一列
+                html += '<div style="display: flex; flex-direction: column; gap: 8px; font-family: monospace;">';
+                
+                diffs.forEach((diff, index) => {
+                    if (diff.type === 'equal') {
+                        html += `<div style="padding: 6px 12px; border-radius: 4px; opacity: 0.6; border-left: 3px solid var(--border-default);">
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                                <span style="color: var(--text-secondary); font-size: 12px;">${diff.lineA}</span>
+                                <span style="color: var(--text-secondary); font-size: 12px;">${diff.lineB}</span>
+                            </div>
+                            <div style="color: var(--text-secondary); font-size: 13px; line-height: 1.4;">${diff.content}</div>
+                        </div>`;
+                    } else if (diff.type === 'added') {
+                        html += `<div style="padding: 6px 12px; border-radius: 4px; background: rgba(34, 197, 94, 0.1); border-left: 3px solid var(--diff-add);">
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                                <span style="color: var(--diff-add); font-size: 12px; font-weight: 600;">+ ${diff.lineB}</span>
+                                <span style="background: var(--diff-add); color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px;">新增</span>
+                            </div>
+                            <div style="color: var(--diff-add); font-size: 13px; line-height: 1.4;">${diff.content}</div>
+                        </div>`;
+                    } else if (diff.type === 'removed') {
+                        html += `<div style="padding: 6px 12px; border-radius: 4px; background: rgba(239, 68, 68, 0.1); border-left: 3px solid var(--diff-remove);">
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                                <span style="color: var(--diff-remove); font-size: 12px; font-weight: 600;">- ${diff.lineA}</span>
+                                <span style="background: var(--diff-remove); color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px;">删除</span>
+                            </div>
+                            <div style="color: var(--diff-remove); font-size: 13px; line-height: 1.4;">${diff.content}</div>
+                        </div>`;
+                    } else if (diff.type === 'changed') {
+                        // 修改的行需要对比字符级差异
+                        const commonPrefix = findCommonPrefix(diff.contentA, diff.contentB);
+                        const commonSuffix = findCommonSuffix(diff.contentA, diff.contentB, commonPrefix);
+                        
+                        const oldBefore = diff.contentA.substring(0, commonPrefix);
+                        const oldChanged = diff.contentA.substring(commonPrefix, diff.contentA.length - commonSuffix);
+                        const oldAfter = diff.contentA.substring(diff.contentA.length - commonSuffix);
+                        
+                        const newBefore = diff.contentB.substring(0, commonPrefix);
+                        const newChanged = diff.contentB.substring(commonPrefix, diff.contentB.length - commonSuffix);
+                        const newAfter = diff.contentB.substring(diff.contentB.length - commonSuffix);
+
+                        // 旧版本
+                        html += `<div style="padding: 6px 12px; border-radius: 4px; background: rgba(239, 68, 68, 0.05); border-left: 3px solid var(--diff-remove); margin-bottom: 4px;">
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                                <span style="color: var(--diff-remove); font-size: 12px; font-weight: 600;">${diff.lineA}</span>
+                                <span style="background: var(--diff-remove); color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px;">原版</span>
+                            </div>
+                            <div style="color: var(--text-primary); font-size: 13px; line-height: 1.4;">
+                                <span style="color: var(--text-secondary);">${oldBefore}</span>
+                                <span style="background: rgba(239, 68, 68, 0.3); padding: 2px 4px; border-radius: 2px;">${oldChanged}</span>
+                                <span style="color: var(--text-secondary);">${oldAfter}</span>
+                            </div>
+                        </div>`;
+
+                        // 新版本
+                        html += `<div style="padding: 6px 12px; border-radius: 4px; background: rgba(34, 197, 94, 0.05); border-left: 3px solid var(--diff-add);">
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                                <span style="color: var(--diff-add); font-size: 12px; font-weight: 600;">${diff.lineB}</span>
+                                <span style="background: var(--diff-add); color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px;">新版</span>
+                            </div>
+                            <div style="color: var(--text-primary); font-size: 13px; line-height: 1.4;">
+                                <span style="color: var(--text-secondary);">${newBefore}</span>
+                                <span style="background: rgba(34, 197, 94, 0.3); padding: 2px 4px; border-radius: 2px;">${newChanged}</span>
+                                <span style="color: var(--text-secondary);">${newAfter}</span>
+                            </div>
+                        </div>`;
+                    }
+                });
+
+                html += '</div>';
+            } else {
+                // 桌面端：左右分栏视图
+                html += '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; font-family: monospace;">';
+                
+                diffs.forEach((diff, index) => {
+                    if (diff.type === 'equal') {
+                        html += `<div style="grid-column: span 2; display: grid; grid-template-columns: 60px 60px 1fr; gap: 8px; padding: 4px 8px; border-radius: 4px; opacity: 0.6;">
+                            <div style="text-align: right; color: var(--text-secondary); font-size: 12px;">${diff.lineA}</div>
+                            <div style="text-align: right; color: var(--text-secondary); font-size: 12px;">${diff.lineB}</div>
+                            <div style="color: var(--text-secondary);">${diff.content}</div>
+                        </div>`;
+                    } else if (diff.type === 'added') {
+                        html += `<div style="grid-column: span 2; display: grid; grid-template-columns: 60px 60px 1fr; gap: 8px; padding: 4px 8px; border-radius: 4px; background: rgba(34, 197, 94, 0.1); border-left: 3px solid var(--diff-add);">
+                            <div style="text-align: right; color: var(--text-secondary); font-size: 12px;">-</div>
+                            <div style="text-align: right; color: var(--diff-add); font-size: 12px; font-weight: 600;">${diff.lineB}</div>
+                            <div style="color: var(--diff-add);">${diff.content}</div>
+                        </div>`;
+                    } else if (diff.type === 'removed') {
+                        html += `<div style="grid-column: span 2; display: grid; grid-template-columns: 60px 60px 1fr; gap: 8px; padding: 4px 8px; border-radius: 4px; background: rgba(239, 68, 68, 0.1); border-left: 3px solid var(--diff-remove);">
+                            <div style="text-align: right; color: var(--diff-remove); font-size: 12px; font-weight: 600;">${diff.lineA}</div>
+                            <div style="text-align: right; color: var(--text-secondary); font-size: 12px;">-</div>
+                            <div style="color: var(--diff-remove);">${diff.content}</div>
+                        </div>`;
+                    } else if (diff.type === 'changed') {
+                        // 修改的行需要对比字符级差异
+                        const commonPrefix = findCommonPrefix(diff.contentA, diff.contentB);
+                        const commonSuffix = findCommonSuffix(diff.contentA, diff.contentB, commonPrefix);
+                        
+                        const oldBefore = diff.contentA.substring(0, commonPrefix);
+                        const oldChanged = diff.contentA.substring(commonPrefix, diff.contentA.length - commonSuffix);
+                        const oldAfter = diff.contentA.substring(diff.contentA.length - commonSuffix);
+                        
+                        const newBefore = diff.contentB.substring(0, commonPrefix);
+                        const newChanged = diff.contentB.substring(commonPrefix, diff.contentB.length - commonSuffix);
+                        const newAfter = diff.contentB.substring(diff.contentB.length - commonSuffix);
+
+                        // 旧版本
+                        html += `<div style="display: grid; grid-template-columns: 60px 60px 1fr; gap: 8px; padding: 4px 8px; border-radius: 4px; background: rgba(239, 68, 68, 0.05);">
+                            <div style="text-align: right; color: var(--diff-remove); font-size: 12px; font-weight: 600;">${diff.lineA}</div>
+                            <div style="text-align: right; color: var(--text-secondary); font-size: 12px;">-</div>
+                            <div style="color: var(--text-primary);">
+                                <span style="color: var(--text-secondary);">${oldBefore}</span>
+                                <span style="background: rgba(239, 68, 68, 0.3); padding: 2px 4px; border-radius: 2px;">${oldChanged}</span>
+                                <span style="color: var(--text-secondary);">${oldAfter}</span>
+                            </div>
+                        </div>`;
+
+                        // 新版本
+                        html += `<div style="display: grid; grid-template-columns: 60px 60px 1fr; gap: 8px; padding: 4px 8px; border-radius: 4px; background: rgba(34, 197, 94, 0.05);">
+                            <div style="text-align: right; color: var(--text-secondary); font-size: 12px;">-</div>
+                            <div style="text-align: right; color: var(--diff-add); font-size: 12px; font-weight: 600;">${diff.lineB}</div>
+                            <div style="color: var(--text-primary);">
+                                <span style="color: var(--text-secondary);">${newBefore}</span>
+                                <span style="background: rgba(34, 197, 94, 0.3); padding: 2px 4px; border-radius: 2px;">${newChanged}</span>
+                                <span style="color: var(--text-secondary);">${newAfter}</span>
+                            </div>
+                        </div>`;
+                    }
+                });
+
+                html += '</div>';
+            }
+            
+            diffContent.innerHTML = html;
+            showPage('report-page');
+        }
+
+        // 辅助函数：找到两个字符串的公共前缀
+        function findCommonPrefix(str1, str2) {
+            let i = 0;
+            while (i < str1.length && i < str2.length && str1[i] === str2[i]) {
+                i++;
+            }
+            return i;
+        }
+
+        // 辅助函数：找到两个字符串的公共后缀
+        function findCommonSuffix(str1, str2, startIndex) {
+            let i = 0;
+            while (i < str1.length - startIndex && i < str2.length - startIndex && 
+                   str1[str1.length - 1 - i] === str2[str2.length - 1 - i]) {
+                i++;
+            }
+            return i;
+        }
+
+        // 缩放控制
+        function updateZoom() {
+            diffContent.style.transform = `scale(${currentZoom / 100})`;
+            diffContent.style.transformOrigin = 'top left';
+        }
+
+        // 事件监听器
+        generateBtn.addEventListener('click', generateDiffReport);
+        clearBtn.addEventListener('click', clearContent);
+        backBtn.addEventListener('click', () => showPage('main-page'));
+
+        // 缩放控制事件
+        zoomInBtn.addEventListener('click', () => {
+            if (currentZoom < 200) {
+                currentZoom += 25;
+                updateZoom();
+            }
+        });
+
+        zoomOutBtn.addEventListener('click', () => {
+            if (currentZoom > 50) {
+                currentZoom -= 25;
+                updateZoom();
+            }
+        });
+
+        zoomResetBtn.addEventListener('click', () => {
+            currentZoom = 100;
+            updateZoom();
+        });
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            loadSamples();
+            setupCopyButtons();
+            updateZoom();
+        });
+
+        // 重新设置复制按钮（当页面重新加载时）
+        window.addEventListener('load', () => {
+            setupCopyButtons();
+        });
+
+        // 键盘快捷键
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey || e.metaKey) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (reportPage.classList.contains('active')) {
+                        showPage('main-page');
+                    } else {
+                        generateDiffReport();
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,420 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JS源码导航</title>
+    <style>
+        /* 1. 全局重置 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        /* 2. 页面主体 - 柔和渐变背景 */
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #f5576c 75%, #4facfe 100%);
+            background-size: 400% 400%;
+            animation: gradientShift 15s ease infinite;
+            overflow: hidden;
+            position: relative;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        /* 3. 背景动画 */
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        /* 4. 粒子背景效果 */
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+        
+        .particle {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 50%;
+            animation: float 6s infinite ease-in-out;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0) rotate(0deg); opacity: 0.7; }
+            50% { transform: translateY(-20px) rotate(180deg); opacity: 1; }
+        }
+        
+        /* 5. 主容器 */
+        .nav-container {
+            position: relative;
+            width: 500px;
+            height: 500px;
+            z-index: 10;
+        }
+        
+        /* 6. 标题 */
+        .title {
+            position: absolute;
+            top: -80px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: white;
+            font-size: 2.5rem;
+            font-weight: bold;
+            text-shadow: 0 0 30px rgba(255, 255, 255, 0.5);
+            letter-spacing: 4px;
+            z-index: 100;
+            animation: titlePulse 3s ease-in-out infinite;
+        }
+        
+        @keyframes titlePulse {
+            0%, 100% { opacity: 0.8; transform: translateX(-50%) scale(1); }
+            50% { opacity: 1; transform: translateX(-50%) scale(1.05); }
+        }
+        
+        /* 7. 中心核心按钮 */
+        .center-core {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 120px;
+            height: 120px;
+            background: radial-gradient(circle, #ffffff 0%, #4facfe 50%, #00f2fe 100%);
+            border-radius: 50%;
+            box-shadow: 0 0 50px rgba(79, 172, 254, 0.8), 
+                        0 0 100px rgba(79, 172, 254, 0.4),
+                        inset 0 0 30px rgba(255, 255, 255, 0.5);
+            animation: corePulse 2s ease-in-out infinite, coreRotate 20s linear infinite;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            transition: all 0.3s ease;
+            z-index: 50;
+        }
+        
+        .center-core:hover {
+            transform: translate(-50%, -50%) scale(1.1);
+            box-shadow: 0 0 70px rgba(79, 172, 254, 1), 
+                        0 0 120px rgba(79, 172, 254, 0.6);
+        }
+        
+        @keyframes corePulse {
+            0%, 100% { transform: translate(-50%, -50%) scale(1); }
+            50% { transform: translate(-50%, -50%) scale(1.08); }
+        }
+        
+        @keyframes coreRotate {
+            from { transform: translate(-50%, -50%) rotate(0deg); }
+            to { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+        
+        /* 8. 花瓣按钮容器 */
+        .petal-buttons {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 400px;
+            height: 400px;
+            transform: translate(-50%, -50%);
+            animation: containerRotate 30s linear infinite reverse;
+        }
+        
+        @keyframes containerRotate {
+            from { transform: translate(-50%, -50%) rotate(0deg); }
+            to { transform: translate(-50%, -50%) rotate(-360deg); }
+        }
+        
+        /* 9. 花瓣按钮 - 8个围绕中心 */
+        .petal-btn {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            border-radius: 50% 50% 50% 0;
+            transform-origin: bottom right;
+            cursor: pointer;
+            transition: all 0.4s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            color: white;
+            text-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            animation: petalFloat 4s ease-in-out infinite;
+        }
+        
+        /* 10. 花瓣浮动动画 */
+        @keyframes petalFloat {
+            0%, 100% { transform: scale(1) rotate(var(--rotation)); }
+            50% { transform: scale(1.1) rotate(var(--rotation)); }
+        }
+        
+        /* 11. 花瓣悬停效果 */
+        .petal-btn:hover {
+            transform: scale(1.2) rotate(var(--rotation)) translateZ(20px);
+            filter: brightness(1.3) drop-shadow(0 0 20px currentColor);
+            z-index: 20;
+        }
+        
+        /* 12. 花瓣点击效果 */
+        .petal-btn:active {
+            transform: scale(1.3) rotate(var(--rotation)) translateZ(30px);
+            filter: brightness(1.5) drop-shadow(0 0 30px currentColor);
+        }
+        
+        /* 13. 禁用状态 */
+        .petal-btn.disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            filter: grayscale(1) brightness(0.5);
+            animation: none;
+        }
+        
+        .petal-btn.disabled:hover {
+            transform: scale(1) rotate(var(--rotation));
+            filter: grayscale(1) brightness(0.5);
+        }
+        
+        /* 14. 响应式设计 */
+        @media (max-width: 768px) {
+            .nav-container {
+                width: 350px;
+                height: 350px;
+            }
+            
+            .title {
+                font-size: 2rem;
+                top: -60px;
+            }
+            
+            .center-core {
+                width: 90px;
+                height: 90px;
+                font-size: 2.2rem;
+            }
+            
+            .petal-buttons {
+                width: 300px;
+                height: 300px;
+            }
+            
+            .petal-btn {
+                width: 60px;
+                height: 60px;
+                font-size: 1.4rem;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .nav-container {
+                width: 280px;
+                height: 280px;
+            }
+            
+            .title {
+                font-size: 1.5rem;
+                top: -50px;
+            }
+            
+            .center-core {
+                width: 70px;
+                height: 70px;
+                font-size: 1.8rem;
+            }
+            
+            .petal-buttons {
+                width: 240px;
+                height: 240px;
+            }
+            
+            .petal-btn {
+                width: 50px;
+                height: 50px;
+                font-size: 1.2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 粒子背景 -->
+    <div class="particles" id="particles"></div>
+    
+    <!-- 主导航容器 -->
+    <div class="nav-container">
+        <h1 class="title">JS源码中心</h1>
+        
+        <!-- 花瓣按钮组 -->
+        <div class="petal-buttons" id="petalButtons">
+            <!-- 8个花瓣按钮将通过JavaScript动态生成 -->
+        </div>
+        
+        <!-- 中心核心 -->
+        <div class="center-core" id="centerCore">🚀</div>
+    </div>
+    
+    <!-- 配置文件 -->
+    <script src="JS源码导航.js"></script>
+    
+    <script>
+        /* 1. 创建粒子背景 */
+        function createParticles() {
+            const particlesContainer = document.getElementById('particles');
+            const particleCount = 30;
+            
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                
+                // 随机大小
+                const size = Math.random() * 4 + 2;
+                particle.style.width = size + 'px';
+                particle.style.height = size + 'px';
+                
+                // 随机位置
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.top = Math.random() * 100 + '%';
+                
+                // 随机动画延迟
+                particle.style.animationDelay = Math.random() * 6 + 's';
+                
+                particlesContainer.appendChild(particle);
+            }
+        }
+        
+        /* 2. 花瓣颜色配置 */
+        const petalColors = [
+            'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',  // 紫色渐变
+            'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',  // 粉色渐变
+            'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',  // 蓝色渐变
+            'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',  // 绿色渐变
+            'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',  // 橙色渐变
+            'linear-gradient(135deg, #30cfd0 0%, #330867 100%)',  // 青色渐变
+            'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',  // 薄荷渐变
+            'linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)'   // 玫瑰渐变
+        ];
+        
+        /* 3. 初始化花瓣按钮 */
+        function initPetals() {
+            const petalContainer = document.getElementById('petalButtons');
+            const tools = window.triangleNavConfig.getAllTools();
+            
+            tools.forEach((tool, index) => {
+                const petal = document.createElement('div');
+                petal.className = 'petal-btn';
+                petal.dataset.index = index;
+                
+                // 设置花瓣位置 - 圆形分布
+                const angle = (index * 45) * (Math.PI / 180); // 45度间隔
+                const radius = 150; // 半径
+                const x = Math.cos(angle) * radius + 160; // 160是容器中心偏移
+                const y = Math.sin(angle) * radius + 160;
+                
+                petal.style.left = x + 'px';
+                petal.style.top = y + 'px';
+                petal.style.setProperty('--rotation', (index * 45) + 'deg');
+                
+                // 设置渐变背景
+                petal.style.background = petalColors[index % petalColors.length];
+                
+                // 设置动画延迟
+                petal.style.animationDelay = (index * 0.2) + 's';
+                
+                // 设置图标和标题
+                petal.innerHTML = tool.icon;
+                petal.title = tool.name;
+                
+                // 检查工具可用性
+                if (window.triangleNavConfig.isToolAvailable(tool)) {
+                    petal.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        // 添加点击动画
+                        petal.style.animation = 'none';
+                        setTimeout(() => {
+                            petal.style.animation = '';
+                        }, 10);
+                        window.location.href = tool.file;
+                    });
+                } else {
+                    petal.classList.add('disabled');
+                }
+                
+                petalContainer.appendChild(petal);
+            });
+        }
+        
+        /* 4. 中心核心点击事件 */
+        document.getElementById('centerCore').addEventListener('click', function() {
+            // 添加脉冲动画
+            this.style.animation = 'none';
+            setTimeout(() => {
+                this.style.animation = 'corePulse 2s ease-in-out infinite, coreRotate 20s linear infinite';
+            }, 10);
+            
+            // 随机跳转到可用工具
+            const tools = window.triangleNavConfig.getAllTools();
+            const availableTools = tools.filter(tool => window.triangleNavConfig.isToolAvailable(tool));
+            if (availableTools.length > 0) {
+                const randomTool = availableTools[Math.floor(Math.random() * availableTools.length)];
+                window.location.href = randomTool.file;
+            }
+        });
+        
+        /* 5. 页面加载完成后初始化 */
+        window.addEventListener('load', function() {
+            // 检查配置文件
+            if (!window.triangleNavConfig) {
+                console.error('配置文件加载失败');
+                return;
+            }
+            
+            // 初始化花瓣按钮
+            initPetals();
+            
+            // 创建粒子背景
+            createParticles();
+            
+            // 添加键盘快捷键支持
+            document.addEventListener('keydown', function(e) {
+                if (e.key >= '1' && e.key <= '8') {
+                    const index = parseInt(e.key) - 1;
+                    const tools = window.triangleNavConfig.getAllTools();
+                    const tool = tools[index];
+                    if (tool && window.triangleNavConfig.isToolAvailable(tool)) {
+                        window.location.href = tool.file;
+                    }
+                }
+            });
+        });
+        
+        /* 6. 页面可见性处理 */
+        document.addEventListener('visibilitychange', function() {
+            const core = document.querySelector('.center-core');
+            const petals = document.querySelector('.petal-buttons');
+            
+            if (document.hidden) {
+                core.style.animationPlayState = 'paused';
+                petals.style.animationPlayState = 'paused';
+            } else {
+                core.style.animationPlayState = 'running';
+                petals.style.animationPlayState = 'running';
+            }
+        });
+    </script>
+</body>
+</html>

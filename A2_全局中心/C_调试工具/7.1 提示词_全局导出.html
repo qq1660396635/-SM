@@ -1,0 +1,50 @@
+### 两个文件是如何通信的？
+主页面和侧边栏通过以下三种方式通信：
+1. **postMessage API**：
+   - 主页面 → 侧边栏：`iframe.contentWindow.postMessage({type: 'cordovaReady', ...})`
+   - 侧边栏 → 主页面：`window.parent.postMessage({type: 'closeSidebar', ...})`
+   - 消息类型包括：cordovaReady、closeSidebar、showToast、updateAvatar等
+2. **localStorage共享变量**：
+   - 主页面设置：`localStorage.setItem('cordovaReady', 'true')`
+   - 侧边栏读取：`localStorage.getItem('cordovaReady')`
+3. **直接调用iframe函数**：
+   - 主页面调用：`iframe.contentWindow.updateUserData()`
+### 如何复用导入导出功能？
+要复用导入导出功能，只需在目标文件中添加以下函数：
+```javascript
+// 1. 获取IDB对象
+function getIDB() {
+    if (typeof window.IDB !== 'undefined') return window.IDB;
+    if (typeof window.parent !== 'undefined' && typeof window.parent.IDB !== 'undefined') return window.parent.IDB;
+    if (typeof parent !== 'undefined' && typeof parent.IDB !== 'undefined') return parent.IDB;
+    return null;
+}
+// 2. 数据查询功能
+async function executeQuery(store) {
+    // 查询指定存储区的数据
+}
+// 3. 查询并导出功能
+async function executeExport(store) {
+    // 查询并导出指定存储区的数据到文件
+}
+// 4. 复制用户数据功能
+async function copyUserData() {
+    // 生成所有用户数据并显示在文本框中
+}
+// 5. 复制到剪贴板功能
+function copyToClipboard() {
+    // 将数据复制到剪贴板
+}
+// 6. 粘贴导入数据功能
+async function pasteImportData() {
+    // 从剪贴板或文本框导入数据
+}
+// 7. 检查Cordova状态
+function checkCordovaStatus() {
+    return localStorage.getItem('cordovaReady') === 'true';
+}
+```
+只需引入db.js并添加这些函数，就可以在任何页面中复用完整的导入导出功能。这些函数会自动检测环境（Cordova/浏览器）并使用相应的导出方式。
+
+--------------------------------
+     仅供参考和借鉴  

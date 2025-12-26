@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title> Newlib 项目结构</title>
+  <script src="../A.插件_字体缩放.js"></script>
+  <style>
+    :root {
+      --primary-color: #0ea5e9;
+      --secondary-color: #0284c7;
+      --accent-color: #38bdf8;
+      --text-color: #1e293b;
+      --text-secondary: #64748b;
+      --bg-color: #f0f9ff;
+      --border-color: #bae6fd;
+      --hover-bg: #e0f2fe;
+      --code-bg: #ffffff;
+      --tree-line: #7dd3fc;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+      font-size: 13px;
+      line-height: 1.5;
+      color: #334155;
+      background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+      overflow: hidden;
+      height: 100vh;
+      width: 100vw;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background-color: rgba(255, 255, 255, 0.95);
+      overflow: hidden;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      border-radius: 8px;
+      margin: 8px;
+    }
+
+    header {
+      background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+      color: #fff;
+      padding: 12px 16px;
+      text-align: left;
+      border-bottom: 1px solid var(--border-color);
+      flex-shrink: 0;
+      z-index: 10;
+    }
+
+    header h1 {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    header p {
+      opacity: 0.9;
+      font-size: 12px;
+    }
+
+    .controls {
+      padding: 10px 16px;
+      background-color: var(--code-bg);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .view-toggle {
+      display: flex;
+      gap: 4px;
+      background: var(--view-button-bg);
+      padding: 3px;
+      border-radius: 6px;
+    }
+
+    .view-toggle button {
+      background: transparent;
+      color: var(--view-button-text);
+      border: none;
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.3s;
+      font-size: 12px;
+      font-family: inherit;
+      font-weight: 500;
+      box-shadow: none;
+    }
+
+    .view-toggle button:hover {
+      background: var(--hover-bg);
+      transform: none;
+      box-shadow: none;
+    }
+
+    .view-toggle button.active {
+      background: var(--accent-color);
+      color: white;
+      box-shadow: 0 2px 6px rgba(56, 189, 248, 0.3);
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: 4px;
+    }
+
+    .controls button {
+      background: linear-gradient(135deg, var(--accent-color), var(--secondary-color));
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.3s;
+      font-size: 12px;
+      font-family: inherit;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .controls button:hover {
+      background: linear-gradient(135deg, var(--secondary-color), var(--primary-color));
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    #searchInput {
+      padding: 6px 10px;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      background-color: rgba(240, 249, 255, 0.8);
+      color: #334155;
+      font-size: 12px;
+      font-family: inherit;
+      width: 180px;
+      transition: all 0.3s;
+    }
+
+    #searchInput:focus {
+      outline: none;
+      border-color: var(--accent-color);
+      box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.2);
+      background-color: rgba(255, 255, 255, 0.9);
+    }
+
+    .tree-container {
+      flex: 1;
+      padding: 12px;
+      overflow: auto;
+      background-color: rgba(240, 249, 255, 0.5);
+    }
+
+    .tree ul {
+      list-style-type: none;
+      padding-left: 16px;
+      margin: 0;
+    }
+
+    .tree li {
+      position: relative;
+      padding: 1px 0;
+      white-space: nowrap;
+    }
+
+    .tree li::before {
+      content: "";
+      position: absolute;
+      left: -10px;
+      top: 8px;
+      width: 10px;
+      height: 1px;
+      background-color: var(--tree-line);
+    }
+
+    .tree li::after {
+      content: "";
+      position: absolute;
+      left: -10px;
+      top: -2px;
+      width: 1px;
+      height: 100%;
+      background-color: var(--tree-line);
+    }
+
+    .tree li:last-child::after {
+      height: 10px;
+    }
+
+    .tree > ul > li::before, .tree > ul > li::after {
+      display: none;
+    }
+
+    .tree-node {
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      padding: 2px 4px;
+      border-radius: 4px;
+      transition: all 0.2s;
+    }
+
+    .tree-node:hover {
+      background-color: var(--hover-bg);
+      transform: translateX(2px);
+    }
+
+    .tree-node .icon {
+      margin-right: 6px;
+      font-size: 14px;
+      display: inline-block;
+      width: 16px;
+      text-align: center;
+    }
+
+    .tree-node .folder-icon {
+      color: #0ea5e9;
+    }
+
+    .tree-node .file-icon {
+      color: var(--text-secondary);
+    }
+
+    .tree-node .toggle {
+      color: #7dd3fc;
+      margin-right: 3px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: transform 0.2s ease;
+      display: inline-block;
+      width: 12px;
+      text-align: center;
+    }
+
+    .collapsed .toggle {
+      transform: rotate(-90deg);
+    }
+
+    .tree-content {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      min-width: 0;
+    }
+
+    .tree-name {
+      font-weight: 500;
+      font-size: 13px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: #1e293b;
+      flex-shrink: 0;
+    }
+
+    .tree-desc {
+      font-style: normal !important;
+      white-space: normal !important;
+      max-width: none !important;
+      overflow: visible !important;
+      text-overflow: unset !important;
+      display: inline-block !important;
+      line-height: 1.4 !important;
+      margin-left: 6px !important;
+      font-size: 11px !important;
+      color: #64748b !important;
+      background-color: rgba(14, 165, 233, 0.05) !important;
+      padding: 1px 4px !important;
+      border-radius: 3px !important;
+      border: 1px solid rgba(14, 165, 233, 0.1) !important;
+      transition: all 0.2s !important;
+    }
+
+    .tree-node:hover .tree-desc {
+      background-color: rgba(14, 165, 233, 0.1) !important;
+      border-color: rgba(14, 165, 233, 0.2) !important;
+    }
+
+    .collapsed > ul {
+      display: none;
+    }
+
+    .highlight {
+      background: linear-gradient(135deg, var(--accent-color), var(--secondary-color));
+      padding: 0 3px;
+      border-radius: 3px;
+      color: #fff;
+    }
+
+    footer {
+      background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+      color: white;
+      padding: 8px 16px;
+      text-align: center;
+      font-size: 10px;
+      border-top: 1px solid var(--border-color);
+      flex-shrink: 0;
+      z-index: 10;
+    }
+
+    @media (max-width: 768px) {
+      body { font-size: 12px; }
+      .container { margin: 4px; }
+      header h1 { font-size: 16px; }
+      header p { font-size: 11px; }
+      .tree ul { padding-left: 14px; }
+      .tree li { padding: 0.5px 0; }
+      .tree-name { font-size: 12px; }
+      .tree-desc { font-size: 10px; margin-left: 4px; }
+      #searchInput { width: 140px; font-size: 11px; }
+      .controls button { font-size: 11px; padding: 5px 10px; }
+    }
+
+    @media (max-width: 480px) {
+      body { font-size: 11px; }
+      .container { margin: 2px; }
+      header { padding: 10px 12px; }
+      header h1 { font-size: 14px; }
+      header p { font-size: 10px; }
+      .tree ul { padding-left: 12px; }
+      .tree li { padding: 0; }
+      .tree-node { padding: 1px 3px; }
+      .tree-node .icon { font-size: 12px; width: 14px; }
+      .tree-node .toggle { font-size: 10px; width: 10px; }
+      .tree-name { font-size: 11px; }
+      .tree-desc { font-size: 9px; margin-left: 3px; }
+      .tree-container { padding: 8px; }
+      .controls { padding: 8px 12px; }
+      #searchInput { width: 120px; font-size: 10px; padding: 4px 8px; }
+      .controls button { font-size: 10px; padding: 4px 8px; }
+      footer { padding: 6px 12px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1> Newlib 项目结构</h1>
+      <p>嵌入式C 库项目结构全景视图(2025-12-18)</p>
+    </header>
+    <div class="controls">
+      <div class="view-toggle">
+        <button id="viewPicolibc" class="active">Picolibc</button>
+        <button id="viewNewlib">Newlib/libc</button>
+      </div>
+      <div class="action-buttons">
+        <button id="expandAll">展开全部</button>
+        <button id="collapseAll">折叠全部</button>
+      </div>
+      <div>
+        <input type="text" id="searchInput" placeholder="搜索...">
+      </div>
+    </div>
+    <div class="tree-container">
+      <div class="tree" id="treeContainer"></div>
+    </div>
+    <footer>
+      <p>© 2025 Newlib 项目结构| Generated by 凉安</p>
+    </footer>
+  </div>
+
+  <!-- 引入配置文件 -->
+  <script src="4.newlib.js"></script>
+  <script>
+    // 当前显示的数据
+    let currentData = window.picolibcTreeData;
+    let currentView = 'picolibc';
+
+    // 创建节点元素的函数
+    function createTreeNode(data) {
+      const li = document.createElement('li');
+      
+      // 创建节点容器
+      const nodeDiv = document.createElement('div');
+      nodeDiv.className = 'tree-node';
+      
+      // 添加折叠图标（仅文件夹）
+      if (data.type === 'folder') {
+        const toggleIcon = document.createElement('span');
+        toggleIcon.className = 'toggle';
+        toggleIcon.textContent = '▼';
+        nodeDiv.appendChild(toggleIcon);
+      }
+      
+      // 添加文件夹/文件图标（使用emoji）
+      const icon = document.createElement('span');
+      icon.className = 'icon';
+      if (data.type === 'folder') {
+        icon.className += ' folder-icon';
+        icon.textContent = '📁';
+      } else {
+        icon.className += ' file-icon';
+        icon.textContent = '📄';
+      }
+      nodeDiv.appendChild(icon);
+      
+      // 添加内容区域
+      const contentDiv = document.createElement('div');
+      contentDiv.className = 'tree-content';
+      
+      const nameSpan = document.createElement('span');
+      nameSpan.className = 'tree-name';
+      nameSpan.textContent = data.name;
+      contentDiv.appendChild(nameSpan);
+      
+      if (data.desc) {
+        const descSpan = document.createElement('span');
+        descSpan.className = 'tree-desc';
+        descSpan.textContent = data.desc;
+        contentDiv.appendChild(descSpan);
+      }
+      
+      nodeDiv.appendChild(contentDiv);
+      li.appendChild(nodeDiv);
+      
+      // 递归创建子节点
+      if (data.children && data.children.length > 0) {
+        // 对子节点进行排序：文件夹在前，文件在后
+        data.children.sort((a, b) => {
+          if (a.type === 'folder' && b.type === 'file') return -1;
+          if (a.type === 'file' && b.type === 'folder') return 1;
+          return 0;
+        });
+        
+        const ul = document.createElement('ul');
+        data.children.forEach(child => {
+          ul.appendChild(createTreeNode(child));
+        });
+        li.appendChild(ul);
+      }
+      
+      return li;
+    }
+
+    // 初始化树形结构
+    function initTree() {
+      const treeContainer = document.getElementById('treeContainer');
+      treeContainer.innerHTML = ''; // 清空现有内容
+
+      const ul = document.createElement('ul');
+      currentData.forEach(item => {
+        ul.appendChild(createTreeNode(item));
+      });
+      treeContainer.appendChild(ul);
+
+      // 默认折叠所有文件夹
+      document.querySelectorAll('.tree li:has(> ul)').forEach(li => {
+        li.classList.add('collapsed');
+      });
+      
+      // 展开第一层级
+      document.querySelectorAll('.tree > ul > li').forEach(li => {
+        if (li.querySelector('ul')) {
+          li.classList.remove('collapsed');
+        }
+      });
+    }
+
+    // 切换视图
+    function switchView(view) {
+      currentView = view;
+      if (view === 'picolibc') {
+        currentData = window.picolibcTreeData;
+        document.getElementById('viewPicolibc').classList.add('active');
+        document.getElementById('viewNewlib').classList.remove('active');
+      } else {
+        currentData = window.newlibTreeData;
+        document.getElementById('viewNewlib').classList.add('active');
+        document.getElementById('viewPicolibc').classList.remove('active');
+      }
+      initTree();
+    }
+
+    // 初始化
+    document.addEventListener('DOMContentLoaded', function() {
+      initTree();
+      
+      // 视图切换
+      document.getElementById('viewPicolibc').addEventListener('click', function() {
+        switchView('picolibc');
+      });
+      
+      document.getElementById('viewNewlib').addEventListener('click', function() {
+        switchView('newlib');
+      });
+      
+      // 使用事件委托处理折叠/展开
+      document.getElementById('treeContainer').addEventListener('click', function(e) {
+        const treeNode = e.target.closest('.tree-node');
+        if (!treeNode) return;
+        
+        const folderIcon = treeNode.querySelector('.folder-icon');
+        if (!folderIcon) return;
+        
+        const li = treeNode.parentElement;
+        li.classList.toggle('collapsed');
+      });
+      
+      // 展开全部按钮
+      document.getElementById('expandAll').addEventListener('click', function() {
+        document.querySelectorAll('.tree li.collapsed').forEach(li => {
+          li.classList.remove('collapsed');
+        });
+      });
+      
+      // 折叠全部按钮
+      document.getElementById('collapseAll').addEventListener('click', function() {
+        document.querySelectorAll('.tree li:has(.folder-icon)').forEach(li => {
+          if (!li.parentElement.classList.contains('tree')) {
+            li.classList.add('collapsed');
+          }
+        });
+      });
+      
+      // 搜索功能
+      document.getElementById('searchInput').addEventListener('input', function(e) {
+        const searchTerm = e.target.value.toLowerCase();
+        
+        // 清除之前的高亮
+        document.querySelectorAll('.highlight').forEach(el => {
+          el.classList.remove('highlight');
+        });
+        
+        if (searchTerm === '') return;
+        
+        // 搜索并高亮匹配项
+        document.querySelectorAll('.tree-node').forEach(node => {
+          const text = node.textContent.toLowerCase();
+          if (text.includes(searchTerm)) {
+            node.querySelector('.tree-name').classList.add('highlight');
+            
+            // 展开父节点
+            let parent = node.closest('li');
+            while (parent && !parent.classList.contains('tree')) {
+              parent.classList.remove('collapsed');
+              parent = parent.parentElement.closest('li');
+            }
+          }
+        });
+      });
+    });
+  </script>
+</body>
+</html>

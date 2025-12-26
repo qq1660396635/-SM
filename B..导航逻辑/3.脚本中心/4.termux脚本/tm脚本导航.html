@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TM脚本中心</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; min-height: 100vh; overflow-x: hidden; position: relative; background: linear-gradient(to bottom, #0a2e0a 0%, #1a4d1a 30%, #2d5a2d 60%, #1e3c1e 100%); }
+        .forest-bg { position: fixed; bottom: 0; left: 0; width: 100%; height: 100%; z-index: -1; }
+        .tree { position: absolute; bottom: 0; }
+        .tree-trunk { position: absolute; bottom: 0; background: linear-gradient(to right, #3e2723, #5d4037); border-radius: 0 0 5px 5px; }
+        .tree-leaves { position: absolute; background: radial-gradient(ellipse at center, #2e7d32, #1b5e20); border-radius: 50%; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+        .tree-1 .tree-trunk { left: 10%; width: 20px; height: 80px; }
+        .tree-1 .tree-leaves { left: 5%; bottom: 60px; width: 60px; height: 80px; }
+        .tree-2 .tree-trunk { left: 25%; width: 25px; height: 100px; }
+        .tree-2 .tree-leaves { left: 20%; bottom: 80px; width: 70px; height: 90px; }
+        .tree-3 .tree-trunk { left: 45%; width: 18px; height: 70px; }
+        .tree-3 .tree-leaves { left: 42%; bottom: 50px; width: 50px; height: 70px; }
+        .tree-4 .tree-trunk { left: 60%; width: 22px; height: 90px; }
+        .tree-4 .tree-leaves { left: 56%; bottom: 70px; width: 65px; height: 85px; }
+        .tree-5 .tree-trunk { left: 75%; width: 20px; height: 85px; }
+        .tree-5 .tree-leaves { left: 71%; bottom: 65px; width: 60px; height: 75px; }
+        .tree-6 .tree-trunk { left: 88%; width: 18px; height: 75px; }
+        .tree-6 .tree-leaves { left: 85%; bottom: 55px; width: 55px; height: 70px; }
+        .firefly { position: absolute; width: 3px; height: 3px; background: #ffffcc; border-radius: 50%; box-shadow: 0 0 5px #ffffcc; opacity: 0.8; animation: fly 15s infinite linear; }
+        @keyframes fly { 0% { transform: translate(0, 100vh) scale(0); opacity: 0; } 10% { transform: translate(10vw, 80vh) scale(1); opacity: 0.8; } 20% { transform: translate(-5vw, 60vh) scale(1); opacity: 0.8; } 30% { transform: translate(15vw, 40vh) scale(1); opacity: 0.8; } 40% { transform: translate(-10vw, 20vh) scale(1); opacity: 0.8; } 50% { transform: translate(20vw, 0vh) scale(1); opacity: 0.8; } 60% { transform: translate(-15vw, -20vh) scale(1); opacity: 0.8; } 70% { transform: translate(25vw, -40vh) scale(1); opacity: 0.8; } 80% { transform: translate(-20vw, -60vh) scale(1); opacity: 0.8; } 90% { transform: translate(30vw, -80vh) scale(1); opacity: 0.8; } 100% { transform: translate(0, -100vh) scale(0); opacity: 0; } }
+        .container { position: relative; z-index: 10; max-width: 800px; margin: 0 auto; padding: 15px; min-height: 100vh; display: flex; flex-direction: column; }
+        header { text-align: center; margin-bottom: 20px; color: white; animation: fadeInDown 0.8s ease; }
+        h1 { font-size: 1.8rem; margin-bottom: 5px; background: linear-gradient(45deg, #ffffff, #e0e0e0); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; text-shadow: 0 0 15px rgba(255, 255, 255, 0.3); animation: glow 2s ease-in-out infinite alternate; }
+        @keyframes glow { from { filter: brightness(1) drop-shadow(0 0 8px rgba(255, 255, 255, 0.4)); } to { filter: brightness(1.2) drop-shadow(0 0 12px rgba(255, 255, 255, 0.6)); } }
+        .subtitle { font-size: 0.85rem; opacity: 0.9; color: rgba(255, 255, 255, 0.95); text-shadow: 0 0 5px rgba(255, 255, 255, 0.3); }
+        .nav-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; max-width: 600px; margin: 0 auto; flex: 1; animation: fadeInUp 0.8s ease; }
+        .tool-card { background: rgba(10, 10, 30, 0.85); backdrop-filter: blur(10px); border-radius: 10px; padding: 10px; text-decoration: none; color: white; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); box-shadow: 0 0 15px rgba(102, 126, 234, 0.3), inset 0 0 10px rgba(255, 255, 255, 0.05); position: relative; overflow: hidden; display: flex; flex-direction: column; align-items: center; text-align: center; cursor: pointer; border: 1px solid rgba(102, 126, 234, 0.5); }
+        .tool-card::before { content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent); transition: left 0.5s; }
+        .tool-card::after { content: attr(data-index); position: absolute; top: 5px; left: 5px; font-size: 0.75rem; font-weight: bold; color: rgba(255, 255, 255, 0.6); text-shadow: 0 0 5px rgba(255, 255, 255, 0.3); z-index: 2; }
+        .tool-card:hover { transform: translateY(-3px) scale(1.02); background: rgba(20, 20, 40, 0.95); border-color: rgba(240, 147, 251, 0.8); box-shadow: 0 0 25px rgba(240, 147, 251, 0.5), 0 0 40px rgba(240, 147, 251, 0.3), inset 0 0 15px rgba(255, 255, 255, 0.1); }
+        .tool-card:hover::before { left: 100%; }
+        .tool-icon { font-size: 1.6rem; margin-bottom: 5px; display: block; animation: float 3s ease-in-out infinite; filter: drop-shadow(0 0 6px currentColor); }
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-2px); } }
+        .tool-name { font-size: 0.8rem; font-weight: 600; margin-bottom: 3px; line-height: 1.1; text-shadow: 0 0 5px rgba(255, 255, 255, 0.3); }
+        .tool-description { font-size: 0.68rem; opacity: 0.85; line-height: 1.2; text-shadow: 0 0 3px rgba(255, 255, 255, 0.2); }
+        .loading { text-align: center; color: white; padding: 30px; font-size: 0.9rem; animation: pulse 1.5s ease-in-out infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+        .empty-state { text-align: center; color: white; padding: 40px; animation: fadeIn 1s ease; }
+        .empty-state h2 { font-size: 1.3rem; margin-bottom: 10px; color: rgba(255, 255, 255, 0.8); }
+        .empty-state p { font-size: 0.85rem; color: rgba(255, 255, 255, 0.6); }
+        @keyframes fadeInDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @media (max-width: 650px) { .container { padding: 12px; } h1 { font-size: 1.6rem; } .nav-grid { max-width: 100%; gap: 8px; } .tool-card { padding: 8px; } .tool-icon { font-size: 1.4rem; } .tool-name { font-size: 0.75rem; } .tool-description { font-size: 0.65rem; } .tool-card::after { font-size: 0.7rem; top: 4px; left: 4px; } }
+        @media (max-width: 400px) { .nav-grid { gap: 6px; } .tool-card { padding: 6px; } .tool-icon { font-size: 1.3rem; } .tool-name { font-size: 0.7rem; } .tool-description { font-size: 0.6rem; } .tool-card::after { font-size: 0.65rem; top: 3px; left: 3px; } }
+    </style>
+</head>
+<body>
+    <div class="forest-bg">
+        <div class="tree tree-1">
+            <div class="tree-trunk"></div>
+            <div class="tree-leaves"></div>
+        </div>
+        <div class="tree tree-2">
+            <div class="tree-trunk"></div>
+            <div class="tree-leaves"></div>
+        </div>
+        <div class="tree tree-3">
+            <div class="tree-trunk"></div>
+            <div class="tree-leaves"></div>
+        </div>
+        <div class="tree tree-4">
+            <div class="tree-trunk"></div>
+            <div class="tree-leaves"></div>
+        </div>
+        <div class="tree tree-5">
+            <div class="tree-trunk"></div>
+            <div class="tree-leaves"></div>
+        </div>
+        <div class="tree tree-6">
+            <div class="tree-trunk"></div>
+            <div class="tree-leaves"></div>
+        </div>
+    </div>
+    
+    <!-- 萤火虫 -->
+    <div id="fireflies"></div>
+
+    <div class="container">
+        <header>
+            <h1>🌲 TM脚本中心</h1>
+            <p class="subtitle">精选实用工具，一键直达</p>
+        </header>
+        
+        <main>
+            <div class="loading" id="loading">正在检查可用工具</div>
+            <div class="nav-grid" id="navGrid" style="display: none;"></div>
+            <div class="empty-state" id="emptyState" style="display: none;">
+                <h2>😔 暂无可用工具</h2>
+                <p>请确保工具文件在同一目录下</p>
+            </div>
+        </main>
+    </div>
+
+    <script src="termux_nav-config.js"></script>
+    
+    <script>
+        // 创建萤火虫
+        function createFireflies() {
+            const firefliesContainer = document.getElementById('fireflies');
+            const fireflyCount = 15;
+            
+            for (let i = 0; i < fireflyCount; i++) {
+                const firefly = document.createElement('div');
+                firefly.classList.add('firefly');
+                
+                // 随机位置
+                firefly.style.left = `${Math.random() * 100}%`;
+                firefly.style.top = `${Math.random() * 100}%`;
+                
+                // 随机动画延迟
+                firefly.style.animationDelay = `${Math.random() * 15}s`;
+                
+                // 随机动画持续时间
+                firefly.style.animationDuration = `${15 + Math.random() * 10}s`;
+                
+                firefliesContainer.appendChild(firefly);
+            }
+        }
+        
+        // 1. 初始化应用类
+        class NavigationApp {
+            constructor() {
+                this.init();
+            }
+
+            // 2. 异步初始化方法，负责启动应用的整个流程
+            async init() {
+                createFireflies();
+                
+                if (typeof window.navConfig === 'undefined') {
+                    setTimeout(() => this.init(), 100);
+                    return;
+                }
+                await this.loadExistingTools();
+            }
+
+            // 3. 加载并显示存在的工具
+            async loadExistingTools() {
+                try {
+                    const existingTools = await window.navConfig.getExistingTools();
+                    document.getElementById('loading').style.display = 'none';
+                    
+                    if (existingTools.length === 0) {
+                        document.getElementById('emptyState').style.display = 'block';
+                    } else {
+                        document.getElementById('navGrid').style.display = 'grid';
+                        this.renderNavigation(existingTools);
+                    }
+                } catch (error) {
+                    console.error('加载工具失败:', error);
+                    document.getElementById('loading').style.display = 'none';
+                    document.getElementById('emptyState').style.display = 'block';
+                }
+            }
+
+            // 4. 根据工具列表渲染导航卡片
+            renderNavigation(tools) {
+                const navGrid = document.getElementById('navGrid');
+                const groupedTools = window.navConfig.getGroupedTools(tools);
+                const allTools = [];
+                groupedTools.forEach(group => {
+                    if (group.left) allTools.push(group.left);
+                    if (group.right) allTools.push(group.right);
+                });
+                
+                navGrid.innerHTML = allTools.map((tool, index) => `
+                    <div class="tool-card" data-index="${index + 1}" onclick="navigateTo('${tool.file}')">
+                        <span class="tool-icon">${tool.icon || '🔧'}</span>
+                        <div class="tool-name">${tool.name}</div>
+                        <div class="tool-description">${tool.description || '点击进入工具'}</div>
+                    </div>
+                `).join('');
+            }
+        }
+
+        // 5. 全局导航函数，用于跳转到指定工具页面
+        function navigateTo(file) {
+            window.location.href = file;
+        }
+
+        // 6. DOM内容加载完成后，启动应用
+        document.addEventListener('DOMContentLoaded', () => {
+            new NavigationApp();
+        });
+    </script>
+</body>
+</html>

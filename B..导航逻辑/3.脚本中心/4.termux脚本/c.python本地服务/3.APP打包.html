@@ -1,0 +1,744 @@
+<!DOCTYPE html> 
+<html lang="zh-CN"> 
+<head> 
+    <meta charset="utf-8"> 
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+    <title>凉安V Cordova构建工具「2025版」</title>
+    
+    <!-- prism.js 语法高亮-->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet"> 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script> 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script> 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    
+    <style>
+        /* 1. 基础样式重置*/
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        /* 2. 页面主体样式*/
+        body { 
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            background: #1e1e1e;
+            height: 100vh;
+            overflow: hidden;
+            color: #d4d4d4;
+        }
+        
+        /* 3. 主容器样式*/
+        .container { 
+            width: 100vw;
+            max-width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background: #1e1e1e;
+            overflow: hidden;
+        }
+        
+        /* 4. 页面头部样式*/
+        .header { 
+            background: #252526;
+            padding: 8px 15px;
+            border-bottom: 1px solid #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        
+        /* 5. 页面标题样式*/
+        .header h1 { 
+            font-size: 14px;
+            font-weight: 400;
+            color: #cccccc;
+        }
+        
+        /* 6. 内容区域样式*/
+        .content { 
+            flex: 1;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+        
+        /* 7. 代码块容器样式*/
+        .code-block { 
+            background: #1e1e1e;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            margin: 0;
+        }
+        
+        /* 8. 代码头部样式*/
+        .code-header { 
+            background: #2d2d30;
+            padding: 5px 15px;
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            border-bottom: 1px solid #3e3e42;
+            flex-shrink: 0;
+        }
+        
+        /* 9. 代码标题样式*/
+        .code-title { 
+            color: #cccccc;
+            font-size: 12px;
+        }
+        
+        /* 10. 复制按钮样式*/
+        .copy-btn { 
+            background: #0e639c;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 11px;
+            transition: all 0.2s ease;
+        }
+        
+        /* 11. 复制按钮悬停效果*/
+        .copy-btn:hover { 
+            background: #1177bb;
+        }
+        
+        /* 12. 代码内容区域样式*/
+        pre { 
+            margin: 0 !important; 
+            padding: 15px !important; 
+            background: transparent !important; 
+            overflow: auto;
+            flex: 1;
+            font-size: 13px !important;
+            line-height: 1.5 !important;
+        }
+        
+        /* 13. 代码标签样式*/
+        code { 
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace !important;
+        }
+        
+        /* 14. Toast通知样式*/
+        .toast { 
+            position: fixed; 
+            top: 50px; 
+            right: 20px; 
+            background: #0e639c;
+            color: white; 
+            padding: 8px 12px; 
+            border-radius: 4px; 
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3); 
+            opacity: 0; 
+            transform: translateX(100%); 
+            transition: all 0.3s ease; 
+            z-index: 1000; 
+            font-size: 12px;
+        }
+        
+        /* 15. Toast显示状态样式*/
+        .toast.show { 
+            opacity: 1; 
+            transform: translateX(0); 
+        }
+        
+        /* 16. 脚本说明卡片样式*/
+        .script-info {
+            background: #2a2a2a;
+            margin: 10px;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #0e639c;
+            flex-shrink: 0;
+        }
+        
+        /* 17. 脚本说明标题样式*/
+        .script-info h3 {
+            color: #0e639c;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        
+        /* 18. 脚本说明段落样式*/
+        .script-info p {
+            color: #cccccc;
+            font-size: 12px;
+            line-height: 1.4;
+            margin-bottom: 8px;
+        }
+        
+        /* 19. 脚本说明列表样式*/
+        .script-info ul {
+            color: #cccccc;
+            font-size: 12px;
+            margin-left: 20px;
+        }
+        
+        /* 20. 脚本说明列表项样式*/
+        .script-info li {
+            margin-bottom:5px;
+        }
+        
+        /* 21. 移动端响应式样式*/
+        @media (max-width: 768px) {
+            .header h1 { 
+                font-size: 12px; 
+            }
+            
+            .code-header {
+                padding: 4px 10px;
+            }
+            
+            .copy-btn { 
+                padding: 3px 6px; 
+                font-size: 10px; 
+            }
+            
+            pre {
+                padding: 10px !important;
+                font-size: 11px !important;
+            }
+            
+            .script-info {
+                margin: 5px;
+                padding: 10px;
+            }
+        }
+    </style>
+</head> 
+<body> 
+    <!-- 22. 主容器-->
+    <div class="container"> 
+        <!-- 23. 页面头部-->
+        <div class="header">
+            <h1>🔧 凉安V Cordova构建工具「2025版」</h1>
+            <button class="copy-btn" onclick="copyCode('cordova-code')">📋 复制</button>
+        </div>
+        
+        <!-- 24. 内容区域-->
+        <div class="content">
+            <!-- 25. 代码块容器-->
+            <div class="code-block"> 
+                <pre><code id="cordova-code" class="language-python">#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+# 1. 一体化Cordova构建工具（凉安V定制版）- 温和配置版
+
+# 2. 导入操作系统相关模块，用于文件和目录操作
+import os
+# 3. 导入系统相关模块，用于系统参数和函数
+import sys
+# 4. 导入文件操作模块，用于文件复制和删除等高级文件操作
+import shutil
+# 5. 导入随机数模块，用于生成随机数
+import random
+# 6. 导入子进程模块，用于执行外部命令
+import subprocess
+# 7. 导入文件路径匹配模块，用于查找文件
+import glob
+# 8. 导入日期时间模块，用于获取当前时间
+from datetime import datetime
+
+# 9. --- 全局配置---
+# 10. 定义输出目录为下载目录
+OUT_DIR = "/storage/emulated/0/Download"
+# 11. 定义项目目录为用户主目录下的2026文件夹
+PROJ_DIR = os.path.join(os.path.expanduser("~"), "2026")
+
+# 12. 运行外部命令的辅助函数
+def run_command(command, check=True, capture_output=False):
+    """运行外部命令的辅助函数"""
+    # 13. 打印正在执行的命令信息
+    print(f"🔧执行命令: {command}")
+    try:
+        # 14. 使用subprocess.run执行命令，shell=True允许执行shell命令
+        result = subprocess.run(
+            command, shell=True, check=check,
+            capture_output=capture_output, text=True
+        )
+        # 15. 如果需要捕获输出，返回标准输出的内容并去除首尾空白
+        if capture_output:
+            return result.stdout.strip()
+        # 16. 否则返回结果对象
+        return result
+    except subprocess.CalledProcessError as e:
+        # 17. 捕获命令执行失败异常
+        print(f"❌命令执行失败: {command}")
+        # 18. 打印错误信息
+        print(f"错误信息: {e.stderr.strip() if e.stderr else '未知'}")
+        # 19. 退出程序
+        sys.exit(1)
+    except FileNotFoundError:
+        # 20. 捕获命令未找到异常
+        print(f"❌命令未找到: {command.split()[0]}")
+        # 21. 退出程序
+        sys.exit(1)
+
+# 22. 检查并安装必要的依赖
+def check_deps():
+    """检查并安装必要的依赖"""
+    # 23. 打印检查依赖信息
+    print("🔍检查依赖...")
+    # 24. 检查node命令是否存在
+    if not shutil.which("node"):
+        # 25. 如果不存在，提示安装nodejs
+        print("❌请先pkg install nodejs")
+        # 26. 退出程序
+        sys.exit(1)
+    try:
+        # 27. 尝试列出已安装的aapt2包
+        run_command("pkg list-installed aapt2", capture_output=True)
+    except SystemExit:
+        # 28. 如果aapt2未安装，打印安装信息
+        print("📦aapt2未安装，正在安装...")
+        # 29. 安装aapt2包
+        run_command("pkg install aapt2 -y")
+    # 30. 检查cordova命令是否存在
+    if not shutil.which("cordova"):
+        # 31. 如果不存在，打印全局安装cordova信息
+        print("📦Cordova未安装，正在全局安装...")
+        # 32. 使用npm全局安装cordova
+        run_command("npm i -g cordova")
+    # 33. 打印依赖检查完成信息
+    print("✅所有依赖检查通过。")
+
+# 34. 询问版本号并生成应用名称
+def ask_app_name():
+    """询问版本号并生成应用名称"""
+    # 35. 提示用户输入版本号
+    ver = input("请输入今天版本号（如11.2a）: ")
+    # 36. 检查版本号是否为空
+    if not ver:
+        # 37. 如果为空，打印错误信息
+        print("❌版本号不能为空")
+        # 38. 退出程序
+        sys.exit(1)
+    # 39. 返回格式化的应用名称
+    return f"凉安V{ver}"
+
+# 40. 生成带4位随机数的APK文件名
+def rand_apk_name():
+    """生成带4位随机数的APK文件名"""
+    # 41. 生成0到9999之间的随机数
+    num = random.randint(0, 9999)
+    # 42. 返回格式化的APK文件名，随机数补零到4位
+    return f"凉安V{num:04d}.apk"
+
+# 43. 打包网页为APK（温和配置版）
+def build_apk():
+    """打包网页为APK（温和配置版）"""
+    # 44. 打印换行符
+    print("\n=== 打包模式===")
+    # 45. 打印打包模式选项1
+    print("1) 打包单个HTML文件")
+    # 46. 打印打包模式选项2
+    print("2) 打包整个目录（含index.html）")
+    # 47. 获取用户选择的打包模式
+    mode = input("请选择(1/2): ")
+    # 48. 检查选择是否有效
+    if mode not in ("1", "2"):
+        # 49. 如果无效，打印错误信息
+        print("❌无效选择")
+        # 50. 返回结束函数
+        return
+    # 51. 获取用户输入的源路径
+    src_path = input("请输入路径（文件或目录）: ").strip()
+    # 52. 检查路径是否存在
+    if not os.path.exists(src_path):
+        # 53. 如果不存在，打印错误信息
+        print("❌路径不存在")
+        # 54. 返回结束函数
+        return
+    # 55. 获取应用标题
+    app_title = ask_app_name()
+    
+    # 步骤一：检查并安装依赖
+    # 56. 检查并安装依赖
+    check_deps()
+    
+    # 步骤二：创建并配置Cordova项目
+    # 57. 检查项目目录是否存在
+    if os.path.exists(PROJ_DIR):
+        # 58. 如果存在，打印清理信息
+        print(f"🧹清理旧项目目录: {PROJ_DIR}")
+        # 59. 删除旧项目目录及其内容
+        shutil.rmtree(PROJ_DIR)
+    # 60. 生成应用ID，使用当前时间戳确保唯一性
+    app_id = f"com.example.auto.v{int(datetime.now().timestamp())}"
+    # 61. 创建Cordova项目
+    run_command(f"cordova create {PROJ_DIR} {app_id} '{app_title}'")
+    # 62. 保存当前工作目录
+    original_cwd = os.getcwd()
+    # 63. 切换到项目目录
+    os.chdir(PROJ_DIR)
+    # 64. 打印当前工作目录信息
+    print(f"📍切换到项目目录: {os.getcwd()}")
+    
+    try:
+        # 步骤三：处理源文件和配置
+        # 65. 打印复制源文件信息
+        print("📋复制源文件...")
+        # 66. 定义www目录路径
+        www_dir = "www"
+        # 67. 删除www目录（如果存在）
+        shutil.rmtree(www_dir, ignore_errors=True)
+        # 68. 创建www目录
+        os.makedirs(www_dir)
+        # 69. 初始化图标路径为None
+        icon_path = None
+        
+        # 70. 检查是否为单个文件模式
+        if mode == "1":
+            # 71. 获取源文件所在目录
+            src_dir = os.path.dirname(os.path.abspath(src_path))
+            # 72. 构建可能的图标路径
+            potential_icon = os.path.join(src_dir, "icon.png")
+            # 73. 检查图标是否存在
+            if os.path.exists(potential_icon):
+                # 74. 如果存在，设置图标路径
+                icon_path = potential_icon
+            # 75. 复制HTML文件到www目录并重命名为index.html
+            shutil.copy2(src_path, os.path.join(www_dir, "index.html"))
+        else:
+            # 76. 目录模式：构建图标路径
+            potential_icon = os.path.join(os.path.abspath(src_path), "icon.png")
+            # 77. 检查图标是否存在
+            if os.path.exists(potential_icon):
+                # 78. 如果存在，设置图标路径
+                icon_path = potential_icon
+            # 79. 复制整个目录到www目录
+            shutil.copytree(src_path, www_dir, dirs_exist_ok=True)
+        
+        # 80. 检查图标路径是否存在
+        if icon_path and os.path.exists(icon_path):
+            # 81. 打印图标配置信息
+            print("🎨检测到图标，正在配置...")
+            # 82. 构建目标图标路径
+            dest_icon = os.path.join(os.getcwd(), "icon.png")
+            # 83. 复制图标到项目根目录
+            shutil.copy2(icon_path, dest_icon)
+            # 84. 定义配置文件路径
+            config_path = "config.xml"
+            # 85. 以只读模式打开配置文件
+            with open(config_path, 'r', encoding='utf-8') as f:
+                # 86. 读取配置文件内容
+                config_content = f.read()
+            # 87. 查找widget标签开始位置
+            widget_start = config_content.find('&lt;widget')
+            # 88. 检查是否找到widget标签
+            if widget_start != -1:
+                # 89. 构建图标配置字符串
+                icon_config = '\n    &lt;icon src="icon.png" /&gt;\n'
+                # 90. 查找widget标签结束位置
+                insert_pos = config_content.find('&gt;', widget_start) + 1
+                # 91. 在widget标签后插入图标配置
+                new_config = config_content[:insert_pos] + icon_config + config_content[insert_pos:]
+                # 92. 以写入模式打开配置文件
+                with open(config_path, 'w', encoding='utf-8') as f:
+                    # 93. 写入新的配置内容
+                    f.write(new_config)
+        
+        # 步骤四：添加平台和插件
+        # 94. 打印添加Android平台信息
+        print("🤖添加Android平台...")
+        # 95. 添加指定版本的Android平台，不使用fetch
+        run_command("cordova platform add android@12.0.1 --no-fetch")
+        # 96. 打印添加插件信息
+        print("🔌添加基础插件...")
+        # 97. 添加应用内浏览器插件
+        run_command("cordova plugin add cordova-plugin-inappbrowser")
+        # 98. 添加文件操作插件
+        run_command("cordova plugin add cordova-plugin-file")
+        # 99. 添加对话框插件
+        run_command("cordova plugin add cordova-plugin-dialogs")
+        # 100. 添加社交分享插件
+        run_command("cordova plugin add cordova-plugin-x-socialsharing")
+        
+        # 步骤五：配置权限
+        # 101. 打印配置权限信息
+        print("📋配置必要权限...")
+        # 102. 定义Android清单文件路径
+        manifest_path = "platforms/android/app/src/main/AndroidManifest.xml"
+        # 103. 以只读模式打开清单文件
+        with open(manifest_path, 'r') as f:
+            # 104. 读取清单文件内容
+            manifest_content = f.read()
+        # 105. 定义需要添加的权限列表
+        permissions = [
+            'android.permission.WRITE_EXTERNAL_STORAGE',
+            'android.permission.READ_EXTERNAL_STORAGE'
+        ]
+        # 106. 遍历权限列表
+        for perm in permissions:
+            # 107. 检查权限是否已存在
+            if f'android:name="{perm}"' not in manifest_content:
+                # 108. 如果不存在，在manifest结束标签前添加权限
+                manifest_content = manifest_content.replace(
+                    '&lt;/manifest&gt;', f'    &lt;uses-permission android:name="{perm}" /&gt;\n&lt;/manifest&gt;'
+                )
+        # 109. 检查是否需要添加传统存储模式支持
+        if 'android:requestLegacyExternalStorage="true"' not in manifest_content:
+            # 110. 在application标签中添加传统存储模式属性
+            manifest_content = manifest_content.replace(
+                '&lt;application', '&lt;application android:requestLegacyExternalStorage="true"'
+            )
+        # 111. 以写入模式打开清单文件
+        with open(manifest_path, 'w') as f:
+            # 112. 写入更新后的清单内容
+            f.write(manifest_content)
+        
+        # 步骤六：配置网络安全
+        # 113. 打印配置网络安全信息
+        print("🔒配置网络安全策略...")
+        # 114. 定义配置目录路径
+        config_dir = "platforms/android/app/src/main/res/xml"
+        # 115. 创建配置目录（如果不存在）
+        os.makedirs(config_dir, exist_ok=True)
+        # 116. 定义网络安全配置文件路径
+        config_file_path = os.path.join(config_dir, "network_security_config.xml")
+        # 117. 以写入模式创建网络安全配置文件
+        with open(config_file_path, 'w') as f:
+            # 118. 写入网络安全配置XML内容
+            f.write(
+                '&lt;?xml version="1.0" encoding="utf-8"?&gt;\n'
+                '&lt;network-security-config&gt;\n'
+                '    &lt;base-config cleartextTrafficPermitted="true" /&gt;\n'
+                '&lt;/network-security-config&gt;\n'
+            )
+        # 119. 以只读模式重新读取清单文件
+        with open(manifest_path, 'r') as f:
+            # 120. 读取清单文件内容
+            manifest_content = f.read()
+        # 121. 检查是否需要添加明文流量支持
+        if 'android:usesCleartextTraffic="true"' not in manifest_content:
+            # 122. 在application标签中添加明文流量属性
+            manifest_content = manifest_content.replace(
+                '&lt;application', '&lt;application android:usesCleartextTraffic="true"'
+            )
+        # 123. 检查是否需要添加网络安全配置引用
+        if 'android:networkSecurityConfig="@xml/network_security_config"' not in manifest_content:
+            # 124. 在application标签中添加网络安全配置属性
+            manifest_content = manifest_content.replace(
+                '&lt;application', '&lt;application android:networkSecurityConfig="@xml/network_security_config"'
+            )
+        # 125. 以写入模式打开清单文件
+        with open(manifest_path, 'w') as f:
+            # 126. 写入更新后的清单内容
+            f.write(manifest_content)
+        
+        # 步骤七：配置Gradle
+        # 127. 打印配置Gradle信息
+        print("⚙️配置Gradle...")
+        # 128. 定义Gradle属性文件路径
+        gradle_props_path = os.path.join("platforms", "android", "gradle.properties")
+        # 129. 定义Termux中的aapt2路径
+        aapt2_termux_path = "/data/data/com.termux/files/usr/bin/aapt2"
+        # 130. 以追加模式打开Gradle属性文件
+        with open(gradle_props_path, "a") as f:
+            # 131. 写入aapt2路径覆盖配置
+            f.write(f"\nandroid.aapt2FromMavenOverride={aapt2_termux_path}\n")
+            # 132. 写入禁用aapt2守护进程配置
+            f.write("android.enableAapt2Daemon=false\n")
+        
+        # 步骤八：清理构建缓存
+        # 133. 打印清理缓存信息
+        print("🧹清理构建缓存...")
+        # 134. 删除Android平台构建目录
+        shutil.rmtree("platforms/android/build", ignore_errors=True)
+        # 135. 删除应用构建目录
+        shutil.rmtree("platforms/android/app/build", ignore_errors=True)
+        # 136. 终止gradle进程（不检查错误）
+        run_command("pkill -f gradle", check=False)
+        
+        # 步骤九：执行构建
+        # 137. 打印开始构建信息
+        print("🏗️开始构建...")
+        # 138. 执行Cordova Android构建命令
+        run_command("cordova build android")
+        
+        # 步骤十：复制APK
+        # 139. 打印复制APK信息
+        print("📦复制APK...")
+        # 140. 创建输出目录（如果不存在）
+        os.makedirs(OUT_DIR, exist_ok=True)
+        # 141. 定义APK源文件路径
+        apk_src_path = "platforms/android/app/build/outputs/apk/debug/app-debug.apk"
+        # 142. 定义APK目标文件路径
+        apk_dest_path = os.path.join(OUT_DIR, "凉安V1r.apk")
+        # 143. 复制APK文件到目标位置
+        shutil.copy2(apk_src_path, apk_dest_path)
+        # 144. 打印构建完成信息
+        print(f"✅构建完成→{apk_dest_path}")
+        
+    finally:
+        # 145. 无论是否出错，都切换回原工作目录
+        os.chdir(original_cwd)
+
+# 146. 复制最新APK
+def copy_latest_apk():
+    """复制最新APK"""
+    # 147. 打印换行符和功能标题
+    print("\n=== 复制最新APK ===")
+    # 148. 检查项目目录是否存在
+    if not os.path.isdir(PROJ_DIR):
+        # 149. 如果不存在，打印错误信息
+        print("❌项目目录不存在")
+        # 150. 返回结束函数
+        return
+    # 151. 保存当前工作目录
+    original_cwd = os.getcwd()
+    # 152. 切换到项目目录
+    os.chdir(PROJ_DIR)
+    
+    try:
+        # 153. 查找所有APK文件
+        apk_list = glob.glob("./*.apk", recursive=True)
+        # 154. 检查是否找到APK文件
+        if not apk_list:
+            # 155. 如果没有找到，打印错误信息
+            print("❌未找到APK")
+            # 156. 返回结束函数
+            return
+        # 157. 找到最新修改的APK文件
+        latest_apk_path = max(apk_list, key=os.path.getmtime)
+        # 158. 生成随机APK文件名
+        new_name = rand_apk_name()
+        # 159. 创建输出目录（如果不存在）
+        os.makedirs(OUT_DIR, exist_ok=True)
+        # 160. 构建目标文件路径
+        dest_path = os.path.join(OUT_DIR, new_name)
+        # 161. 复制APK文件到目标位置
+        shutil.copy2(latest_apk_path, dest_path)
+        # 162. 打印复制完成信息
+        print(f"✅已复制→{dest_path}")
+        
+    finally:
+        # 163. 无论是否出错，都切换回原工作目录
+        os.chdir(original_cwd)
+
+# 164. 检查是否为主程序入口
+if __name__ == "__main__":
+    # 165. 打印程序标题
+    print("=== Cordova构建工具（凉安V温和版）===")
+    # 166. 打印选项1
+    print("1) 打包网页为APK（温和配置）")
+    # 167. 打印选项2
+    print("2) 复制最新APK")
+    # 168. 获取用户选择
+    choice = input("请输入选择(1/2): ")
+    # 169. 检查选择是否为1
+    if choice == "1":
+        # 170. 如果是1，执行构建APK函数
+        build_apk()
+    # 171. 检查选择是否为2
+    elif choice == "2":
+        # 172. 如果是2，执行复制APK函数
+        copy_latest_apk()
+    else:
+        # 173. 如果选择无效，打印错误信息
+        print("❌无效选择")</code></pre> 
+            </div> 
+            
+            <!-- 26. 脚本说明卡片-->
+            <div class="script-info">
+                <h3>📄 脚本说明</h3>
+                <p>这是一个凉安V定制的Cordova构建工具，用于将HTML网页打包为Android APK应用。</p>
+                <ul>
+                    <li>支持单个HTML文件或整个目录打包</li>
+                    <li>自动检测并安装依赖</li>
+                    <li>配置Android权限和网络安全</li>
+                    <li>支持图标自动配置</li>
+                    <li>输出APK到下载目录</li>
+                </ul>
+                <p><strong>使用方法：</strong>运行脚本后选择打包模式，输入HTML文件或目录路径即可。</p>
+            </div>
+        </div> 
+    </div> 
+    
+    <!-- 27. Toast通知-->
+    <div id="toast" class="toast">复制成功！</div>
+    
+    <script>
+        // 1. 复制代码功能
+        function copyCode(elementId) {
+            // 2. 获取代码元素
+            const codeElement = document.getElementById(elementId);
+            // 3. 获取复制按钮
+            const copyBtn = event.target.closest('.copy-btn');
+            // 4. 获取toast元素
+            const toast = document.getElementById('toast');
+            
+            // 5. 创建临时textarea元素
+            const textArea = document.createElement('textarea');
+            textArea.value = codeElement.textContent;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-999999px';
+            textArea.style.top = '-999999px';
+            
+            // 6. 添加到DOM
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            
+            // 7. 尝试复制
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    // 8. 处理复制成功
+                    handleCopySuccess(copyBtn, toast);
+                } else {
+                    // 9. 处理复制失败
+                    showCopyError(copyBtn, toast);
+                }
+            } catch (err) {
+                // 10. 异常处理
+                showCopyError(copyBtn, toast);
+            }
+            
+            // 11. 移除临时元素
+            document.body.removeChild(textArea);
+        }
+        
+        // 12. 处理复制成功
+        function handleCopySuccess(copyBtn, toast) {
+            // 13. 获取按钮原始文本
+            const originalText = copyBtn.textContent;
+            // 14. 更新按钮文本
+            copyBtn.textContent = '✅已复制';
+            
+            // 15. 更新toast内容
+            toast.textContent = '✅代码已复制到剪贴板';
+            toast.style.background = '#0e639c';
+            toast.classList.add('show');
+            
+            // 16. 2秒后恢复
+            setTimeout(function() {
+                copyBtn.textContent = originalText;
+                toast.classList.remove('show');
+            }, 2000);
+        }
+        
+        // 17. 显示复制错误
+        function showCopyError(copyBtn, toast) {
+            // 18. 更新toast内容
+            toast.textContent = '❌复制失败，请手动选择复制';
+            toast.style.background = '#d32f2f';
+            toast.classList.add('show');
+            
+            // 19. 3秒后恢复
+            setTimeout(function() {
+                toast.classList.remove('show');
+                toast.style.background = '#0e639c';
+            }, 3000);
+        }
+        
+        // 20. 页面加载完成后的初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 21. 初始化代码高亮
+            Prism.highlightAll();
+        });
+    </script>
+</body> 
+</html>

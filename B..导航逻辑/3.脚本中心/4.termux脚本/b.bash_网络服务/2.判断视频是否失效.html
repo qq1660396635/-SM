@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>视频链接扫描器</title>
+ 
+        <!-- prism.js 语法高亮   -->
+      <script src="/A2_全局中心/B_插件缓存-CDN/1.prism代码高亮/1.prism-css-白色主题.js"></script>   
+      <script src="/A2_全局中心/B_插件缓存-CDN/1.prism代码高亮/prism-core.min.js"></script>    <!-- 核心文件 -->
+      <script src="/A2_全局中心/B_插件缓存-CDN/1.prism代码高亮/prism-bash.min.js"></script>   <!-- Bash语言支持 -->
+    
+     <!-- 引入缩放插件 -->
+    <script src="/A2_全局中心/B_插件工具/3.插件_字体缩放.js"></script>
+    
+    <style>
+        /* 1. 基础样式重置 */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        /* 2. 页面主体样式 - 修改背景渐变色 */
+        body { font-family: 'Consolas', 'Monaco', 'Courier New', monospace; background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); color: #2c3e50; line-height: 1.6; padding: 20px; min-height: 100vh; }
+        
+        /* 3. 主容器 */
+        .container { max-width: 1200px; margin: 0 auto; animation: fadeIn 0.5s ease-in; }
+        
+        /* 4. 页面标题 */
+        h1 { color: #ffffff; margin-bottom: 30px; font-size: 28px; display: flex; align-items: center; gap: 12px; text-shadow: 0 2px 4px rgba(255, 255, 255, 0.3); animation: slideDown 0.6s ease-out; }
+        
+        /* 5. 代码块容器 */
+        .code-container { background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1); border: 1px solid #e1e8ed; transition: transform 0.3s ease, box-shadow 0.3s ease; }
+        
+        /* 6. 代码块悬停效果 */
+        .code-container:hover { transform: translateY(-2px); box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15); }
+        
+        /* 7. 代码头部 */
+        .code-header { background: linear-gradient(90deg, #f8f9fa 0%, #e9ecef 100%); padding: 15px 20px; border-bottom: 1px solid #dee2e6; display: flex; justify-content: space-between; align-items: center; }
+        
+        /* 8. 代码标题 */
+        .code-title { color: #6c757d; font-size: 14px; font-weight: 600; letter-spacing: 0.5px; }
+        
+        /* 9. 复制按钮 */
+        .copy-btn { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.3s ease; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3); }
+        
+        /* 10. 复制按钮悬停效果 */
+        .copy-btn:hover { background: linear-gradient(135deg, #764ba2 0%, #667eea 100%); transform: scale(1.05); box-shadow: 0 4px 8px rgba(102, 126, 234, 0.4); }
+        
+        /* 11. 复制按钮已复制状态 */
+        .copy-btn.copied { background: linear-gradient(135deg, #3498db 0%, #2980b9 100%); }
+        
+        /* 12. 代码内容区 */
+        pre { background: #f8f9fa; padding: 20px; overflow-x: auto; font-size: 13px; line-height: 1.5; border-radius: 0 0 12px 12px; margin: 0; }
+        
+        /* 13. 代码标签 */
+        code { color: #495057; font-family: inherit; white-space: pre; }
+        
+        /* 14. 底部信息区 - 更紧凑 */
+        .info-section { margin-top: 20px; padding: 15px; background: rgba(255, 255, 255, 0.9); border-radius: 12px; backdrop-filter: blur(10px); border: 1px solid #e1e8ed; }
+        
+        /* 15. 信息区标题 */
+        .info-section h2 { color: #667eea; margin-bottom: 8px; font-size: 18px; }
+        
+        /* 16. 信息网格布局 - 更紧凑 */
+        .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; margin-top: 10px; }
+        
+        /* 17. 信息项 - 更紧凑 */
+        .info-item { background: rgba(248, 249, 250, 0.9); padding: 10px; border-radius: 8px; border-left: 3px solid #667eea; transition: transform 0.3s ease, box-shadow 0.3s ease; }
+        
+        /* 18. 信息项悬停效果 */
+        .info-item:hover { transform: translateX(5px); box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); }
+        
+        /* 19. 信息标签 - 更紧凑 */
+        .info-label { color: #6c757d; font-size: 11px; margin-bottom: 3px; text-transform: uppercase; letter-spacing: 0.5px; }
+        
+        /* 20. 信息内容 - 更紧凑 */
+        .info-content { color: #2c3e50; font-size: 12px; }
+        
+        /* 21. Toast提示 */
+        .toast { position: fixed; bottom: 20px; right: 20px; background: #667eea; color: white; padding: 12px 20px; border-radius: 6px; font-size: 14px; z-index: 1000; opacity: 0; transform: translateY(10px); transition: all 0.3s ease; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); }
+        
+        /* 22. Toast显示状态 */
+        .toast.show { opacity: 1; transform: translateY(0); }
+        
+        /* 23. 响应式设计 */
+        @media (max-width: 768px) { body { padding: 10px; } pre { padding: 15px; font-size: 12px; } .info-grid { grid-template-columns: 1fr; } }
+        
+        /* 24. 动画定义 */
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        
+        /* 25. 滑入动画 */
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h3> 视频链接扫描器</h3>
+        
+        <div class="code-container">
+            <div class="code-header">
+                <span class="code-title">video_scan.sh</span>
+                <button class="copy-btn" id="copyBtn">
+                    <span>📋</span>
+                    <span id="copyBtnText">复制</span>
+                </button>
+            </div>
+            <pre><code id="codeContent" class="language-bash">#!/bin/bash
+# 1. 判断视频是否失效，或者扫描端口下的资源
+base="https:视频链接"
+outdir="/storage/emulated/0/Download/OnePlus Share"
+outfile="$outdir/scan_result.txt"
+mkdir -p "$outdir"; >"$outfile"
+
+for ((i=87000;i<=87200;i++)); do
+  url="$base/$i/index.m3u8"
+  # 2. 发 GET，只拉 1k 字节，带跳转
+  resp=$(curl -s -r 0-1023 -L --max-time 5 "$url")
+  # 3. 简单判断：返回里出现 #EXTM3U 就说明是合法 m3u8
+  if grep -q "^#EXTM3U" <<<"$resp"; then
+    echo "[OK]  $url" | tee -a "$outfile"
+  else
+    echo "[404] $url" >> "$outfile"
+  fi
+done
+echo "扫描完成，结果已保存到：$outfile"</code></pre>
+        </div>
+        
+        <div class="info-section">
+            <h2>📋 脚本说明</h2>
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label">🎯 功能</div>
+                    <div class="info-content">扫描指定范围内的视频链接，检测m3u8文件是否有效</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">📁 输出</div>
+                    <div class="info-content">在指定目录生成 scan_result.txt 扫描结果文件</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">⚡ 特性</div>
+                    <div class="info-content">支持87000-87200端口范围扫描，自动判断链接有效性</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">🛠️ 依赖</div>
+                    <div class="info-content">需要安装 curl 工具</div>
+                    <div class="info-label"> 一定要保存为bash文件再运行</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Toast 提示 -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // 1. 复制按钮点击事件处理
+        document.getElementById('copyBtn').addEventListener('click', function() {
+            const copyBtn = this;
+            const copyBtnText = document.getElementById('copyBtnText');
+            const toast = document.getElementById('toast');
+            
+            // 获取纯文本内容（去除HTML标签）
+            const codeElement = document.getElementById('codeContent');
+            const textContent = codeElement.textContent || codeElement.innerText;
+            
+            // 使用现代API复制
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(textContent).then(function() {
+                    // 显示成功提示
+                    handleCopySuccess(copyBtn, copyBtnText, toast);
+                }).catch(function(err) {
+                    showCopyError(copyBtn, copyBtnText, toast);
+                });
+            } else {
+                // 备用方法
+                fallbackCopy(textContent, copyBtn, copyBtnText, toast);
+            }
+        });
+        
+        // 2. 处理复制成功
+        function handleCopySuccess(copyBtn, copyBtnText, toast) {
+            copyBtn.classList.add('copied');
+            copyBtnText.textContent = '已复制';
+            
+            // 显示toast
+            toast.textContent = '✅ 脚本已复制到剪贴板';
+            toast.classList.add('show');
+            
+            // 2秒后恢复按钮状态
+            setTimeout(function() {
+                copyBtn.classList.remove('copied');
+                copyBtnText.textContent = '复制';
+            }, 2000);
+            
+            // 3秒后隐藏toast
+            setTimeout(function() {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+        
+        // 3. 备用复制方法
+        function fallbackCopy(text, copyBtn, copyBtnText, toast) {
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            textArea.style.position = 'fixed';
+            textArea.style.opacity = '0';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    handleCopySuccess(copyBtn, copyBtnText, toast);
+                } else {
+                    showCopyError(copyBtn, copyBtnText, toast);
+                }
+            } catch (err) {
+                showCopyError(copyBtn, copyBtnText, toast);
+            }
+            
+            document.body.removeChild(textArea);
+        }
+        
+        // 4. 显示复制错误
+        function showCopyError(copyBtn, copyBtnText, toast) {
+            // 显示错误提示
+            toast.textContent = '❌ 复制失败，请手动选择复制';
+            toast.style.background = '#e74c3c';
+            toast.classList.add('show');
+            
+            // 3秒后隐藏toast
+            setTimeout(function() {
+                toast.classList.remove('show');
+                toast.style.background = '#667eea';
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,449 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>go源码导航</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+            background: #0a0a0a;
+        }
+        
+        /* 极光背景 */
+        .aurora-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            background: linear-gradient(180deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
+            overflow: hidden;
+        }
+        
+        .aurora {
+            position: absolute;
+            width: 200%;
+            height: 100%;
+            opacity: 0.3;
+            filter: blur(60px);
+        }
+        
+        .aurora1 {
+            background: linear-gradient(45deg, #00ff88, #00ffff, #0088ff);
+            animation: aurora1 15s ease-in-out infinite;
+        }
+        
+        .aurora2 {
+            background: linear-gradient(135deg, #ff00ff, #ff0088, #ffff00);
+            animation: aurora2 20s ease-in-out infinite;
+        }
+        
+        @keyframes aurora1 {
+            0%, 100% { transform: translateX(-50%) translateY(0) rotate(0deg); }
+            50% { transform: translateX(-30%) translateY(-20px) rotate(5deg); }
+        }
+        
+        @keyframes aurora2 {
+            0%, 100% { transform: translateX(-50%) translateY(0) rotate(0deg); }
+            50% { transform: translateX(-70%) translateY(20px) rotate(-5deg); }
+        }
+        
+        /* 网格线 */
+        .grid-lines {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+        }
+        
+        /* 主容器 */
+        .container {
+            position: relative;
+            z-index: 10;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        /* 标题 */
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+            animation: fadeInDown 1s ease;
+        }
+        
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #00ffff, #ff00ff, #ffff00);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+        
+        @keyframes glow {
+            from { filter: brightness(1) drop-shadow(0 0 20px rgba(0, 255, 255, 0.5)); }
+            to { filter: brightness(1.2) drop-shadow(0 0 30px rgba(255, 0, 255, 0.8)); }
+        }
+        
+        header p {
+            font-size: 1rem;
+            color: rgba(255, 255, 255, 0.8);
+        }
+        
+        /* 导航网格 - 强制两列 */
+        .nav-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin-bottom: 80px;
+        }
+        
+        /* 双卡片 - 适中尺寸 */
+        .dual-card {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(20px);
+            border-radius: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            animation: fadeInUp 0.8s ease forwards;
+            display: flex;
+            min-height: 100px;
+            overflow: hidden;
+        }
+        
+        .dual-card:hover {
+            transform: translateY(-5px) scale(1.02);
+            background: rgba(255, 255, 255, 0.12);
+            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.4);
+            border-color: rgba(255, 255, 255, 0.25);
+        }
+        
+        /* 工具项 */
+        .tool-item {
+            flex: 1;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .tool-item:first-child {
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .tool-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
+        /* 图标 */
+        .tool-icon {
+            font-size: 2rem;
+            margin-bottom: 8px;
+            animation: float 3s ease-in-out infinite;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-3px); }
+        }
+        
+        /* 标题 */
+        .tool-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: white;
+            margin-bottom: 4px;
+        }
+        
+        /* 描述 */
+        .tool-desc {
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.7);
+            line-height: 1.3;
+        }
+        
+        /* 分页 */
+        .pagination {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            z-index: 20;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(15px);
+            padding: 10px 20px;
+            border-radius: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+        
+        .page-btn {
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+        
+        .page-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+        
+        .page-btn.active {
+            background: linear-gradient(45deg, #00ffff, #ff00ff);
+            border-color: transparent;
+        }
+        
+        .page-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+        
+        /* 动画 */
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* 响应式 */
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+            
+            header h1 {
+                font-size: 2rem;
+            }
+            
+            header p {
+                font-size: 0.9rem;
+            }
+            
+            .nav-grid {
+                gap: 15px;
+            }
+            
+            .dual-card {
+                min-height: 85px;
+            }
+            
+            .tool-item {
+                padding: 12px;
+            }
+            
+            .tool-icon {
+                font-size: 1.6rem;
+            }
+            
+            .tool-title {
+                font-size: 0.9rem;
+            }
+            
+            .tool-desc {
+                font-size: 0.7rem;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            header h1 {
+                font-size: 1.8rem;
+            }
+            
+            .dual-card {
+                min-height: 75px;
+            }
+            
+            .tool-icon {
+                font-size: 1.4rem;
+            }
+            
+            .tool-title {
+                font-size: 0.85rem;
+            }
+            
+            .tool-desc {
+                font-size: 0.65rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 极光背景 -->
+    <div class="aurora-bg">
+        <div class="aurora aurora1"></div>
+        <div class="aurora aurora2"></div>
+        <div class="grid-lines"></div>
+    </div>
+    
+    <!-- 主容器 -->
+    <div class="container">
+        <header>
+            <h1>🚀 go源码中心</h1>
+            <p>精选实用工具，一键直达</p>
+        </header>
+        
+        <!-- 导航网格 -->
+        <div class="nav-grid" id="navGrid">
+            <!-- 双卡片将通过JavaScript动态生成 -->
+        </div>
+        
+        <!-- 分页 -->
+        <div class="pagination" id="pagination">
+            <button class="page-btn" id="prevBtn" onclick="changePage(-1)">上一页</button>
+            <div id="pageNumbers"></div>
+            <button class="page-btn" id="nextBtn" onclick="changePage(1)">下一页</button>
+        </div>
+    </div>
+    
+    <!-- 配置文件 -->
+    <script src="go源码导航.js"></script>
+    
+    <script>
+        // 应用类
+        class NavigationApp {
+            constructor() {
+                this.currentPage = 1;
+                this.itemsPerPage = 8; // 每页8个工具（4个双卡片）
+                this.allTools = [];
+                this.init();
+            }
+            
+            init() {
+                if (typeof window.triangleNavConfig === 'undefined') {
+                    setTimeout(() => this.init(), 100);
+                    return;
+                }
+                
+                this.loadTools();
+            }
+            
+            loadTools() {
+                this.allTools = window.triangleNavConfig.getAllTools();
+                this.renderNavigation();
+                this.renderPagination();
+            }
+            
+            renderNavigation() {
+                const navGrid = document.getElementById('navGrid');
+                const startIndex = (this.currentPage - 1) * this.itemsPerPage;
+                const endIndex = startIndex + this.itemsPerPage;
+                const currentPageTools = this.allTools.slice(startIndex, endIndex);
+                
+                // 将工具配对成双卡片
+                const pairedTools = [];
+                for (let i = 0; i < currentPageTools.length; i += 2) {
+                    pairedTools.push({
+                        left: currentPageTools[i],
+                        right: currentPageTools[i + 1] || null
+                    });
+                }
+                
+                navGrid.innerHTML = pairedTools.map((pair, index) => `
+                    <div class="dual-card" style="animation-delay: ${index * 0.1}s">
+                        ${pair.left ? `
+                            <div class="tool-item" onclick="navigateTo('${pair.left.file}')">
+                                <span class="tool-icon">${pair.left.icon || '🔧'}</span>
+                                <h3 class="tool-title">${pair.left.name}</h3>
+                                <p class="tool-desc">${pair.left.description || '点击进入工具'}</p>
+                            </div>
+                        ` : ''}
+                        ${pair.right ? `
+                            <div class="tool-item" onclick="navigateTo('${pair.right.file}')">
+                                <span class="tool-icon">${pair.right.icon || '🔧'}</span>
+                                <h3 class="tool-title">${pair.right.name}</h3>
+                                <p class="tool-desc">${pair.right.description || '点击进入工具'}</p>
+                            </div>
+                        ` : ''}
+                    </div>
+                `).join('');
+            }
+            
+            renderPagination() {
+                const totalPages = Math.ceil(this.allTools.length / this.itemsPerPage);
+                
+                if (totalPages <= 1) {
+                    document.getElementById('pagination').style.display = 'none';
+                    return;
+                }
+                
+                document.getElementById('pagination').style.display = 'flex';
+                document.getElementById('prevBtn').disabled = this.currentPage === 1;
+                document.getElementById('nextBtn').disabled = this.currentPage === totalPages;
+                
+                const pageNumbers = document.getElementById('pageNumbers');
+                pageNumbers.innerHTML = '';
+                
+                for (let i = 1; i <= totalPages; i++) {
+                    const btn = document.createElement('button');
+                    btn.className = 'page-btn';
+                    if (i === this.currentPage) btn.classList.add('active');
+                    btn.textContent = i;
+                    btn.onclick = () => this.goToPage(i);
+                    pageNumbers.appendChild(btn);
+                }
+            }
+            
+            goToPage(pageNum) {
+                this.currentPage = pageNum;
+                this.renderNavigation();
+                this.renderPagination();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+        
+        function navigateTo(file) {
+            if (file && file !== '#') {
+                window.location.href = file;
+            }
+        }
+        
+        function changePage(direction) {
+            if (window.navApp) {
+                const newPage = window.navApp.currentPage + direction;
+                const totalPages = Math.ceil(window.navApp.allTools.length / window.navApp.itemsPerPage);
+                
+                if (newPage >= 1 && newPage <= totalPages) {
+                    window.navApp.goToPage(newPage);
+                }
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            window.navApp = new NavigationApp();
+        });
+    </script>
+</body>
+</html>

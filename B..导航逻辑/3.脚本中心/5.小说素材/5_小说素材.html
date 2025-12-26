@@ -1,0 +1,1309 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📚 小说素材创作库 - 世界构建工具</title>
+    <style>
+        :root {
+            --primary: #8b5cf6;
+            --secondary: #ec4899;
+            --accent: #f59e0b;
+            --bg-dark: #0f0f23;
+            --bg-card: rgba(30, 30, 45, 0.95);
+            --text-primary: #e2e8f0;
+            --text-secondary: #a0aec0;
+            --border: rgba(139, 92, 246, 0.3);
+            --zoom-level: 1;
+            --font-size-level: 1;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', 'PingFang SC', 'Noto Sans SC', sans-serif;
+            background: linear-gradient(135deg, #0f0f23 0%, #1e1b4b 50%, #0f0f23 100%);
+            min-height: 100vh;
+            color: var(--text-primary);
+            position: relative;
+            overflow-x: hidden;
+            font-size: calc(16px * var(--font-size-level));
+            transform: scale(var(--zoom-level));
+            transform-origin: center center;
+            transition: transform 0.3s ease, font-size 0.3s ease;
+        }
+
+        /* 星空背景效果 */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                radial-gradient(circle at 20% 50%, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(236, 72, 153, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 20%, rgba(245, 158, 11, 0.05) 0%, transparent 50%);
+            animation: stars 20s linear infinite;
+            z-index: -2;
+        }
+
+        @keyframes stars {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-100px); }
+        }
+
+        /* 网格效果 */
+        body::after {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(139, 92, 246, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(139, 92, 246, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            z-index: -1;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 15px;
+            position: relative;
+            z-index: 1;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 头部区域 */
+        .header-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding: 10px 0;
+            gap: 15px;
+        }
+
+        header {
+            flex: 1;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 5px;
+            letter-spacing: 2px;
+            font-weight: 900;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+
+        .category-indicators {
+            display: inline-flex;
+            gap: 10px;
+            padding: 6px 12px;
+            background: rgba(139, 92, 246, 0.1);
+            border-radius: 15px;
+            border: 1px solid var(--border);
+            font-size: 0.7rem;
+        }
+
+        .category-item {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+        }
+
+        .category-indicator {
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background: var(--primary);
+        }
+
+        /* 控制面板 */
+        .control-panel {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-shrink: 0;
+            z-index: 1100;  
+        }
+
+        .control-toggle {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border: none;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+            box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
+        }
+
+        .control-toggle:hover {
+            transform: scale(1.1);
+            box-shadow: 0 3px 12px rgba(139, 92, 246, 0.5);
+        }
+
+        .control-content {
+            position: fixed;
+            top: 60px;
+            right: 20px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 18px;
+            min-width: 280px;
+            max-width: 320px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+            display: none;
+            backdrop-filter: blur(20px);
+            z-index: 1000;
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+
+        .control-content.show {
+            display: block;
+            animation: slideDown 0.3s ease;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .control-section {
+            margin-bottom: 15px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid rgba(139, 92, 246, 0.1);
+        }
+
+        .control-section:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+
+        .control-label {
+            color: var(--primary);
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+            display: block;
+            font-weight: bold;
+        }
+
+        .control-info {
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            margin-bottom: 8px;
+        }
+
+        .control-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .control-input {
+            flex: 1;
+            padding: 8px 10px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: rgba(0, 0, 0, 0.3);
+            color: var(--text-primary);
+            font-size: 0.8rem;
+            font-family: inherit;
+            transition: all 0.3s;
+        }
+
+        .control-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 8px rgba(139, 92, 246, 0.3);
+        }
+
+        .control-select {
+            flex: 1;
+            padding: 8px 10px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: rgba(0, 0, 0, 0.3);
+            color: var(--text-primary);
+            font-size: 0.8rem;
+            font-family: inherit;
+            cursor: pointer;
+        }
+
+        .control-buttons {
+            display: flex;
+            gap: 6px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+
+        .control-btn {
+            flex: 1;
+            min-width: 60px;
+            padding: 6px 10px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: rgba(0, 0, 0, 0.3);
+            color: var(--text-primary);
+            cursor: pointer;
+            font-size: 0.75rem;
+            transition: all 0.3s;
+            font-family: inherit;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+        }
+
+        .control-btn:hover {
+            background: rgba(139, 92, 246, 0.1);
+            border-color: var(--primary);
+            transform: translateY(-1px);
+        }
+
+        .control-btn.primary {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            border: none;
+            font-weight: bold;
+        }
+
+        .control-btn.primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 3px 10px rgba(139, 92, 246, 0.3);
+        }
+
+        .control-btn.danger {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .control-btn.danger:hover {
+            background: rgba(245, 158, 11, 0.1);
+        }
+
+        .control-btn-icon {
+            font-size: 0.8rem;
+        }
+
+        /* 搜索区域 */
+        .search-card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 12px;
+            border: 1px solid var(--border);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.5);
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            position: relative;
+        }
+
+        .search-box {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.3);
+            color: var(--text-primary);
+            font-size: 0.85rem;
+            transition: all 0.3s;
+            font-family: inherit;
+        }
+
+        .search-box:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 8px rgba(139, 92, 246, 0.3);
+        }
+
+        .add-btn {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 8px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            white-space: nowrap;
+            font-size: 0.8rem;
+        }
+
+        .add-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 3px 10px rgba(139, 92, 246, 0.4);
+        }
+
+        /* 素材网格 */
+        .materials-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 8px;
+            margin: 12px 0;
+            flex: 1;
+        }
+
+        .material-card {
+            background: var(--bg-card);
+            border-radius: 10px;
+            padding: 12px;
+            border: 1px solid var(--border);
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+            min-height: 140px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .material-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            transform: scaleX(0);
+            transition: transform 0.3s;
+        }
+
+        .material-card:hover {
+            transform: translateY(-3px);
+            border-color: var(--primary);
+            box-shadow: 0 5px 15px rgba(139, 92, 246, 0.3);
+        }
+
+        .material-card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .material-number {
+            display: inline-block;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 2px 6px;
+            border-radius: 6px;
+            font-size: 0.65rem;
+            font-weight: bold;
+            margin-bottom: 6px;
+        }
+
+        .material-title {
+            font-size: 0.9rem;
+            font-weight: bold;
+            color: var(--primary);
+            margin-bottom: 6px;
+        }
+
+        .material-text {
+            font-size: 0.8rem;
+            line-height: 1.4;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+            flex-grow: 1;
+        }
+
+        .material-categories {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 3px;
+        }
+
+        .category-tag {
+            background: rgba(139, 92, 246, 0.1);
+            color: var(--primary);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.6rem;
+            border: 1px solid rgba(139, 92, 246, 0.2);
+        }
+
+        /* 分页 */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 5px;
+            margin: 15px 0;
+            flex-wrap: wrap;
+        }
+
+        .pagination button {
+            padding: 5px 10px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--bg-card);
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.75rem;
+            font-family: inherit;
+        }
+
+        .pagination button:hover:not(:disabled) {
+            border-color: var(--primary);
+            background: rgba(139, 92, 246, 0.1);
+        }
+
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .pagination .active {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            border-color: transparent;
+        }
+
+        .page-info {
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            margin: 0 5px;
+        }
+
+        /* 统计信息 */
+        .stats {
+            position: fixed;
+            bottom: 15px;
+            left: 15px;
+            background: var(--bg-card);
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            font-size: 0.75rem;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .stats-number {
+            color: var(--primary);
+            font-weight: bold;
+        }
+
+        /* 模态框 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 2000;
+        }
+
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--bg-card);
+            padding: 20px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .modal-title {
+            font-size: 1.1rem;
+            color: var(--primary);
+            font-weight: bold;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.1rem;
+            cursor: pointer;
+            color: var(--text-secondary);
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: var(--primary);
+            font-size: 0.9rem;
+        }
+
+        .form-group input, .form-group textarea, .form-group select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: rgba(0, 0, 0, 0.3);
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            font-family: inherit;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .submit-btn {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: bold;
+            transition: all 0.3s;
+            width: 100%;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 3px 10px rgba(139, 92, 246, 0.4);
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 76px) {
+            .header-container {
+                flex-direction: column;
+                gap: 10px;
+                align-items: center;
+            }
+            
+            h1 { font-size: 1.5rem; }
+            .materials-grid { grid-template-columns: 1fr; }
+            .stats { display: none; }
+            .search-card { flex-direction: column; }
+            .add-btn { width: 100%; }
+            .control-content { 
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                min-width: 250px;
+                max-width: 90%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 头部与控制面板 -->
+        <div class="header-container">
+            <header>
+                <h1>📚 小说素材创作库</h1>
+                <p class="subtitle">世界构建工具 - 创作灵感宝库</p>
+                <div class="category-indicators">
+                    <div class="category-item">
+                        <div class="category-indicator"></div>
+                        <span>力量体系</span>
+                    </div>
+                    <div class="category-item">
+                        <div class="category-indicator"></div>
+                        <span>世界观</span>
+                    </div>
+                    <div class="category-item">
+                        <div class="category-indicator"></div>
+                        <span>角色设定</span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- 控制面板 -->
+            <div class="control-panel">
+                <button class="control-toggle" id="controlToggle">⚙️</button>
+            </div>
+        </div>
+
+        <!-- 控制面板弹出内容 -->
+        <div class="control-content" id="controlContent">
+            <!-- 分类选择 -->
+            <div class="control-section">
+                <label class="control-label">🎯 分类筛选</label>
+                <select class="control-select" id="categorySelect">
+                    <option value="all">全部分类</option>
+                    <option value="power">力量体系</option>
+                    <option value="world">世界观设定</option>
+                    <option value="character">角色设定</option>
+                    <option value="plot">剧情套路</option>
+                    <option value="technique">写作手法</option>
+                    <option value="economy">经济体系</option>
+                    <option value="cultivation">修炼体系</option>
+                    <option value="magic">魔法设定</option>
+                    <option value="technology">科技设定</option>
+                    <option value="society">社会结构</option>
+                    <option value="geography">地理环境</option>
+                    <option value="timeline">时间线设定</option>
+                    <option value="race">种族设定</option>
+                    <option value="profession">职业设定</option>
+                    <option value="item">物品道具</option>
+                    <option value="skill">技能功法</option>
+                    <option value="organization">组织势力</option>
+                    <option value="religion">宗教信仰</option>
+                </select>
+            </div>
+
+            <!-- 页面跳转 -->
+            <div class="control-section">
+                <label class="control-label">📖 页面跳转</label>
+                <div class="control-info">当前: <span id="currentPageDisplay">1</span> / <span id="totalPagesDisplay">1</span> 页</div>
+                <div class="control-row">
+                    <input type="number" class="control-input" id="pageJumpInput" min="1" placeholder="页码">
+                    <button class="control-btn primary" id="jumpToPageBtn">
+                        <span class="control-btn-icon">🔗</span>
+                        跳转
+                    </button>
+                </div>
+            </div>
+
+            <!-- 缩放控制 -->
+            <div class="control-section">
+                <label class="control-label">🔍 页面缩放</label>
+                <div class="control-info">当前: <span id="zoomDisplay">100%</span></div>
+                <div class="control-buttons">
+                    <button class="control-btn" id="zoomOutBtn">
+                        <span class="control-btn-icon">➖</span>
+                        缩小
+                    </button>
+                    <button class="control-btn" id="zoomInBtn">
+                        <span class="control-btn-icon">➕</span>
+                        放大
+                    </button>
+                    <button class="control-btn" id="zoomResetBtn">
+                        <span class="control-btn-icon">⟲</span>
+                        重置
+                    </button>
+                </div>
+            </div>
+
+            <!-- 字体调整 -->
+            <div class="control-section">
+                <label class="control-label">📝 字体大小</label>
+                <div class="control-info">当前: <span id="fontDisplay">100%</span></div>
+                <div class="control-buttons">
+                    <button class="control-btn" id="fontDecreaseBtn">
+                        <span class="control-btn-icon">A-</span>
+                        减小
+                    </button>
+                    <button class="control-btn" id="fontIncreaseBtn">
+                        <span class="control-btn-icon">A+</span>
+                        增大
+                    </button>
+                    <button class="control-btn" id="fontResetBtn">
+                        <span class="control-btn-icon">A</span>
+                        重置
+                    </button>
+                </div>
+            </div>
+
+            <!-- 持久化管理 -->
+            <div class="control-section">
+                <label class="control-label">💾 阅读进度</label>
+                <div class="control-info">自动保存当前页面</div>
+                <div class="control-buttons">
+                    <button class="control-btn" id="saveProgressBtn">
+                        <span class="control-btn-icon">💾</span>
+                        保存进度
+                    </button>
+                    <button class="control-btn" id="loadProgressBtn">
+                        <span class="control-btn-icon">📂</span>
+                        加载进度
+                    </button>
+                    <button class="control-btn danger" id="clearProgressBtn">
+                        <span class="control-btn-icon">🗑️</span>
+                        清除记录
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <main>
+            <div class="search-card">
+                <input type="text" class="search-box" id="searchBox" placeholder="🔍 搜索素材、设定或创作技巧...">
+                <button class="add-btn" id="addMaterialBtn">+ 添加素材</button>
+            </div>
+
+            <div class="materials-grid" id="materialsGrid"></div>
+            <div class="pagination" id="pagination"></div>
+        </main>
+    </div>
+
+    <div class="stats" id="stats">
+        共 <span class="stats-number" id="materialCount">0</span> 条创作素材
+    </div>
+
+    <!-- 添加素材模态框 -->
+    <div class="modal" id="addModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">📝 添加新素材</h2>
+                <button class="close-btn" id="closeModal">&times;</button>
+            </div>
+            <form id="addForm">
+                <div class="form-group">
+                    <label for="newTitle">素材标题：</label>
+                    <input type="text" id="newTitle" required placeholder="请输入素材标题...">
+                </div>
+                <div class="form-group">
+                    <label for="newText">素材内容：</label>
+                    <textarea id="newText" required placeholder="请详细描述素材内容..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="newCategory">分类：</label>
+                    <select id="newCategory" required>
+                        <option value="power">力量体系</option>
+                        <option value="world">世界观设定</option>
+                        <option value="character">角色设定</option>
+                        <option value="plot">剧情套路</option>
+                        <option value="technique">写作手法</option>
+                        <option value="economy">经济体系</option>
+                        <option value="cultivation">修炼体系</option>
+                        <option value="magic">魔法设定</option>
+                        <option value="technology">科技设定</option>
+                        <option value="society">社会结构</option>
+                        <option value="geography">地理环境</option>
+                        <option value="timeline">时间线设定</option>
+                        <option value="race">种族设定</option>
+                        <option value="profession">职业设定</option>
+                        <option value="item">物品道具</option>
+                        <option value="skill">技能功法</option>
+                        <option value="organization">组织势力</option>
+                        <option value="religion">宗教信仰</option>
+                    </select>
+                </div>
+                <button type="submit" class="submit-btn">提交素材</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // 按需加载配置文件
+        (function() {
+            const configKey = '5_novel_config.js';
+            if (window._allScripts && window._allScripts[configKey]) {
+                initApp();
+                return;
+            }
+
+            const script = document.createElement('script');
+            script.src = configKey;
+            script.onload = () => {
+                window._allScripts = window._allScripts || {};
+                window._allScripts[configKey] = true;
+                initApp();
+            };
+            document.head.appendChild(script);
+        })();
+
+        // 应用初始化
+        function initApp() {
+            if (!window.novelMaterialsConfig) {
+                console.error('配置文件加载失败');
+                return;
+            }
+
+            let currentPage = 1;
+            const itemsPerPage = 20;
+            let allMaterials = window.novelMaterialsConfig.getAllMaterials();
+            let filteredMaterials = [...allMaterials];
+            let currentCategory = 'all';
+
+            // 初始化页面
+            function init() {
+                updateStats();
+                renderMaterials();
+                renderPagination();
+                updateControlPanel();
+                autoSaveProgress();
+            }
+
+            // 更新控制面板显示
+            function updateControlPanel() {
+                const totalPages = Math.ceil(filteredMaterials.length / itemsPerPage);
+                document.getElementById('currentPageDisplay').textContent = currentPage;
+                document.getElementById('totalPagesDisplay').textContent = totalPages;
+                document.getElementById('pageJumpInput').max = totalPages;
+                document.getElementById('zoomDisplay').textContent = Math.round(getCurrentZoom() * 100) + '%';
+                document.getElementById('fontDisplay').textContent = Math.round(getCurrentFontSize() * 100) + '%';
+            }
+
+            // 获取当前缩放级别
+            function getCurrentZoom() {
+                return parseFloat(document.documentElement.style.getPropertyValue('--zoom-level')) || 1;
+            }
+
+            // 获取当前字体级别
+            function getCurrentFontSize() {
+                return parseFloat(document.documentElement.style.getPropertyValue('--font-size-level')) || 1;
+            }
+
+            // 更新缩放
+            function updateZoom(zoom) {
+                const minZoom = 0.5;
+                const maxZoom = 2;
+                const clampedZoom = Math.max(minZoom, Math.min(maxZoom, zoom));
+                document.documentElement.style.setProperty('--zoom-level', clampedZoom);
+                document.getElementById('zoomDisplay').textContent = Math.round(clampedZoom * 100) + '%';
+            }
+
+            // 更新字体大小
+            function updateFontSize(fontSize) {
+                const minFont = 0.7;
+                const maxFont = 1.5;
+                const clampedFont = Math.max(minFont, Math.min(maxFont, fontSize));
+                document.documentElement.style.setProperty('--font-size-level', clampedFont);
+                document.getElementById('fontDisplay').textContent = Math.round(clampedFont * 100) + '%';
+                
+                const rootElement = document.documentElement;
+                const baseFontSize = 16;
+                rootElement.style.fontSize = (baseFontSize * clampedFont) + 'px';
+            }
+
+            // 保存进度到localStorage
+            function saveProgress() {
+                const progressData = {
+                    page: currentPage,
+                    zoom: getCurrentZoom(),
+                    fontSize: getCurrentFontSize(),
+                    category: currentCategory,
+                    timestamp: new Date().toISOString(),
+                    searchTerm: document.getElementById('searchBox').value
+                };
+                localStorage.setItem('novelMaterialsProgress', JSON.stringify(progressData));
+                showNotification('✓ 进度已保存', 'success');
+            }
+
+            // 自动保存进度
+            function autoSaveProgress() {
+                saveProgress();
+            }
+
+            // 加载保存的进度
+            function loadSavedProgress() {
+                const savedData = localStorage.getItem('novelMaterialsProgress');
+                if (savedData) {
+                    try {
+                        const progressData = JSON.parse(savedData);
+                        const savedTime = new Date(progressData.timestamp);
+                        const now = new Date();
+                        const hoursDiff = (now - savedTime) / (1000 * 60 * 60);
+                        
+                        if (hoursDiff < 24) {
+                            currentPage = progressData.page || 1;
+                            if (progressData.zoom) {
+                                updateZoom(progressData.zoom);
+                            }
+                            if (progressData.fontSize) {
+                                updateFontSize(progressData.fontSize);
+                            }
+                            if (progressData.category && progressData.category !== 'all') {
+                                currentCategory = progressData.category;
+                                document.getElementById('categorySelect').value = currentCategory;
+                                filterByCategory(currentCategory);
+                            }
+                            if (progressData.searchTerm) {
+                                document.getElementById('searchBox').value = progressData.searchTerm;
+                                searchMaterials(progressData.searchTerm);
+                            }
+                            showNotification('✓ 进度已加载', 'success');
+                        }
+                    } catch (e) {
+                        console.error('加载进度失败:', e);
+                    }
+                }
+            }
+
+            // 清除保存的进度
+            function clearProgress() {
+                if (confirm('确定要清除所有阅读进度记录吗？')) {
+                    localStorage.removeItem('novelMaterialsProgress');
+                    currentPage = 1;
+                    currentCategory = 'all';
+                    document.getElementById('categorySelect').value = 'all';
+                    updateZoom(1);
+                    updateFontSize(1);
+                    document.getElementById('searchBox').value = '';
+                    filteredMaterials = [...allMaterials];
+                    updateStats();
+                    renderMaterials();
+                    renderPagination();
+                    updateControlPanel();
+                    showNotification('✓ 记录已清除', 'success');
+                }
+            }
+
+            // 显示通知
+            function showNotification(message, type = 'info') {
+                const notification = document.createElement('div');
+                notification.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    background: ${type === 'success' ? 'linear-gradient(135deg, #8b5cf6, #ec4899)' : 'var(--bg-card)'};
+                    color: ${type === 'success' ? 'white' : 'var(--text-primary)'};
+                    padding: 12px 20px;
+                    border-radius: 8px;
+                    border: 1px solid var(--border);
+                    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.5);
+                    z-index: 3000;
+                    font-size: 0.9rem;
+                    animation: slideDown 0.3s ease;
+                `;
+                notification.textContent = message;
+                document.body.appendChild(notification);
+
+                setTimeout(() => {
+                    notification.style.animation = 'slideDown 0.3s ease reverse';
+                    setTimeout(() => {
+                        document.body.removeChild(notification);
+                    }, 300);
+                }, 2000);
+            }
+
+            // 更新统计
+            function updateStats() {
+                document.getElementById('materialCount').textContent = allMaterials.length;
+            }
+
+            // 分类筛选
+            function filterByCategory(category) {
+                currentCategory = category;
+                if (category === 'all') {
+                    filteredMaterials = [...allMaterials];
+                } else {
+                    filteredMaterials = allMaterials.filter(material => 
+                        material.category === category
+                    );
+                }
+                currentPage = 1;
+                renderMaterials();
+                renderPagination();
+                updateControlPanel();
+            }
+
+            // 搜索功能
+            function searchMaterials(query) {
+                if (!query.trim()) {
+                    filterByCategory(currentCategory);
+                } else {
+                    const lowerQuery = query.toLowerCase();
+                    filteredMaterials = allMaterials.filter(material => 
+                        (currentCategory === 'all' || material.category === currentCategory) &&
+                        (material.title.toLowerCase().includes(lowerQuery) ||
+                         material.text.toLowerCase().includes(lowerQuery))
+                    );
+                }
+                currentPage = 1;
+                renderMaterials();
+                renderPagination();
+                updateControlPanel();
+            }
+
+            // 渲染素材
+            function renderMaterials() {
+                const grid = document.getElementById('materialsGrid');
+                const start = (currentPage - 1) * itemsPerPage;
+                const end = start + itemsPerPage;
+                const pageMaterials = filteredMaterials.slice(start, end);
+
+                if (pageMaterials.length === 0) {
+                    grid.innerHTML = '<div style="text-align: center; padding: 50px; grid-column: 1/-1; color: var(--text-secondary);">没有找到匹配的素材</div>';
+                    return;
+                }
+
+                grid.innerHTML = pageMaterials.map((material, index) => {
+                    const globalIndex = start + index;
+                    return `
+                        <div class="material-card">
+                            <span class="material-number">#${globalIndex + 1}</span>
+                            <div class="material-title">${material.title}</div>
+                            <div class="material-text">${material.text}</div>
+                            <div class="material-categories">
+                                <span class="category-tag">${material.category}</span>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            // 渲染分页
+            function renderPagination() {
+                const pagination = document.getElementById('pagination');
+                const totalPages = Math.ceil(filteredMaterials.length / itemsPerPage);
+
+                if (totalPages <= 1) {
+                    pagination.innerHTML = '';
+                    return;
+                }
+
+                let html = `
+                    <button ${currentPage === 1 ? 'disabled' : ''} onclick="goToPage(${currentPage - 1})">上一页</button>
+                `;
+
+                const maxVisible = 7;
+                let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+                let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+
+                if (startPage > 1) {
+                    html += `<button onclick="goToPage(1)">1</button>`;
+                    if (startPage > 2) html += `<span class="page-info">...</span>`;
+                }
+
+                for (let i = startPage; i <= endPage; i++) {
+                    html += `<button class="${i === currentPage ? 'active' : ''}" onclick="goToPage(${i})">${i}</button>`;
+                }
+
+                if (endPage < totalPages) {
+                    if (endPage < totalPages - 1) html += `<span class="page-info">...</span>`;
+                    html += `<button onclick="goToPage(${totalPages})">${totalPages}</button>`;
+                }
+
+                html += `
+                    <button ${currentPage === totalPages ? 'disabled' : ''} onclick="goToPage(${currentPage + 1})">下一页</button>
+                    <span class="page-info">第 ${currentPage} / ${totalPages} 页</span>
+                `;
+
+                pagination.innerHTML = html;
+            }
+
+            // 跳转页面
+            window.goToPage = function(page) {
+                currentPage = page;
+                renderMaterials();
+                renderPagination();
+                updateControlPanel();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                autoSaveProgress();
+            };
+
+            // 添加素材
+            function addMaterial(e) {
+                e.preventDefault();
+                const title = document.getElementById('newTitle').value.trim();
+                const text = document.getElementById('newText').value.trim();
+                const category = document.getElementById('newCategory').value;
+
+                const newMaterial = {
+                    title: title,
+                    text: text,
+                    category: category,
+                    isUserAdded: true
+                };
+
+                window.novelMaterialsConfig.addMaterial(newMaterial);
+                closeModal();
+                allMaterials = window.novelMaterialsConfig.getAllMaterials();
+                filterByCategory(currentCategory);
+                init();
+            }
+
+            // 模态框控制
+            function showModal() {
+                document.getElementById('addModal').style.display = 'block';
+            }
+
+            function closeModal() {
+                document.getElementById('addModal').style.display = 'none';
+                document.getElementById('addForm').reset();
+            }
+
+            // 控制面板切换
+            function toggleControlPanel() {
+                const content = document.getElementById('controlContent');
+                content.classList.toggle('show');
+            }
+
+            // 快速跳转
+            function quickJump() {
+                const input = document.getElementById('pageJumpInput');
+                const targetPage = parseInt(input.value);
+                const totalPages = Math.ceil(filteredMaterials.length / itemsPerPage);
+                
+                if (targetPage >= 1 && targetPage <= totalPages) {
+                    goToPage(targetPage);
+                    input.value = '';
+                    document.getElementById('controlContent').classList.remove('show');
+                } else {
+                    input.style.borderColor = 'var(--accent)';
+                    showNotification('⚠️ 页码超出范围', 'error');
+                    setTimeout(() => {
+                        input.style.borderColor = '';
+                    }, 1000);
+                }
+            }
+
+            // 缩放功能
+            function zoomIn() {
+                const currentZoom = getCurrentZoom();
+                updateZoom(currentZoom + 0.1);
+            }
+
+            function zoomOut() {
+                const currentZoom = getCurrentZoom();
+                updateZoom(currentZoom - 0.1);
+            }
+
+            function zoomReset() {
+                updateZoom(1);
+            }
+
+            // 字体调整功能
+            function fontIncrease() {
+                const currentFont = getCurrentFontSize();
+                updateFontSize(currentFont + 0.1);
+            }
+
+            function fontDecrease() {
+                const currentFont = getCurrentFontSize();
+                updateFontSize(currentFont - 0.1);
+            }
+
+            function fontReset() {
+                updateFontSize(1);
+            }
+
+            // 事件绑定
+            document.getElementById('searchBox').addEventListener('input', (e) => searchMaterials(e.target.value));
+            document.getElementById('addMaterialBtn').addEventListener('click', showModal);
+            document.getElementById('closeModal').addEventListener('click', closeModal);
+            document.getElementById('addForm').addEventListener('submit', addMaterial);
+            document.getElementById('addModal').addEventListener('click', (e) => {
+                if (e.target.id === 'addModal') closeModal();
+            });
+
+            // 控制面板事件
+            document.getElementById('controlToggle').addEventListener('click', toggleControlPanel);
+            document.getElementById('categorySelect').addEventListener('change', (e) => {
+                filterByCategory(e.target.value);
+            });
+            document.getElementById('jumpToPageBtn').addEventListener('click', quickJump);
+            document.getElementById('saveProgressBtn').addEventListener('click', saveProgress);
+            document.getElementById('loadProgressBtn').addEventListener('click', () => {
+                loadSavedProgress();
+                updateStats();
+                renderMaterials();
+                renderPagination();
+                updateControlPanel();
+            });
+            document.getElementById('clearProgressBtn').addEventListener('click', clearProgress);
+
+            // 缩放控制事件
+            document.getElementById('zoomInBtn').addEventListener('click', zoomIn);
+            document.getElementById('zoomOutBtn').addEventListener('click', zoomOut);
+            document.getElementById('zoomResetBtn').addEventListener('click', zoomReset);
+
+            // 字体控制事件
+            document.getElementById('fontIncreaseBtn').addEventListener('click', fontIncrease);
+            document.getElementById('fontDecreaseBtn').addEventListener('click', fontDecrease);
+            document.getElementById('fontResetBtn').addEventListener('click', fontReset);
+
+            // 页面跳转输入框回车事件
+            document.getElementById('pageJumpInput').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    quickJump();
+                }
+            });
+
+            // 键盘快捷键
+            document.addEventListener('keydown', (e) => {
+                if (e.ctrlKey && e.key === 'f') {
+                    e.preventDefault();
+                    document.getElementById('searchBox').focus();
+                }
+                if (e.key === 'Escape') {
+                    closeModal();
+                    document.getElementById('controlContent').classList.remove('show');
+                }
+                if (e.ctrlKey && (e.key === '+' || e.key === '=')) {
+                    e.preventDefault();
+                    zoomIn();
+                }
+                if (e.ctrlKey && e.key === '-') {
+                    e.preventDefault();
+                    zoomOut();
+                }
+                if (e.ctrlKey && e.key === '0') {
+                    e.preventDefault();
+                    zoomReset();
+                }
+            });
+
+            // 鼠标滚轮缩放
+            document.addEventListener('wheel', (e) => {
+                if (e.ctrlKey) {
+                    e.preventDefault();
+                    if (e.deltaY < 0) {
+                        zoomIn();
+                    } else {
+                        zoomOut();
+                    }
+                }
+            });
+
+            // 点击页面其他地方关闭控制面板
+            document.addEventListener('click', (e) => {
+                const controlPanel = document.querySelector('.control-panel');
+                const controlContent = document.getElementById('controlContent');
+                if (!controlPanel.contains(e.target) && !controlContent.contains(e.target)) {
+                    controlContent.classList.remove('show');
+                }
+            });
+
+            // 初始化
+            init();
+        }
+    </script>
+</body>
+</html>

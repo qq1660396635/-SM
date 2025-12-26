@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>思维导图 - 全屏模式</title>
+    
+    <!-- 引入 D3.js -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    
+    <!-- 引入 Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- 引入 Font Awesome 图标 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            transition: transform 0.5s ease;
+        }
+        
+        /* 横屏模式样式 */
+        body.landscape-mode {
+            transform: rotate(90deg);
+            transform-origin: center center;
+            position: fixed;
+            width: 100vh;
+            height: 100vw;
+            top: 0;
+            left: 0;
+            overflow: hidden;
+        }
+        
+        .node {
+            cursor: pointer;
+        }
+        
+        .node rect {
+            fill: #fff;
+            stroke: #3b82f6;
+            stroke-width: 2px;
+            rx: 8;
+            ry: 8;
+            transition: all 0.3s ease;
+        }
+        
+        .node rect:hover {
+            fill: #eff6ff;
+            stroke-width: 3px;
+            filter: drop-shadow(0 4px 8px rgba(59, 130, 246, 0.3));
+        }
+        
+        .node.root rect {
+            fill: #3b82f6;
+            stroke: #1e40af;
+        }
+        
+        .node.root text {
+            fill: white;
+            font-weight: bold;
+        }
+        
+        .node.collapsed rect {
+            fill: #fbbf24;
+            stroke: #f59e0b;
+        }
+        
+        .node text {
+            font-size: 14px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            pointer-events: none;
+            user-select: none;
+        }
+        
+        .link {
+            fill: none;
+            stroke: #94a3b8;
+            stroke-width: 2px;
+            transition: all 0.3s ease;
+        }
+        
+        .link:hover {
+            stroke: #3b82f6;
+            stroke-width: 3px;
+        }
+        
+        .tooltip {
+            position: absolute;
+            padding: 8px 12px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            border-radius: 6px;
+            font-size: 12px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 1000;
+        }
+        
+        .mindmap-container {
+            background: linear-gradient(to right, #f8fafc 0%, #f1f5f9 50%, #f8fafc 100%);
+        }
+        
+        .control-bar {
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.95);
+        }
+        
+        /* 横屏模式下的控制栏 */
+        body.landscape-mode .control-bar {
+            transform: rotate(-90deg);
+            transform-origin: center center;
+            position: fixed;
+            width: 100vh;
+            height: auto;
+            top: 50%;
+            left: 50%;
+            margin-top: -50vh;
+            margin-left: -50vh;
+        }
+        
+        /* 横屏模式下的浮动按钮 */
+        body.landscape-mode .floating-controls {
+            transform: rotate(-90deg);
+            transform-origin: center center;
+            position: fixed;
+            bottom: auto;
+            right: auto;
+            top: 50%;
+            left: 10px;
+            margin-top: -60px;
+        }
+        
+        /* 移动端优化 */
+        @media (max-width: 768px) {
+            .control-title {
+                display: none;
+            }
+            
+            .control-buttons {
+                gap: 0.5rem;
+            }
+            
+            .control-btn {
+                padding: 0.5rem !important;
+                min-width: auto !important;
+            }
+            
+            .control-btn span {
+                display: none;
+            }
+        }
+        
+        /* 超小屏幕优化 */
+        @media (max-width: 480px) {
+            .control-bar {
+                padding: 0.5rem !important;
+            }
+            
+            .control-btn {
+                padding: 0.4rem !important;
+                font-size: 0.875rem !important;
+            }
+        }
+        
+        /* 横屏模式提示 */
+        .landscape-indicator {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(59, 130, 246, 0.9);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            z-index: 100;
+            display: none;
+        }
+        
+        body.landscape-mode .landscape-indicator {
+            display: block;
+            transform: rotate(-90deg);
+            transform-origin: left bottom;
+            left: 10px;
+            bottom: 10px;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100">
+    <!-- 紧凑的顶部控制栏 -->
+    <div class="control-bar fixed top-0 left-0 right-0 z-50 px-4 py-2 shadow-md">
+        <div class="flex justify-between items-center">
+            <!-- 标题（移动端隐藏） -->
+            <h1 class="control-title text-lg font-bold text-gray-800">
+                <i class="fas fa-project-diagram text-blue-500 mr-2"></i>
+                思维导图
+            </h1>
+            
+            <!-- 控制按钮组 -->
+            <div class="control-buttons flex items-center">
+                <button 
+                    onclick="zoomIn()" 
+                    class="control-btn bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-2 rounded-lg transition flex items-center">
+                    <i class="fas fa-search-plus"></i>
+                    <span class="ml-1 hidden sm:inline">放大</span>
+                </button>
+                <button 
+                    onclick="zoomOut()" 
+                    class="control-btn bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-2 rounded-lg transition flex items-center">
+                    <i class="fas fa-search-minus"></i>
+                    <span class="ml-1 hidden sm:inline">缩小</span>
+                </button>
+                <button 
+                    onclick="resetZoom()" 
+                    class="control-btn bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-2 rounded-lg transition flex items-center">
+                    <i class="fas fa-compress"></i>
+                    <span class="ml-1 hidden sm:inline">重置</span>
+                </button>
+                <button 
+                    onclick="toggleLandscape()" 
+                    class="control-btn bg-purple-500 hover:bg-purple-600 text-white px-3 py-2 rounded-lg transition flex items-center">
+                    <i class="fas fa-mobile-alt"></i>
+                    <span class="ml-1 hidden sm:inline">横屏</span>
+                </button>
+                <button 
+                    onclick="window.close()" 
+                    class="control-btn bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg transition flex items-center">
+                    <i class="fas fa-arrow-left"></i>
+                    <span class="ml-1 hidden sm:inline">返回</span>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 思维导图容器 -->
+    <div id="mindMapContainer" class="mindmap-container w-full h-screen pt-14 md:pt-16">
+        <svg id="mindMap" width="100%" height="100%"></svg>
+    </div>
+    
+    <!-- 浮动缩放控制（移动端友好） -->
+    <div class="floating-controls fixed bottom-4 right-4 z-40 flex flex-col gap-2 md:hidden">
+        <button 
+            onclick="zoomIn()" 
+            class="bg-white shadow-lg rounded-full w-12 h-12 flex items-center justify-center text-blue-600 hover:bg-blue-50 transition">
+            <i class="fas fa-plus text-lg"></i>
+        </button>
+        <button 
+            onclick="zoomOut()" 
+            class="bg-white shadow-lg rounded-full w-12 h-12 flex items-center justify-center text-blue-600 hover:bg-blue-50 transition">
+            <i class="fas fa-minus text-lg"></i>
+        </button>
+        <button 
+            onclick="resetZoom()" 
+            class="bg-white shadow-lg rounded-full w-12 h-12 flex items-center justify-center text-blue-600 hover:bg-blue-50 transition">
+            <i class="fas fa-expand text-lg"></i>
+        </button>
+        <button 
+            onclick="toggleLandscape()" 
+            class="bg-purple-500 shadow-lg rounded-full w-12 h-12 flex items-center justify-center text-white hover:bg-purple-600 transition">
+            <i class="fas fa-mobile-alt text-lg"></i>
+        </button>
+    </div>
+    
+    <!-- 横屏模式指示器 -->
+    <div class="landscape-indicator">
+        <i class="fas fa-mobile-alt mr-1"></i>
+        横屏模式 (ESC退出)
+    </div>
+    
+    <div class="tooltip" id="tooltip"></div>
+    
+    <script>
+        let currentData = null;
+        let svg, g, tree, root, zoom;
+        let nodeWidth = 120, nodeHeight = 40;
+        let horizontalSpacing = 180, verticalSpacing = 80;
+        let isLandscape = false;
+        
+        // 初始化
+        function init() {
+            // 从 sessionStorage 获取数据
+            const storedData = sessionStorage.getItem('mindmapData');
+            if (!storedData) {
+                alert('没有找到思维导图数据');
+                window.close();
+                return;
+            }
+            
+            const parsedData = JSON.parse(storedData);
+            currentData = parsedData.data;
+            
+            initSVG();
+            drawMindMap(currentData);
+        }
+        
+        // 初始化SVG
+        function initSVG() {
+            const container = document.getElementById('mindMapContainer');
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+            
+            // 清空现有内容
+            d3.select("#mindMap").selectAll("*").remove();
+            
+            svg = d3.select("#mindMap")
+                .attr("width", width)
+                .attr("height", height);
+            
+            // 创建缩放行为
+            zoom = d3.zoom()
+                .scaleExtent([0.1, 3])
+                .on("zoom", (event) => {
+                    g.attr("transform", event.transform);
+                });
+            
+            svg.call(zoom);
+            
+            g = svg.append("g")
+                .attr("transform", `translate(${width/2},${height/2})`);
+        }
+        
+        // 计算节点位置
+        function calculateNodePositions(node, x = 0, y = 0, level = 0, direction = 0) {
+            node.x = x;
+            node.y = y;
+            node.level = level;
+            
+            if (node.children) {
+                let childY = y - (node.children.length - 1) * verticalSpacing / 2;
+                
+                node.children.forEach((child, index) => {
+                    let childDirection = direction === 0 ? (index % 2 === 0 ? -1 : 1) : direction;
+                    let childX = x + horizontalSpacing * childDirection;
+                    calculateNodePositions(child, childX, childY, level + 1, childDirection);
+                    childY += verticalSpacing;
+                });
+            }
+        }
+        
+        // 绘制思维导图
+        function drawMindMap(data) {
+            // 转换数据为D3层次结构
+            root = d3.hierarchy(data);
+            
+            // 计算节点位置
+            calculateNodePositions(root);
+            
+            // 创建连线
+            const link = g.append("g")
+                .selectAll(".link")
+                .data(root.links())
+                .enter().append("path")
+                .attr("class", "link")
+                .attr("d", d => {
+                    return `M${d.source.x},${d.source.y}
+                            L${d.source.x + (d.target.x - d.source.x) / 2},${d.source.y}
+                            L${d.source.x + (d.target.x - d.source.x) / 2},${d.target.y}
+                            L${d.target.x},${d.target.y}`;
+                });
+            
+            // 创建节点组
+            const node = g.append("g")
+                .selectAll(".node")
+                .data(root.descendants())
+                .enter().append("g")
+                .attr("class", d => {
+                    let classes = "node";
+                    if (d.depth === 0) classes += " root";
+                    if (!d.children && d._children) classes += " collapsed";
+                    return classes;
+                })
+                .attr("transform", d => `translate(${d.x - nodeWidth/2},${d.y - nodeHeight/2})`)
+                .on("click", (event, d) => {
+                    event.stopPropagation();
+                    toggle(d);
+                    update();
+                })
+                .on("mouseover", function(event, d) {
+                    showTooltip(event, d.data.name || d.data.value || '节点');
+                })
+                .on("mouseout", hideTooltip);
+            
+            // 添加矩形节点
+            node.append("rect")
+                .attr("width", nodeWidth)
+                .attr("height", nodeHeight);
+            
+            // 添加文本标签
+            node.append("text")
+                .attr("x", nodeWidth / 2)
+                .attr("y", nodeHeight / 2)
+                .attr("dy", "0.35em")
+                .attr("text-anchor", "middle")
+                .text(d => {
+                    let name = d.data.name || d.data.value || '';
+                    if (name.length > 12) name = name.substring(0, 12) + '...';
+                    return name;
+                });
+            
+            // 自动适应视图
+            autoFitView();
+        }
+        
+        // 切换节点展开/折叠
+        function toggle(d) {
+            if (d.children) {
+                d._children = d.children;
+                d.children = null;
+            } else {
+                d.children = d._children;
+                d._children = null;
+            }
+        }
+        
+        // 更新视图
+        function update() {
+            if (!root) return;
+            
+            // 重新计算位置
+            calculateNodePositions(root);
+            
+            // 更新连线
+            const link = g.selectAll(".link")
+                .data(root.links());
+            
+            link.enter().append("path")
+                .attr("class", "link")
+                .merge(link)
+                .transition()
+                .duration(750)
+                .attr("d", d => {
+                    return `M${d.source.x},${d.source.y}
+                            L${d.source.x + (d.target.x - d.source.x) / 2},${d.source.y}
+                            L${d.source.x + (d.target.x - d.source.x) / 2},${d.target.y}
+                            L${d.target.x},${d.target.y}`;
+                });
+            
+            link.exit().remove();
+            
+            // 更新节点
+            const node = g.selectAll(".node")
+                .data(root.descendants(), d => d.id || (d.id = ++i));
+            
+            const nodeEnter = node.enter().append("g")
+                .attr("class", d => {
+                    let classes = "node";
+                    if (d.depth === 0) classes += " root";
+                    if (!d.children && d._children) classes += " collapsed";
+                    return classes;
+                })
+                .on("click", (event, d) => {
+                    event.stopPropagation();
+                    toggle(d);
+                    update();
+                })
+                .on("mouseover", function(event, d) {
+                    showTooltip(event, d.data.name || d.data.value || '节点');
+                })
+                .on("mouseout", hideTooltip);
+            
+            nodeEnter.append("rect")
+                .attr("width", nodeWidth)
+                .attr("height", nodeHeight);
+            
+            nodeEnter.append("text")
+                .attr("x", nodeWidth / 2)
+                .attr("y", nodeHeight / 2)
+                .attr("dy", "0.35em")
+                .attr("text-anchor", "middle")
+                .text(d => {
+                    let name = d.data.name || d.data.value || '';
+                    if (name.length > 12) name = name.substring(0, 12) + '...';
+                    return name;
+                });
+            
+            const nodeUpdate = nodeEnter.merge(node);
+            
+            nodeUpdate.transition()
+                .duration(750)
+                .attr("transform", d => `translate(${d.x - nodeWidth/2},${d.y - nodeHeight/2})`);
+            
+            nodeUpdate.select("rect")
+                .attr("class", d => {
+                    if (d.depth === 0) return "root";
+                    if (!d.children && d._children) return "collapsed";
+                    return "";
+                });
+            
+            node.exit().remove();
+        }
+        
+        // 自动适应视图
+        function autoFitView() {
+            const bounds = g.node().getBBox();
+            const fullWidth = document.getElementById('mindMapContainer').clientWidth;
+            const fullHeight = document.getElementById('mindMapContainer').clientHeight;
+            const scale = 0.8 / Math.max(bounds.width / fullWidth, bounds.height / fullHeight);
+            const translate = [fullWidth / 2 - scale * (bounds.x + bounds.width / 2), 
+                              fullHeight / 2 - scale * (bounds.y + bounds.height / 2)];
+            
+            svg.transition()
+                .duration(750)
+                .call(zoom.transform, d3.zoomIdentity.translate(translate[0], translate[1]).scale(scale));
+        }
+        
+        // 切换横屏模式
+        function toggleLandscape() {
+            isLandscape = !isLandscape;
+            
+            if (isLandscape) {
+                document.body.classList.add('landscape-mode');
+                // 横屏模式下重新调整视图
+                setTimeout(() => {
+                    if (currentData) {
+                        initSVG();
+                        drawMindMap(currentData);
+                    }
+                }, 500);
+            } else {
+                document.body.classList.remove('landscape-mode');
+                // 竖屏模式下重新调整视图
+                setTimeout(() => {
+                    if (currentData) {
+                        initSVG();
+                        drawMindMap(currentData);
+                    }
+                }, 500);
+            }
+        }
+        
+        // 显示工具提示
+        function showTooltip(event, text) {
+            const tooltip = document.getElementById('tooltip');
+            tooltip.textContent = text;
+            tooltip.style.left = event.pageX + 10 + 'px';
+            tooltip.style.top = event.pageY - 10 + 'px';
+            tooltip.style.opacity = 1;
+        }
+        
+        // 隐藏工具提示
+        function hideTooltip() {
+            document.getElementById('tooltip').style.opacity = 0;
+        }
+        
+        // 缩放功能
+        function zoomIn() {
+            if (svg) {
+                svg.transition().call(zoom.scaleBy, 1.3);
+            }
+        }
+        
+        function zoomOut() {
+            if (svg) {
+                svg.transition().call(zoom.scaleBy, 0.7);
+            }
+        }
+        
+        function resetZoom() {
+            if (svg) {
+                autoFitView();
+            }
+        }
+        
+        // 窗口大小改变时重新渲染
+        window.onresize = function() {
+            if (currentData) {
+                initSVG();
+                drawMindMap(currentData);
+            }
+        };
+        
+        // ESC键关闭窗口或退出横屏
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                if (isLandscape) {
+                    toggleLandscape();
+                } else {
+                    window.close();
+                }
+            }
+        });
+        
+        // 页面加载时初始化
+        window.onload = init;
+        
+        let i = 0;
+    </script>
+</body>
+</html>

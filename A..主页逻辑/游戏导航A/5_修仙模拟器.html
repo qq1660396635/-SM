@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>宗门贺电 - 修仙界通讯</title>
+<style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    color: #fff;
+}
+
+.header {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 15px;
+    text-align: center;
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.header h1 {
+    font-size: 1.5rem;
+    margin-bottom: 5px;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.header .subtitle {
+    font-size: 0.9rem;
+    opacity: 0.8;
+}
+
+.messages-container {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    scroll-behavior: smooth;
+}
+
+.message {
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 15px;
+    opacity: 0;
+    animation: fadeIn 0.5s forwards;
+    position: relative;
+}
+
+.message.fade-out {
+    animation: fadeOut 0.5s forwards;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+        transform: translateX(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateX(-100%);
+    }
+}
+
+.avatar {
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    margin-right: 12px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    object-fit: cover;
+}
+
+.message-content {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    padding: 12px 15px;
+    border-radius: 18px 18px 18px 4px;
+    max-width: 70%;
+}
+
+.message.own .message-content {
+    background: rgba(76, 175, 80, 0.3);
+    border-radius: 18px 18px 4px 18px;
+    margin-left: auto;
+}
+
+.message.own {
+    flex-direction: row-reverse;
+}
+
+.message.own .avatar {
+    margin-left: 12px;
+    margin-right: 0;
+}
+
+.sender-name {
+    font-weight: 600;
+    margin-bottom: 4px;
+    font-size: 0.9rem;
+    color: #ffd700;
+}
+
+.message-text {
+    font-size: 0.95rem;
+    line-height: 1.4;
+    word-wrap: break-word;
+}
+
+/* 特殊消息样式 */
+.message.special {
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(255, 140, 0, 0.2));
+    border: 1px solid rgba(255, 215, 0, 0.3);
+    border-radius: 12px;
+    padding: 15px;
+    margin: 20px 0;
+    text-align: center;
+    animation: specialGlow 2s ease-in-out infinite;
+}
+
+.message.study {
+    background: linear-gradient(135deg, rgba(0, 191, 255, 0.2), rgba(30, 144, 255, 0.2));
+    border: 1px solid rgba(0, 191, 255, 0.3);
+}
+
+.message.event {
+    background: linear-gradient(135deg, rgba(138, 43, 226, 0.2), rgba(75, 0, 130, 0.2));
+    border: 1px solid rgba(138, 43, 226, 0.3);
+}
+
+@keyframes specialGlow {
+    0%, 100% {
+        box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+    }
+    50% {
+        box-shadow: 0 0 30px rgba(255, 215, 0, 0.6);
+    }
+}
+
+.input-container {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 15px;
+    backdrop-filter: blur(10px);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    gap: 10px;
+}
+
+.input-container input {
+    flex: 1;
+    padding: 12px 15px;
+    border: none;
+    border-radius: 25px;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    font-size: 0.95rem;
+    outline: none;
+}
+
+.input-container input::placeholder {
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.send-btn {
+    padding: 12px 25px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    border-radius: 25px;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.send-btn:hover {
+    transform: scale(1.05);
+}
+
+.send-btn:active {
+    transform: scale(0.95);
+}
+
+.status-bar {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    background: rgba(0, 0, 0, 0.5);
+    padding: 8px 15px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    backdrop-filter: blur(10px);
+    z-index: 1000;
+}
+
+.loading {
+    text-align: center;
+    padding: 50px;
+    font-size: 1.1rem;
+    opacity: 0.8;
+}
+
+/* 屏幕特效 */
+.screen-effect {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 999;
+    display: none;
+}
+
+.screen-effect.show {
+    display: block;
+}
+
+.firework {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    background: gold;
+    border-radius: 50%;
+    animation: firework 1s ease-out forwards;
+}
+
+@keyframes firework {
+    0% {
+        transform: translate(0, 0);
+        opacity: 1;
+    }
+    100% {
+        transform: translate(var(--x), var(--y));
+        opacity: 0;
+    }
+}
+
+.celebration-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 2rem;
+    font-weight: bold;
+    color: gold;
+    text-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+    animation: celebrationPulse 2s ease-out forwards;
+}
+
+@keyframes celebrationPulse {
+    0% {
+        transform: translate(-50%, -50%) scale(0);
+        opacity: 0;
+    }
+    50% {
+        transform: translate(-50%, -50%) scale(1.2);
+        opacity: 1;
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 0;
+    }
+}
+
+@media (max-width: 768px) {
+    .message-content {
+        max-width: 85%;
+    }
+    
+    .header h1 {
+        font-size: 1.2rem;
+    }
+}
+</style>
+</head>
+<body>
+<div class="header">
+    <h1>🌟 宗门贺电</h1>
+    <div class="subtitle">修仙界通讯 · 宗门交流</div>
+</div>
+
+<div class="status-bar" id="statusBar">
+    <span id="statusText">正在连接宗门网络...</span>
+</div>
+
+<div class="messages-container" id="messagesContainer">
+    <div class="loading">正在连接宗门网络...</div>
+</div>
+
+<div class="input-container">
+    <input type="text" id="messageInput" placeholder="输入您的感悟..." maxlength="100">
+    <button class="send-btn" onclick="sendMessage()">发送</button>
+</div>
+
+<!-- 屏幕特效容器 -->
+<div class="screen-effect" id="screenEffect"></div>
+
+<!-- 引入数据库管理器 -->
+<script src="/db.js"></script>
+<!-- 引入在线时长插件 -->
+<script src="/A2_全局中心/B_插件工具/2.插件_在线时长.js"></script>
+<script src="5_修仙_messages.js"></script>
+<script>
+// 全局变量
+let messages = [];
+let autoScrollInterval;
+let messageHistory = [];
+let isInitialized = false;
+let isUserScrolling = false;
+let scrollTimeout;
+let lastScrollTop = 0;
+
+// 初始化应用
+async function initApp() {
+    try {
+        updateStatus('正在初始化数据库...');
+        await IDB.init();
+        
+        updateStatus('正在加载宗门消息...');
+        
+        // 加载历史消息
+        messageHistory = await IDB.get('E_messageHistory', 'userdata') || [];
+        
+        // 初始化消息队列
+        initMessageQueue();
+        
+        // 渲染历史消息
+        renderHistoryMessages();
+        
+        // 开始自动滚动
+        startAutoScroll();
+        
+        isInitialized = true;
+        updateStatus('宗门网络已连接');
+        
+        // 5秒后隐藏状态栏
+        setTimeout(() => {
+            document.getElementById('statusBar').style.display = 'none';
+        }, 5000);
+        
+    } catch (error) {
+        console.error('初始化失败:', error);
+        updateStatus('连接失败: ' + error.message);
+    }
+}
+
+// 初始化消息队列
+function initMessageQueue() {
+    // 复制所有消息到队列
+    messages = [...window.xiuxianMessages];
+    // 随机打乱
+    shuffleArray(messages);
+}
+
+// 随机打乱数组
+function shuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+}
+
+// 渲染历史消息
+function renderHistoryMessages() {
+    const container = document.getElementById('messagesContainer');
+    container.innerHTML = '';
+    
+    // 只显示最近10条历史消息
+    const recentMessages = messageHistory.slice(-10);
+    
+    recentMessages.forEach(msg => {
+        addMessageToDOM(msg, false);
+    });
+    
+    // 滚动到底部
+    setTimeout(() => {
+        container.scrollTop = container.scrollHeight;
+    }, 100);
+}
+
+// 开始自动滚动
+function startAutoScroll() {
+    autoScrollInterval = setInterval(() => {
+        if (messages.length === 0) {
+            // 重新初始化消息队列
+            initMessageQueue();
+        }
+        
+        // 如果用户在顶部，不添加新消息
+        if (!isUserScrolling) {
+            const message = messages.shift();
+            addMessage(message);
+        }
+        
+        // 随机移除一些旧消息（保持界面清洁）
+        const container = document.getElementById('messagesContainer');
+        const messageElements = container.querySelectorAll('.message');
+        
+        if (messageElements.length > 20) {
+            // 随机移除一些旧消息
+            const removeCount = Math.floor(Math.random() * 3) + 1;
+            for (let i = 0; i < removeCount && i < messageElements.length - 15; i++) {
+                const element = messageElements[i];
+                element.classList.add('fade-out');
+                setTimeout(() => {
+                    if (element.parentNode) {
+                        element.parentNode.removeChild(element);
+                    }
+                }, 500);
+            }
+        }
+    }, 2000 + Math.random() * 1000); // 2-3秒随机间隔
+}
+
+// 添加消息
+function addMessage(messageData) {
+    // 添加到历史记录
+    messageHistory.push(messageData);
+    
+    // 保存到数据库（只保留最近100条）
+    if (messageHistory.length > 100) {
+        messageHistory = messageHistory.slice(-100);
+    }
+    IDB.put('E_messageHistory', messageHistory, 'userdata');
+    
+    // 添加到DOM
+    addMessageToDOM(messageData);
+    
+    // 只有在用户不在滚动时，才自动滚动到底部
+    if (!isUserScrolling) {
+        const container = document.getElementById('messagesContainer');
+        container.scrollTop = container.scrollHeight;
+    }
+}
+
+// 添加消息到DOM
+function addMessageToDOM(messageData, autoScroll = true) {
+    const container = document.getElementById('messagesContainer');
+    
+    // 特殊消息处理
+    if (messageData.type === 'special' || messageData.type === 'study' || messageData.type === 'event') {
+        const specialDiv = document.createElement('div');
+        specialDiv.className = `message ${messageData.type}`;
+        specialDiv.innerHTML = `
+            <div class="message-text">${messageData.text}</div>
+        `;
+        container.appendChild(specialDiv);
+        
+        // 触发屏幕特效
+        if (messageData.type === 'special') {
+            triggerScreenEffect('celebration');
+        }
+        
+        return;
+    }
+    
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `message ${messageData.own ? 'own' : ''}`;
+    
+    const avatar = document.createElement('img');
+    avatar.className = 'avatar';
+    avatar.src = messageData.avatar;
+    avatar.onerror = function() {
+        this.src = `https://picsum.photos/seed/${messageData.sender}/45/45.jpg`;
+    };
+    
+    const contentDiv = document.createElement('div');
+    contentDiv.className = 'message-content';
+    
+    const nameDiv = document.createElement('div');
+    nameDiv.className = 'sender-name';
+    nameDiv.textContent = messageData.sender;
+    
+    const textDiv = document.createElement('div');
+    textDiv.className = 'message-text';
+    textDiv.textContent = messageData.text;
+    
+    contentDiv.appendChild(nameDiv);
+    contentDiv.appendChild(textDiv);
+    
+    messageDiv.appendChild(avatar);
+    messageDiv.appendChild(contentDiv);
+    
+    container.appendChild(messageDiv);
+}
+
+// 发送用户消息
+function sendMessage() {
+    const input = document.getElementById('messageInput');
+    const text = input.value.trim();
+    
+    if (!text) return;
+    
+    const userMessage = {
+        sender: '我',
+        text: text,
+        avatar: 'https://picsum.photos/seed/user/45/45.jpg',
+        own: true,
+        timestamp: new Date().toISOString()
+    };
+    
+    addMessage(userMessage);
+    input.value = '';
+    
+    // 模拟回复（延迟2-4秒）
+    setTimeout(() => {
+        const replyMessage = generateReply(text);
+        addMessage(replyMessage);
+    }, 2000 + Math.random() * 2000);
+}
+
+// 生成回复
+function generateReply(userText) {
+    const replies = [
+        { sender: '青云老祖', text: '道友所言极是，修仙之路本就如此' },
+        { sender: '紫霞仙子', text: '道友见解独到，佩服佩服' },
+        { sender: '白云剑客', text: '善哉善哉，道友慧根不浅' },
+        { sender: '玄虚道长', text: '此言有理，修行在于心' }
+    ];
+    
+    const reply = replies[Math.floor(Math.random() * replies.length)];
+    reply.avatar = `https://picsum.photos/seed/${reply.sender}/45/45.jpg`;
+    reply.timestamp = new Date().toISOString();
+    
+    return reply;
+}
+
+// 检查修行时间事件（调用插件API）
+function checkStudyEvents() {
+    // 获取在线时长插件的时间
+    const onlineSeconds = window.OnlineTimer ? window.OnlineTimer.getOnlineTime() : 0;
+    const minutes = Math.floor(onlineSeconds / 60);
+    
+    // 每分钟的事件
+    if (onlineSeconds > 0 && onlineSeconds % 60 === 0) {
+        const minuteEvents = [
+            { text: `📚 恭喜道友已修行${window.OnlineTimer.getFormattedTime()}！`, type: 'study' },
+            { text: `⚡ 修行${minutes}分钟，灵力有所提升！`, type: 'study' },
+            { text: `🌟 ${minutes}分钟的专注修行，道行精进！`, type: 'study' },
+            { text: `💫 修行${minutes}分钟，心境更加平和！`, type: 'study' }
+        ];
+        
+        const event = minuteEvents[Math.floor(Math.random() * minuteEvents.length)];
+        addSpecialMessage(event.text, event.type);
+    }
+    
+    // 特殊时间点的事件
+    if (onlineSeconds === 120) { // 2分钟
+        addSpecialMessage('🎊 修行满2分钟！获得【初窥门径】成就！', 'special');
+        triggerScreenEffect('celebration');
+    } else if (onlineSeconds === 300) { // 5分钟
+        addSpecialMessage('🏆 修行满5分钟！获得【潜心修炼】成就！', 'special');
+        triggerScreenEffect('celebration');
+    } else if (onlineSeconds === 600) { // 10分钟
+        addSpecialMessage('🌈 修行满10分钟！获得【道心坚定】成就！', 'special');
+        triggerScreenEffect('celebration');
+    }
+    
+    // 随机事件
+    if (Math.random() < 0.02) { // 2%概率
+        const randomEvents = [
+            { text: '🦋 一只灵蝶飞过，带来了好运', type: 'event' },
+            { text: '🌸 阵阵花香传来，心神安宁', type: 'event' },
+            { text: '🌙 月光洒下，灵气充沛', type: 'event' },
+            { text: '⭐ 流星划过，许个愿吧', type: 'event' },
+            { text: '🍃 微风拂过，修为精进', type: 'event' },
+            { text: '🔥 丹火旺盛，炼丹有成', type: 'event' },
+            { text: '💧 清泉流淌，洗涤心灵', type: 'event' },
+            { text: '⚡ 雷声隐隐，突破在即', type: 'event' }
+        ];
+        
+        const event = randomEvents[Math.floor(Math.random() * randomEvents.length)];
+        addSpecialMessage(event.text, event.type);
+    }
+}
+
+// 添加特殊消息
+function addSpecialMessage(text, type = 'special') {
+    const messageData = {
+        text: text,
+        type: type,
+        timestamp: new Date().toISOString()
+    };
+    
+    addMessage(messageData);
+}
+
+// 触发屏幕特效
+function triggerScreenEffect(effectType) {
+    const effectContainer = document.getElementById('screenEffect');
+    effectContainer.innerHTML = '';
+    effectContainer.classList.add('show');
+    
+    if (effectType === 'celebration') {
+        // 创建庆祝文字
+        const celebrationText = document.createElement('div');
+        celebrationText.className = 'celebration-text';
+        celebrationText.textContent = '恭喜道友！';
+        effectContainer.appendChild(celebrationText);
+        
+        // 创建烟花效果
+        for (let i = 0; i < 30; i++) {
+            setTimeout(() => {
+                const firework = document.createElement('div');
+                firework.className = 'firework';
+                firework.style.left = '50%';
+                firework.style.top = '50%';
+                firework.style.setProperty('--x', `${(Math.random() - 0.5) * 400}px`);
+                firework.style.setProperty('--y', `${(Math.random() - 0.5) * 400}px`);
+                effectContainer.appendChild(firework);
+            }, i * 50);
+        }
+    }
+    
+    // 3秒后清除特效
+    setTimeout(() => {
+        effectContainer.classList.remove('show');
+        effectContainer.innerHTML = '';
+    }, 3000);
+}
+
+// 更新状态
+function updateStatus(text) {
+    document.getElementById('statusText').textContent = text;
+}
+
+// 监听滚动事件
+document.getElementById('messagesContainer').addEventListener('scroll', function() {
+    const container = this;
+    const currentScrollTop = container.scrollTop;
+    
+    // 判断用户是否在滚动
+    isUserScrolling = true;
+    
+    // 清除之前的超时
+    clearTimeout(scrollTimeout);
+    
+    // 3秒后恢复自动滚动
+    scrollTimeout = setTimeout(() => {
+        isUserScrolling = false;
+    }, 3000);
+    
+    lastScrollTop = currentScrollTop;
+});
+
+// 定期检查修行时间事件
+setInterval(() => {
+    checkStudyEvents();
+}, 1000); // 每秒检查一次
+
+// 回车发送
+document.getElementById('messageInput').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        sendMessage();
+    }
+});
+
+// 页面加载完成后初始化
+document.addEventListener('DOMContentLoaded', initApp);
+
+// 页面卸载时清理
+window.addEventListener('beforeunload', () => {
+    if (autoScrollInterval) {
+        clearInterval(autoScrollInterval);
+    }
+});
+</script>
+</body>
+</html>

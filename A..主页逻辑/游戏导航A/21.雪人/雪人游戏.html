@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>雪人兄弟 - 无限攀爬</title>
+</head>
+        <!-- 引入数据库管理器 -->
+    <script src="/db.js"></script>
+    
+        <!-- 引入插件工具箱 🏄-->
+    <script src="/A2_全局中心/B_插件工具/toolbox.js"></script>  
+<body>
+    <div class="game-container">
+        <div class="game-ui">
+            <div class="score">分数: <span id="scoreValue">0</span></div>
+            <div class="floor">层数: <span id="floorValue">1</span></div>
+            <div class="best">最高: <span id="bestValue">0</span></div>
+        </div>
+        
+        <div class="instructions">
+            方向键移动，空格跳跃，Z发射雪球
+        </div>
+        
+        <canvas id="gameCanvas"></canvas>
+        
+        <div class="controls">
+            <div class="d-pad">
+                <div class="control-btn up" id="upBtn">↑</div>
+                <div class="control-btn down" id="downBtn">↓</div>
+                <div class="control-btn left" id="leftBtn">←</div>
+                <div class="control-btn right" id="rightBtn">→</div>
+            </div>
+        </div>
+        
+        <div class="action-btns">
+            <div class="action-btn" id="jumpBtn">↑</div>
+            <div class="action-btn" id="shootBtn">射</div>
+        </div>
+        
+        <div class="game-over" id="gameOverScreen">
+            <h2>游戏结束</h2>
+            <p>最终层数: <span id="finalFloor">0</span></p>
+            <p>最终得分: <span id="finalScore">0</span></p>
+            <button class="restart-btn" id="restartBtn">重新开始</button>
+        </div>
+    </div>
+
+    <script src="styles.js"></script>
+    <script src="logic.js"></script>
+</body>
+</html>

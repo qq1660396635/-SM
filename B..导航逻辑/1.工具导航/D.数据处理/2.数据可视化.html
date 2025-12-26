@@ -1,0 +1,678 @@
+<!DOCTYPE html> 
+<html lang="zh-CN"> 
+<head>
+<meta charset="UTF-8"> 
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>数据图表生成器</title> 
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script> 
+<script src="https://cdn.tailwindcss.com"></script> 
+<script src="https://cdn.jsdelivr.net/npm/react@18.0.0/umd/react.development.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/react-dom@18.0.0/umd/react-dom.development.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@babel/standalone/babel.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body { 
+    font-family: 'Inter', sans-serif; 
+    min-height: 100vh; 
+    overflow: hidden;
+    position: relative;
+}
+
+/* 森林主题背景 */
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(180deg, #87CEEB 0%, #98D8C8 30%, #7FCD91 60%, #6BBF59 100%);
+    z-index: -2;
+}
+
+/* 装饰性树木 */
+body::after {
+    content: '';
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 40%;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 400"><path d="M0,400 Q100,350 200,380 T400,360 T600,370 T800,350 T1000,365 T1200,380 L1200,400 Z" fill="%234a7c59" opacity="0.8"/><path d="M0,400 Q150,320 300,360 T600,340 T900,350 T1200,370 L1200,400 Z" fill="%233d5a3d" opacity="0.6"/><circle cx="100" cy="320" r="15" fill="%236b8e23" opacity="0.7"/><circle cx="250" cy="310" r="18" fill="%236b8e23" opacity="0.7"/><circle cx="420" cy="330" r="12" fill="%236b8e23" opacity="0.7"/><circle cx="580" cy="315" r="20" fill="%236b8e23" opacity="0.7"/><circle cx="750" cy="325" r="16" fill="%236b8e23" opacity="0.7"/><circle cx="920" cy="318" r="14" fill="%236b8e23" opacity="0.7"/><circle cx="1080" cy="322" r="17" fill="%236b8e23" opacity="0.7"/></svg>') no-repeat bottom center;
+    background-size: cover;
+    z-index: -1;
+}
+
+/* 飘落的叶子动画 */
+@keyframes falling {
+    0% { transform: translateY(-100px) rotate(0deg); opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 1; }
+    100% { transform: translateY(100vh) rotate(360deg); opacity: 0; }
+}
+
+.leaf {
+    position: fixed;
+    width: 20px;
+    height: 20px;
+    background: linear-gradient(45deg, #6b8e23, #8fbc8f);
+    border-radius: 0 100% 0 100%;
+    animation: falling linear infinite;
+    z-index: -1;
+}
+
+.leaf:nth-child(1) { left: 10%; animation-duration: 8s; animation-delay: 0s; }
+.leaf:nth-child(2) { left: 20%; animation-duration: 10s; animation-delay: 2s; }
+.leaf:nth-child(3) { left: 30%; animation-duration: 12s; animation-delay: 4s; }
+.leaf:nth-child(4) { left: 40%; animation-duration: 9s; animation-delay: 1s; }
+.leaf:nth-child(5) { left: 50%; animation-duration: 11s; animation-delay: 3s; }
+.leaf:nth-child(6) { left: 60%; animation-duration: 13s; animation-delay: 5s; }
+.leaf:nth-child(7) { left: 70%; animation-duration: 8.5s; animation-delay: 2.5s; }
+.leaf:nth-child(8) { left: 80%; animation-duration: 10.5s; animation-delay: 1.5s; }
+.leaf:nth-child(9) { left: 90%; animation-duration: 11.5s; animation-delay: 3.5s; }
+
+.phone-container { 
+    width: 100vw; 
+    height: 100vh; 
+    background: rgba(255, 255, 255, 0.95); 
+    backdrop-filter: blur(10px);
+    overflow: hidden; 
+    position: relative; 
+    box-shadow: 0 0 40px rgba(0,0,0,0.1);
+} 
+
+.phone-header { 
+    height: 30px; 
+    background: rgba(0, 0, 0, 0.05); 
+    position: relative; 
+    display: none;
+} 
+
+.phone-notch { 
+    width: 150px; 
+    height: 25px; 
+    background: rgba(0, 0, 0, 0.1); 
+    border-radius: 0 0 15px 15px; 
+    position: absolute; 
+    top: 0; 
+    left: 50%; 
+    transform: translateX(-50%); 
+} 
+
+.chart-container { 
+    position: relative; 
+    height: 200px; 
+    width: 100%; 
+} 
+
+.gradient-bg { 
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+} 
+
+.card { 
+    background: rgba(255, 255, 255, 0.9); 
+    backdrop-filter: blur(10px); 
+    border-radius: 16px; 
+    box-shadow: 0 8px 32px rgba(0,0,0,0.1); 
+    border: 1px solid rgba(255, 255, 255, 0.3);
+} 
+
+.ai-suggestion { 
+    background: rgba(102, 126, 234, 0.1); 
+    border-left: 4px solid #667eea; 
+} 
+
+.page { 
+    display: none; 
+    height: 100%; 
+    overflow-y: auto; 
+} 
+
+.page.active { 
+    display: block; 
+} 
+
+.table-container { 
+    max-height: 400px; 
+    overflow-y: auto;
+} 
+
+.table-container::-webkit-scrollbar { 
+    width: 6px; 
+} 
+
+.table-container::-webkit-scrollbar-track { 
+    background: #f1f1f1; 
+    border-radius: 3px; 
+} 
+
+.table-container::-webkit-scrollbar-thumb { 
+    background: #888; 
+    border-radius: 3px; 
+} 
+
+.table-container::-webkit-scrollbar-thumb:hover { 
+    background: #555; 
+} 
+
+/* 移动端优化 */
+@media (max-width: 768px) {
+    .phone-container {
+        width: 100vw;
+        height: 100vh;
+        border-radius: 0;
+    }
+}
+</style> 
+</head> 
+<body>
+<!-- 飘落的叶子装饰 -->
+<div class="leaf"></div>
+<div class="leaf"></div>
+<div class="leaf"></div>
+<div class="leaf"></div>
+<div class="leaf"></div>
+<div class="leaf"></div>
+<div class="leaf"></div>
+<div class="leaf"></div>
+<div class="leaf"></div>
+
+<div class="phone-container">
+<!-- 手机头部--> 
+<div class="phone-header">
+<div class="phone-notch"></div> 
+</div>
+<!-- 主内容区--> 
+<div class="p-4 h-full overflow-y-auto" style="padding-top: 10px;">
+<!-- 页面1：数据输入--> 
+<div id="page1" class="page active">
+<!-- 标题栏--> 
+<div class="gradient-bg text-white p-4 rounded-2xl mb-3">
+<div class="flex justify-between items-center">
+<div>
+<h1 class="text-2xl font-bold flex items-center">
+<i class="fas fa-chart-bar mr-2"></i> 数据图表生成器 
+</h1>
+<p class="text-sm opacity-90 mt-1">粘贴数据， 即刻 生成精美图表</p>
+</div> 
+<button class="bg-white bg-opacity-20 px-4 py-2 rounded-full text-sm">
+<i class="fas fa-save mr-1"></i> 保存
+</button> 
+</div>
+</div>
+<!-- 数据输入区--> 
+<div class="card p-4 mb-3">
+<div class="flex items-center mb-3">
+<i class="fas fa-exchange-alt text-blue-500 mr-2"></i>
+<h2 className="text-lg font-semibold"> 数据输入 </h2>
+</div>
+<p className="text-sm text-gray-600 mb-3">请粘贴您的数 据，支持CSV、JSON 或纯文本格式</p>
+<!-- AI 提示--> 
+<div class="ai-suggestion p-3 rounded-lg mb-3">
+<p class="text-sm text-gray-700">
+<i class="fas fa-lightbulb text-yellow-500 mr-1"></i>
+<strong>提示： </strong> 可以使用AI 生成数据， 例如： "生成2023 年各季度销售额数据"
+</p> 
+</div>
+<div class="mb-3">
+<label class="block text-sm font-medium text-gray-700 mb-2">数据内容</label>
+<textarea id="dataInput" class="w-full h-32 p-3 border border-gray-300 rounded-lg text-sm resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="产品,销售额,利润率,市场份额&#10;手 机,5000,25,35&#10; 电脑,3500,20,25&#10; 平板,2000,30,15&#10; 手 表,1500,35,15&#10;耳机,800,40,10">产品,销售额,利润率,市场份额
+手机,5000,25,35
+电脑,3500,20,25
+平板,2000,30,15
+手表,1500,35,15
+耳机,800,40,10</textarea>
+</div>
+<div class="flex gap-2">
+<button id="parseData" class="flex-1 bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition-colors">
+<i class="fas fa-chart-line mr-1"></i> 生成图表 
+</button> 
+<button id="clearData" class="flex-1 bg-gray-500 text-white py-2 px-4 rounded-lg hover:bg-gray-600 transition-colors">
+<i class="fas fa-times mr-1"></i> 清空
+</button> 
+</div>
+<button id="loadExample" class="w-full mt-2 bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-600 transition-colors">
+<i class="fas fa-table mr-1"></i> 加载示例 
+</button> 
+</div>
+<!-- 图表设置--> 
+<div class="card p-4 mb-3">
+<div class="flex items-center mb-3">
+<i class="fas fa-cog text-purple-500 mr-2"></i> 
+<h2 class="text-lg font-semibold">图表设置</h2> 
+</div>
+<div class="mb-4">
+<label class="block text-sm font-medium text-gray-700 mb-2">图表类型</label>
+<div class="grid grid-cols-2 gap-2">
+<button class="chart-type-btn bg-blue-100 text-blue-700 py-2 px-3 rounded-lg text-sm hover:bg-blue-200 transition-colors" data-type="bar">
+<i class="fas fa-chart-bar mr-1"></i> 柱状图 
+</button>
+<button class="chart-type-btn bg-gray-100 text-gray-700 py-2 px-3 rounded-lg text-sm hover:bg-gray-200 transition-colors" data-type="pie">
+<i class="fas fa-chart-pie mr-1"></i> 饼图
+</button> 
+<button class="chart-type-btn bg-gray-100 text-gray-700 py-2 px-3 rounded-lg text-sm hover:bg-gray-200 transition-colors" data-type="line">
+<i class="fas fa-chart-line mr-1"></i> 折线图
+</button>
+<button class="chart-type-btn bg-gray-100 text-gray-700 py-2 px-3 rounded-lg text-sm hover:bg-gray-200 transition-colors" data-type="doughnut">
+<i class="fas fa-circle-notch mr-1"></i> 环形图
+</button>
+<button class="chart-type-btn bg-gray-100 text-gray-700 py-2 px-3 rounded-lg text-sm hover:bg-gray-200 transition-colors" data-type="radar">
+<i class="fas fa-spider mr-1"></i> 雷达图
+</button>
+<button class="chart-type-btn bg-gray-100 text-gray-700 py-2 px-3 rounded-lg text-sm hover:bg-gray-200 transition-colors" data-type="polarArea">
+<i class="fas fa-bullseye mr-1"></i> 极地图
+</button>
+<button class="chart-type-btn bg-gray-100 text-gray-700 py-2 px-3 rounded-lg text-sm hover:bg-gray-200 transition-colors" data-type="bubble">
+<i class="fas fa-circle mr-1"></i> 气泡图
+</button>
+<button class="chart-type-btn bg-gray-100 text-gray-700 py-2 px-3 rounded-lg text-sm hover:bg-gray-200 transition-colors" data-type="scatter">
+<i class="fas fa-braille mr-1"></i> 散点图 
+</button> 
+</div> 
+</div> 
+</div>
+</div>
+<!-- 页面2：结果展示--> 
+<div id="page2" class="page">
+<!-- 返回按钮--> 
+<div class="mb-3">
+<button id="backToInput" class="flex items-center text-blue-600 hover:text-blue-800 transition-colors">
+<i class="fas fa-arrow-left mr-2"></i> 返回数据输入 
+</button> 
+</div>
+<!-- 标题栏--> 
+<div class="gradient-bg text-white p-4 rounded-2xl mb-3">
+<div class="flex justify-between items-center">
+<div>
+<h1 class="text-2xl font-bold flex items-center">
+<i class="fas fa-chart-bar mr-2"></i> 图表展示 
+</h1>
+<p class="text-sm opacity-90 mt-1">数据可视化结 果</p>
+</div> 
+<button class="bg-white bg-opacity-20 px-4 py-2 rounded-full text-sm">
+<i class="fas fa-download mr-1"></i> 导出
+</button> 
+</div> 
+</div>
+<!-- 数据表格--> 
+<div class="card p-4 mb-3">
+<div class="flex items-center mb-3">
+<i class="fas fa-table text-green-500 mr-2"></i> 
+<h2 class="text-lg font-semibold">数据表格</h2> 
+</div>
+<div class="table-container">
+<table class="w-full text-sm">
+<thead>
+<tr class="bg-gray-50">
+<th class="px-4 py-2 text-left font-medium text-gray-700">产品</th>
+<th class="px-4 py-2 text-left font-medium text-gray-700">销售额</th>
+<th class="px-4 py-2 text-left font-medium text-gray-700">利润率</th>
+<th class="px-4 py-2 text-left font-medium text-gray-700">市场份额</th>
+</tr>
+</thead> 
+<tbody id="dataTable">
+<!-- 数据将在这里动态生成--> 
+</tbody> 
+</table> 
+</div> 
+</div>
+<!-- 图表展示区--> 
+<div class="card p-4">
+<div class="flex justify-between items-center mb-4">
+<h2 class="text-lg font-semibold">图表展示</h2> 
+<span class="text-sm text-gray-500"> 第 <span id="currentPage">1</span> / <span id="totalPages">1</span> 页</span>
+</div>
+<div id="chartsContainer" class="grid grid-cols-2 gap-4">
+<!-- 图表将在这里动态生成--> 
+</div>
+<!-- 分页控制--> 
+<div class="flex justify-center items-center mt-6">
+<button id="prevPage" class="p-2 rounded-full bg-gray-200 hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+<i class="fas fa-chevron-left"></i> 
+</button> 
+<div class="page-indicator">
+<div class="page-dot active"></div>
+</div> 
+<button id="nextPage" class="p-2 rounded-full bg-gray-200 hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+<i class="fas fa-chevron-right"></i> 
+</button> 
+</div> 
+</div> 
+</div> 
+</div> 
+</div>
+
+<script>
+// 全局变量 
+let currentData = null; 
+let currentChartType = 'bar'; 
+let currentPage = 1; 
+let totalPages = 1; 
+let charts = [];
+
+// 初始化 
+document.addEventListener('DOMContentLoaded', function() {
+// 绑定事件 
+document.getElementById('parseData').addEventListener('click', parseData);
+document.getElementById('clearData').addEventListener('click', clearData);
+document.getElementById('loadExample').addEventListener('click', loadExample);
+document.getElementById('backToInput').addEventListener('click', backToInput);
+document.getElementById('prevPage').addEventListener('click', goToPrevPage);
+document.getElementById('nextPage').addEventListener('click', goToNextPage);
+
+// 图表类型按钮事件 
+document.querySelectorAll('.chart-type-btn').forEach(btn => {
+btn.addEventListener('click', function() {
+document.querySelectorAll('.chart-type-btn').forEach(b => {
+b.classList.remove('bg-blue-100', 'text-blue-700'); 
+b.classList.add('bg-gray-100', 'text-gray-700'); 
+}); 
+this.classList.remove('bg-gray-100', 'text-gray-700'); 
+this.classList.add('bg-blue-100', 'text-blue-700'); 
+currentChartType = this.dataset.type;
+if (currentData) {
+generateCharts();
+}
+}); 
+});
+
+// 加载示例数据 
+loadExample(); 
+});
+
+// 解析数据 
+function parseData() {
+const dataInput = document.getElementById('dataInput').value; 
+if (!dataInput.trim()) {
+showNotification('请输入数据', 'error'); 
+return;
+}
+try {
+// 简单的CSV 解析 
+const lines = dataInput.trim().split('\n'); 
+if (lines.length < 2) {
+showNotification('数据格式不正确', 'error'); 
+return;
+}
+const headers = lines[0].split(','); 
+const data = [];
+for (let i = 1; i < lines.length; i++) {
+const values = lines[i].split(','); 
+if (values.length === headers.length) {
+const row = {}; 
+headers.forEach((header, index) => {
+row[header] = values[index]; 
+}); 
+data.push(row);
+}
+}
+// 保存数据到localStorage 
+currentData = { headers, data }; 
+localStorage.setItem('chartData', JSON.stringify(currentData));
+// 跳转到结果页面 
+showResultsPage();
+showNotification('数据解析成功', 'success'); 
+} catch (error) {
+showNotification('数据解析失败', 'error'); 
+}
+}
+
+// 显示结果页面 
+function showResultsPage() {
+document.getElementById('page1').classList.remove('active'); 
+document.getElementById('page2').classList.add('active');
+// 生成表格 
+generateTable();
+// 生成图表 
+generateCharts();
+}
+
+// 返回输入页面 
+function backToInput() {
+document.getElementById('page2').classList.remove('active'); 
+document.getElementById('page1').classList.add('active');
+}
+
+// 生成表格 
+function generateTable() {
+if (!currentData) return;
+const { headers, data } = currentData; 
+const tableBody = document.getElementById('dataTable'); 
+tableBody.innerHTML = '';
+data.forEach(row => {
+const tr = document.createElement('tr'); 
+tr.className = 'border-b border-gray-200 hover:bg-gray-50';
+headers.forEach(header => {
+const td = document.createElement('td'); 
+td.className = 'px-4 py-2'; 
+td.textContent = row[header]; 
+tr.appendChild(td); 
+}); 
+tableBody.appendChild(tr); 
+}); 
+}
+
+// 生成图表 
+function generateCharts() {
+if (!currentData) return;
+const { headers, data } = currentData; 
+const chartsContainer = document.getElementById('chartsContainer');
+chartsContainer.innerHTML = '';
+// 根据数据生成不同类型的图表 
+const chartTypes = ['bar', 'pie', 'line', 'doughnut', 'radar', 'polarArea', 'bubble', 'scatter'];
+const chartsPerPage = 4; 
+totalPages = Math.ceil(chartTypes.length / chartsPerPage);
+// 更新分页信息 
+document.getElementById('totalPages').textContent = totalPages; 
+document.getElementById('currentPage').textContent = currentPage;
+// 计算当前页的图表 
+const startIndex = (currentPage - 1) * chartsPerPage; 
+const endIndex = Math.min(startIndex + chartsPerPage, chartTypes.length);
+// 更新分页按钮状态 
+document.getElementById('prevPage').disabled = currentPage === 1;
+document.getElementById('nextPage').disabled = currentPage === totalPages;
+// 生成图表 
+for (let i = startIndex; i < endIndex; i++) {
+const chartType = chartTypes[i];
+const chartElement = createChartElement(chartType, headers, data);
+chartsContainer.appendChild(chartElement);
+}
+// 更新分页指示器 
+updatePageIndicator();
+}
+
+// 创建图表元素 
+function createChartElement(type, headers, data) {
+const chartDiv = document.createElement('div'); 
+chartDiv.className = 'bg-white p-3 rounded-lg border border-gray-200'; 
+const chartCanvas = document.createElement('canvas'); 
+chartCanvas.id = `chart-${type}-${Date.now()}`; 
+chartDiv.appendChild(chartCanvas);
+// 模拟生成图表数据 
+setTimeout(() => {
+const ctx = chartCanvas.getContext('2d'); 
+const chartData = prepareChartData(type, headers, data);
+new Chart(ctx, {
+type: type, 
+data: chartData, 
+options: {
+responsive: true, 
+maintainAspectRatio: false, 
+plugins: {
+title: {
+display: true, 
+text: `${getChartTypeName(type)} - ${headers[0]}`,
+font: {
+size: 14, 
+weight: 'bold'
+}
+}, 
+legend: {
+display: type === 'pie' || type === 'doughnut' || type === 'polarArea'
+}
+}
+}
+}); 
+}, 100); 
+return chartDiv;
+}
+
+// 准备图表数据 
+function prepareChartData(type, headers, data) {
+const labels = data.map(row => row[headers[0]]); 
+const values = data.map(row => parseFloat(row[headers[1]]) || 0); 
+const colors = [
+'rgba(102, 126, 234, 0.8)', 
+'rgba(118, 75, 162, 0.8)', 
+'rgba(237, 100, 166, 0.8)', 
+'rgba(255, 159, 64, 0.8)', 
+'rgba(75, 192, 192, 0.8)', 
+'rgba(255, 99, 132, 0.8)'
+]; 
+const backgroundColors = labels.map((_, index) => colors[index % colors.length]);
+switch(type) {
+case 'bar': 
+case 'line':
+return {
+labels: labels, 
+datasets: [{
+label: headers[1], 
+data: values, 
+backgroundColor: type === 'bar' ? backgroundColors : 'rgba(102, 126, 234, 0.5)',
+borderColor: 'rgba(102, 126, 234, 1)', 
+borderWidth: 2, 
+tension: 0.4
+}]
+}; 
+case 'pie': 
+case 'doughnut': 
+case 'polarArea':
+return {
+labels: labels, 
+datasets: [{
+data: values, 
+backgroundColor: backgroundColors,
+borderColor: 'white', 
+borderWidth: 2
+}]
+}; 
+case 'radar':
+return {
+labels: headers.slice(1), 
+datasets: [{
+label: headers[0], 
+data: data.map(row => parseFloat(row[headers[1]]) || 0),
+backgroundColor: 'rgba(102, 126, 234, 0.2)', 
+borderColor: 'rgba(102, 126, 234, 1)', 
+pointBackgroundColor: 'rgba(102, 126, 234, 1)', 
+pointBorderColor: '#fff', 
+pointHoverBackgroundColor: '#fff', 
+pointHoverBorderColor: 'rgba(102, 126, 234, 1)'
+}]
+}; 
+default:
+return {
+labels: labels, 
+datasets: [{
+label: headers[1], 
+data: values, 
+backgroundColor: backgroundColors
+}]
+}; 
+}
+}
+
+// 获取图表类型名称 
+function getChartTypeName(type) {
+const names = {
+'bar': '柱状图', 
+'pie': '饼图', 
+'line': '折线图', 
+'doughnut': '环形图', 
+'radar': '雷达图', 
+'polarArea': '极地图', 
+'bubble': '气泡图', 
+'scatter': '散点图'
+}; 
+return names[type] || type;
+}
+
+// 清空数据 
+function clearData() {
+document.getElementById('dataInput').value = ''; 
+currentData = null; 
+localStorage.removeItem('chartData'); 
+document.getElementById('chartsContainer').innerHTML = ''; 
+currentPage = 1; 
+totalPages = 1; 
+document.getElementById('currentPage').textContent = '1'; 
+document.getElementById('totalPages').textContent = '1'; 
+document.getElementById('prevPage').disabled = true; 
+document.getElementById('nextPage').disabled = true; 
+showNotification('数据已清空', 'info');
+}
+
+// 加载示例数据 
+function loadExample() {
+const exampleData = `产品,销售额,利润率,市场份额
+手机,5000,25,35
+电脑,3500,20,25
+平板,2000,30,15
+手表,1500,35,15
+耳机,800,40,10
+音箱,600,20,10
+相机,1200,30,8
+游戏机,1800,25,12`;
+document.getElementById('dataInput').value = exampleData; 
+parseData();
+}
+
+// 分页控制 
+function goToPrevPage() {
+if (currentPage > 1) {
+currentPage--; 
+generateCharts();
+}
+}
+
+function goToNextPage() {
+if (currentPage < totalPages) {
+currentPage++; 
+generateCharts();
+}
+}
+
+// 更新分页指示器 
+function updatePageIndicator() {
+const indicator = document.querySelector('.page-indicator'); 
+indicator.innerHTML = '';
+for (let i = 1; i <= totalPages; i++) {
+const dot = document.createElement('div'); 
+dot.className = `page-dot ${i === currentPage ? 'active' : ''}`;
+indicator.appendChild(dot);
+}
+}
+
+// 显示通知 
+function showNotification(message, type) {
+const notification = document.createElement('div'); 
+notification.className = `fixed top-4 right-4 p-4 rounded-lg text-white z-50 ${
+type === 'success' ? 'bg-green-500' : 
+type === 'error' ? 'bg-red-500' : 'bg-blue-500'
+}`; 
+notification.textContent = message; 
+document.body.appendChild(notification);
+setTimeout(() => {
+notification.remove(); 
+}, 3000);
+}
+</script> 
+</body> 
+</html>

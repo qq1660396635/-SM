@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>代码文件合并工具 - Python脚本</title>
+    
+    <!-- prism.js 语法高亮 -->
+    <script src="/A2_全局中心/B_插件缓存-CDN/1.prism代码高亮/1.prism-css-白色主题.js"></script>   
+    <script src="/A2_全局中心/B_插件缓存-CDN/1.prism代码高亮/prism-core.min.js"></script>
+    <script src="/A2_全局中心/B_插件缓存-CDN/1.prism代码高亮/prism-python.min.js"></script>
+    
+    <!-- 引入缩放插件 -->
+    <script src="/A2_全局中心/B_插件工具/3.插件_字体缩放.js"></script>
+    
+    
+    <style>
+        /* 全局重置和基础样式 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-size: 0.9rem; /* 调整字体大小为0.9rem */
+            background: linear-gradient(135deg, #1a2942 0%, #2d4262 100%);
+            min-height: 100vh;
+            padding: 10px;
+            position: relative;
+            overflow-x: hidden;
+            color: #333;
+        }
+        
+        /* 微妙的背景纹理 */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                radial-gradient(circle at 20% 50%, rgba(255,255,255,0.05) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255,255,255,0.03) 0%, transparent 50%),
+                radial-gradient(circle at 40% 80%, rgba(255,255,255,0.04) 0%, transparent 50%),
+                radial-gradient(circle at 90% 90%, rgba(255,255,255,0.02) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+        
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            height: calc(150vh); /* 减去padding */
+        }
+        
+        /* 头部样式 */
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 12px 20px;
+            border-radius: 10px;
+            margin: 0 10px 15px 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            flex-shrink: 0; /* 防止头部被压缩 */
+        }
+        
+        h1 {
+            font-size: 1.2rem;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        /* 复制按钮 */
+        .copy-all-btn {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .copy-all-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(76, 175, 80, 0.3);
+        }
+        
+        /* 代码块容器 - 扩大显示区域 */
+        .code-block {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 10px;
+            margin: 0 10px 15px 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            position: relative;
+            transition: all 0.3s ease;
+            flex: 1; /* 让代码块占据剩余空间 */
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .code-block:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+        }
+        
+        /* 模块标题栏 */
+        .module-title {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            color: white;
+            padding: 10px 15px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0; /* 防止标题栏被压缩 */
+        }
+        
+        /* 代码区域 - 扩大显示区域 */
+        .module-code {
+            padding: 0;
+            flex: 1; /* 让代码区域占据剩余空间 */
+            overflow: auto; /* 确保内容可滚动 */
+        }
+        
+        pre {
+            margin: 0;
+            padding: 15px;
+            overflow-x: auto;
+            background: #2d2d2d;
+            height: 100%; /* 让pre占据整个高度 */
+            box-sizing: border-box;
+        }
+        
+        code {
+            font-family: 'SF Mono', 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 0.85rem; /* 稍微小一点的字体 */
+            line-height: 1.5;
+        }
+        
+        /* 说明区域 */
+        .info {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 10px;
+            margin: 0 10px 15px 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            flex-shrink: 0; /* 防止说明区域被压缩 */
+        }
+        
+        /* 分页按钮 */
+        .tab-buttons {
+            display: flex;
+            background: rgba(0, 0, 0, 0.05);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        }
+        
+        .tab-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            background: transparent;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+        }
+        
+        .tab-btn.active {
+            background: rgba(255, 255, 255, 0.8);
+            font-weight: 600;
+            color: #4CAF50;
+        }
+        
+        .tab-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: #4CAF50;
+        }
+        
+        /* 分页内容 */
+        .tab-content {
+            padding: 20px;
+            max-height: 200px; /* 限制说明区域的最大高度 */
+            overflow-y: auto;
+        }
+        
+        .tab-pane {
+            display: none;
+        }
+        
+        .tab-pane.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .info h2 {
+            color: #333;
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #4CAF50;
+        }
+        
+        .info p {
+            color: #555;
+            font-size: 0.9rem;
+            line-height: 1.8;
+            margin-bottom: 12px;
+        }
+        
+        .info ul {
+            margin-left: 20px;
+            margin-bottom: 15px;
+        }
+        
+        .info li {
+            color: #555;
+            font-size: 0.9rem;
+            line-height: 1.8;
+            margin-bottom: 8px;
+        }
+        
+        .info code {
+            background: #f0f0f0;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'SF Mono', monospace;
+            color: #e91e63;
+        }
+        
+        /* 提示框样式 */
+        .toast {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+            z-index: 1000;
+        }
+        
+        .toast.show {
+            opacity: 1;
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            body {
+                padding: 5px;
+            }
+            
+            h1 {
+                font-size: 1rem;
+            }
+            
+            .copy-all-btn {
+                padding: 6px 12px;
+                font-size: 0.8rem;
+            }
+            
+            code {
+                font-size: 0.75rem; /* 手机端更小字体 */
+            }
+            
+            .header, .code-block, .info {
+                margin-left: 5px;
+                margin-right: 5px;
+            }
+            
+            .tab-btn {
+                font-size: 0.8rem;
+                padding: 10px 5px;
+            }
+            
+            .info h2 {
+                font-size: 1rem;
+            }
+            
+            .info p, .info li {
+                font-size: 0.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 头部区域 -->
+        <div class="header">
+            <h1>🐍 代码文件合并工具</h1>
+            <button class="copy-all-btn" onclick="copyAll()">📋 复制全部</button>
+        </div>
+        
+        <!-- 代码展示区 - 扩大显示区域 -->
+        <div class="code-block">
+            <div class="module-title">
+                <span>Python脚本：code_to_json_js.py</span>
+            </div>
+            <div class="module-code">
+                <pre><code class="language-python" id="code-content">#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+文件名: code_to_json_js.py
+功能: 将代码文件合并为JSON格式的JavaScript文件
+创建时间: 2025年12月
+描述: 将所有代码文件合并到一个JS文件中，使用JSON格式存储，包含完善的转义处理
+"""
+
+import os
+import re
+import random
+import string
+import json
+from pathlib import Path
+from datetime import datetime
+
+class CodeToJSONJS:
+    """代码文件转JSON格式JS转换器"""
+    
+    def __init__(self):
+        # 1. 初始化类的属性
+        self.directory = ""
+        self.user_prefix = ""
+        self.supported_extensions = {
+            '.txt', '.md', '.py', '.c', '.cpp', '.h', '.hpp', 
+            '.java', '.js', '.css', '.html', '.htm', '.json', 
+            '.xml', '.yaml', '.yml', '.sh', '.bat', '.sql'
+        }
+    
+    def get_directory(self):
+        # 2. 获取用户输入的目录路径
+        default_dir = "/storage/emulated/0/Download/"
+        print("=" * 60)
+        print(" 代码文件合并为JSON格式JS工具")
+        print("=" * 60)
+        print(f"\n请输入代码文件所在目录路径：")
+        print(f"（直接回车使用默认目录: {default_dir}）")
+        
+        while True:
+            user_input = input("> ").strip()
+            if not user_input:
+                self.directory = default_dir
+            else:
+                self.directory = user_input
+            
+            if os.path.exists(self.directory):
+                print(f"使用目录: {self.directory}")
+                return True
+            else:
+                print(f"目录不存在: {self.directory}")
+                print("请重新输入或按Ctrl+C退出")
+    
+    def get_user_prefix(self):
+        # 3. 获取用户输入的2位字母前缀
+        print("\n请输入2位字母作为变量名前缀（例如: ab, xy, my等）：")
+        while True:
+            prefix = input("> ").strip().lower()
+            if len(prefix) == 2 and prefix.isalpha():
+                self.user_prefix = prefix
+                print(f"使用前缀: {self.user_prefix}")
+                return True
+            else:
+                print("请输入2个字母！")
+    
+    def get_code_files(self):
+        # 4. 获取目录下所有支持的代码文件
+        files = []
+        all_files = list(Path(self.directory).glob("*"))
+        
+        for file_path in all_files:
+            if file_path.is_file() and file_path.suffix.lower() in self.supported_extensions:
+                files.append(file_path)
+        
+        # 自然排序
+        files.sort(key=lambda x: self.natural_sort_key(x.name))
+        return files
+    
+    def natural_sort_key(self, filename):
+        # 5. 自然排序函数
+        return [int(text) if text.isdigit() else text.lower() for text in re.split(r'(\d+)', filename)]
+    
+    def generate_variable_name(self, index):
+        # 6. 生成变量名：序号-用户前缀+4位随机字母
+        random_letters = ''.join(random.choices(string.ascii_lowercase, k=4))
+        return f"{index}-{self.user_prefix}{random_letters}"
+    
+    def escape_json_string(self, content):
+        # 7. 手动转义JSON字符串中的特殊字符
+        # 先处理反斜杠（必须第一个处理）
+        content = content.replace('\\', '\\\\')
+        # 处理双引号
+        content = content.replace('"', '\\"')
+        # 处理控制字符
+        content = content.replace('\b', '\\b')
+        content = content.replace('\f', '\\f')
+        content = content.replace('\n', '\\n')
+        content = content.replace('\r', '\\r')
+        content = content.replace('\t', '\\t')
+        
+        # 处理其他可能的问题字符
+        result = []
+        for char in content:
+            char_code = ord(char)
+            # 保留可打印字符和已处理的控制字符
+            if char_code >= 32 or char in '\n\r\t':
+                result.append(char)
+            else:
+                # 对于其他控制字符，使用Unicode转义
+                result.append(f'\\u{char_code:04x}')
+        
+        return ''.join(result)
+    
+    def read_file_content(self, file_path):
+        # 8. 读取文件内容
+        try:
+            # 尝试UTF-8编码
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            return self.escape_json_string(content)
+        except UnicodeDecodeError:
+            try:
+                # 尝试GBK编码
+                with open(file_path, 'r', encoding='gbk') as f:
+                    content = f.read()
+                return self.escape_json_string(content)
+            except:
+                return self.escape_json_string("【无法读取文件内容：编码问题】")
+        except Exception as e:
+            return self.escape_json_string(f"【读取文件出错: {str(e)}】")
+    
+    def safe_json_dumps(self, obj):
+        # 9. 安全的JSON序列化，处理特殊字符
+        try:
+            # 使用json.dumps并设置ensure_ascii=False
+            return json.dumps(obj, ensure_ascii=False, indent=2)
+        except (TypeError, ValueError) as e:
+            print(f"⚠️JSON序列化警告: {e}")
+            # 如果失败，尝试手动处理
+            if isinstance(obj, dict):
+                items = []
+                for key, value in obj.items():
+                    if isinstance(value, str):
+                        value = self.escape_json_string(value)
+                    elif isinstance(value, dict):
+                        value = self.safe_json_dumps(value)
+                        value = value.strip('{}')
+                    items.append(f' "{key}": {value}')
+                return '{\n' + ',\n'.join(items) + '\n}'
+            else:
+                return f'"{self.escape_json_string(str(obj))}"'
+    
+    def convert_to_json_js(self, files):
+        # 10. 将文件转换为JSON格式的JavaScript文件
+        output_filename = f"code_files_{self.user_prefix}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.js"
+        output_path = os.path.join(self.directory, output_filename)
+        
+        # 创建JSON数据结构
+        code_files_data = {}
+        
+        # 添加元数据
+        metadata = {
+            "generated_time": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            "prefix": self.user_prefix,
+            "total_files": len(files),
+            "source_directory": self.directory,
+            "description": f"代码文件集合，变量名格式: 序号-{self.user_prefix}XXXX"
+        }
+        
+        # 处理每个文件
+        for i, file_path in enumerate(files, 1):
+            # 生成变量名
+            var_name = self.generate_variable_name(i)
+            
+            # 获取文件信息
+            file_size = file_path.stat().st_size
+            mod_time = datetime.fromtimestamp(file_path.stat().st_mtime).strftime('%Y-%m-%d %H:%M:%S')
+            
+            # 读取文件内容（已包含转义处理）
+            content = self.read_file_content(file_path)
+            print(f"正在处理: {file_path.name} -> {var_name}")
+            
+            # 添加到JSON数据
+            code_files_data[var_name] = {
+                "filename": file_path.name,
+                "content": content,
+                "size": file_size,
+                "mod_time": mod_time,
+                "extension": file_path.suffix.lower(),
+                "index": i
+            }
+        
+        try:
+            with open(output_path, 'w', encoding='utf-8') as js_file:
+                # 写入文件头部注释
+                js_file.write("// 代码文件JSON集合\n")
+                js_file.write(f"// 生成时间: {metadata['generated_time']}\n")
+                js_file.write(f"// 变量前缀: {metadata['prefix']}\n")
+                js_file.write(f"// 文件数量: {metadata['total_files']}\n")
+                js_file.write(f"// 源目录: {metadata['source_directory']}\n")
+                js_file.write(f"// 变量名格式: 序号-{metadata['prefix']}XXXX\n")
+                js_file.write("// 注意: 所有特殊字符已进行转义处理\n")
+                js_file.write("\n")
+                
+                # 写入元数据
+                js_file.write("// 元数据\n")
+                metadata_json = self.safe_json_dumps(metadata)
+                js_file.write(f"const codeFilesMeta = {metadata_json};\n\n")
+                
+                # 写入主要数据
+                js_file.write("// 文件数据\n")
+                js_file.write("const codeFiles = ")
+                files_json = self.safe_json_dumps(code_files_data)
+                js_file.write(files_json)
+                js_file.write(";\n\n")
+                
+                # 写入便利函数
+                js_file.write("// 便利函数\n")
+                js_file.write("// 获取所有变量名\n")
+                js_file.write("function getAllVariableNames() {\n")
+                js_file.write("    return Object.keys(codeFiles);\n")
+                js_file.write("}\n\n")
+                
+                js_file.write("// 根据索引获取变量名\n")
+                js_file.write("function getVariableNameByIndex(index) {\n")
+                js_file.write("    const names = Object.keys(codeFiles);\n")
+                js_file.write("    return names[index - 1] || null;\n")
+                js_file.write("}\n\n")
+                
+                js_file.write("// 获取文件内容\n")
+                js_file.write("function getFileContent(variableName) {\n")
+                js_file.write("    const file = codeFiles[variableName];\n")
+                js_file.write("    return file ? file.content : null;\n")
+                js_file.write("}\n\n")
+                
+                js_file.write("// 获取文件信息\n")
+                js_file.write("function getFileInfo(variableName) {\n")
+                js_file.write("    return codeFiles[variableName] || null;\n")
+                js_file.write("}\n\n")
+                
+                js_file.write("// 根据索引获取文件信息\n")
+                js_file.write("function getFileInfoByIndex(index) {\n")
+                js_file.write("    const varName = getVariableNameByIndex(index);\n")
+                js_file.write("    return varName ? getFileInfo(varName) : null;\n")
+                js_file.write("}\n\n")
+                
+                js_file.write("// 获取所有文件列表\n")
+                js_file.write("function getAllFilesList() {\n")
+                js_file.write("    return Object.keys(codeFiles).map(varName => ({\n")
+                js_file.write("        variableName: varName,\n")
+                js_file.write("        ...codeFiles[varName]\n")
+                js_file.write("    }));\n")
+                js_file.write("}\n\n")
+                
+                js_file.write("// 搜索文件\n")
+                js_file.write("function searchFiles(keyword) {\n")
+                js_file.write("    const results = [];\n")
+                js_file.write("    for (const [varName, file] of Object.entries(codeFiles)) {\n")
+                js_file.write("        if (file.filename.toLowerCase().includes(keyword.toLowerCase()) ||\n")
+                js_file.write("            file.content.toLowerCase().includes(keyword.toLowerCase())) {\n")
+                js_file.write("            results.push({ variableName: varName, ...file });\n")
+                js_file.write("        }\n")
+                js_file.write("    }\n")
+                js_file.write("    return results;\n")
+                js_file.write("}\n\n")
+                
+                # 添加内容反转义函数
+                js_file.write("// 反转义函数（用于显示）\n")
+                js_file.write("function unescapeContent(content) {\n")
+                js_file.write("    return content\n")
+                js_file.write("        .replace(/\\\\/g, '\\\\')\n")
+                js_file.write("        .replace(/\\\"/g, '\"')\n")
+                js_file.write("        .replace(/\\\\b/g, '\\b')\n")
+                js_file.write("        .replace(/\\\\f/g, '\\f')\n")
+                js_file.write("        .replace(/\\\\n/g, '\\n')\n")
+                js_file.write("        .replace(/\\\\r/g, '\\r')\n")
+                js_file.write("        .replace(/\\\\t/g, '\\t');\n")
+                js_file.write("}\n\n")
+                
+                js_file.write("// 获取反转义的文件内容\n")
+                js_file.write("function getFileContentUnescaped(variableName) {\n")
+                js_file.write("    const content = getFileContent(variableName);\n")
+                js_file.write("    return content ? unescapeContent(content) : null;\n")
+                js_file.write("}\n")
+            
+            return output_path, len(files)
+        
+        except Exception as e:
+            print(f"生成JS文件时出错: {e}")
+            return None, 0
+    
+    def run(self):
+        # 11. 运行转换器
+        # 获取目录
+        if not self.get_directory():
+            return
+        
+        # 获取用户前缀
+        if not self.get_user_prefix():
+            return
+        
+        # 获取文件列表
+        files = self.get_code_files()
+        if not files:
+            print("未找到任何支持的代码文件！")
+            print(f"支持的文件类型: {', '.join(sorted(self.supported_extensions))}")
+            return
+        
+        print(f"\n📁找到{len(files)}个支持的文件，按以下顺序处理：")
+        for i, f in enumerate(files, 1):
+            print(f" {i:2d}. {f.name}")
+        
+        # 转换为JSON格式JS
+        print(f"\n🔄开始合并为JSON格式JavaScript文件...")
+        print("⚠️正在处理特殊字符转义...")
+        js_path, file_count = self.convert_to_json_js(files)
+        
+        if js_path and file_count > 0:
+            # 显示结果
+            js_size = os.path.getsize(js_path)
+            print(f"\n🎉合并完成！")
+            print(f"📄JavaScript文件: {js_path}")
+            print(f"📊处理文件数: {file_count}")
+            print(f"💾文件大小: {js_size}字节")
+            print(f"\n📝变量名示例: 1-{self.user_prefix}xxxx, 2-{self.user_prefix}xxxx, ...")
+            print(f"📝使用方法: codeFiles['1-{self.user_prefix}xxxx'].content 获取内容")
+            print(f"📝使用方法: getFileContent('1-{self.user_prefix}xxxx') 获取内容")
+            print(f"📝使用方法: getFileContentUnescaped('1-{self.user_prefix}xxxx') 获取反转义内容")
+            print(f"📝使用方法: getFileInfoByIndex(1) 获取第一个文件信息")
+            
+            # 显示前几个变量名示例
+            print(f"\n🔍生成的变量名示例:")
+            for i in range(min(3, file_count)):
+                random_letters = ''.join(random.choices(string.ascii_lowercase, k=4))
+                example_var = f"{i+1}-{self.user_prefix}{random_letters}"
+                print(f" {example_var}")
+            
+            print(f"\n所有特殊字符已转义，可安全使用！")
+        else:
+            print("❌合并失败！")
+
+def main():
+    # 12. 主函数
+    converter = CodeToJSONJS()
+    converter.run()
+    print("\n任务已完成！")
+
+if __name__ == "__main__":
+    main()
+</code></pre>
+            </div>
+        </div>
+        
+        <!-- 说明区域 -->
+        <div class="info">
+            <div class="tab-buttons">
+                <button class="tab-btn active" data-tab="design">设计思路</button>
+                <button class="tab-btn" data-tab="api">函数接口</button>
+            </div>
+            
+            <div class="tab-content">
+                <!-- 设计思路 -->
+                <div class="tab-pane active" id="design">
+                    <h2>🎯 设计思路</h2>
+                    <p>这个工具的核心目标是<strong>将多个代码文件合并为单个JS文件</strong>，便于前端直接访问文件内容而无需服务器。以下是关键设计点：</p>
+                    
+                    <ul>
+                        <li><strong>变量命名策略</strong>：采用"序号-前缀+随机字母"格式（如1-abXy9），确保唯一性同时保持可读性</li>
+                        <li><strong>安全转义处理</strong>：实现完善的JSON转义机制，处理特殊字符、控制字符和Unicode字符</li>
+                        <li><strong>编码兼容性</strong>：自动检测UTF-8/GBK编码，解决中文文件内容读取问题</li>
+                        <li><strong>自然排序</strong>：文件按名称自然排序（如file1.txt, file2.txt, file10.txt）</li>
+                        <li><strong>元数据管理</strong>：包含生成时间、文件统计等元数据，便于追踪</li>
+                    </ul>
+                    
+                    <p>最终生成的JS文件包含<strong>原始数据+便利函数</strong>，前端可直接通过<code>getFileContent('变量名')</code>获取内容，实现真正的静态文件访问。</p>
+                </div>
+                
+                <!-- 函数接口 -->
+                <div class="tab-pane" id="api">
+                    <h2>🔧 函数接口</h2>
+                    <p>生成的JS文件提供以下便利函数：</p>
+                    
+                    <ul>
+                        <li><code>getAllVariableNames()</code> - 获取所有变量名数组</li>
+                        <li><code>getVariableNameByIndex(index)</code> - 根据序号获取变量名（从1开始）</li>
+                        <li><code>getFileContent(variableName)</code> - 获取文件原始内容（已转义）</li>
+                        <li><code>getFileContentUnescaped(variableName)</code> - 获取反转义后的可读内容</li>
+                        <li><code>getFileInfo(variableName)</code> - 获取完整文件信息（含元数据）</li>
+                        <li><code>getFileInfoByIndex(index)</code> - 根据序号获取文件信息</li>
+                        <li><code>getAllFilesList()</code> - 获取所有文件信息列表</li>
+                        <li><code>searchFiles(keyword)</code> - 搜索文件名或内容包含关键词的文件</li>
+                    </ul>
+                    
+                    <p><strong>使用示例：</strong></p>
+                    <pre><code class="language-javascript">// 获取第一个文件内容
+const firstFile = getFileInfoByIndex(1);
+console.log(firstFile.filename);
+
+// 搜索包含"config"的文件
+const configs = searchFiles('config');
+
+// 获取反转义内容
+const content = getFileContentUnescaped('1-abXy9');
+document.body.innerHTML = `<pre>${content}</pre>`;</code></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 提示框 -->
+    <div class="toast" id="toast">已复制</div>
+    
+    <script>
+        // 1. 初始化代码高亮
+        document.addEventListener('DOMContentLoaded', function() {
+            Prism.highlightAll();
+            
+            // 2. 分页切换功能
+            const tabBtns = document.querySelectorAll('.tab-btn');
+            const tabPanes = document.querySelectorAll('.tab-pane');
+            
+            tabBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const targetTab = this.getAttribute('data-tab');
+                    
+                    // 更新按钮状态
+                    tabBtns.forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // 更新内容显示
+                    tabPanes.forEach(pane => {
+                        pane.classList.remove('active');
+                        if (pane.id === targetTab) {
+                            pane.classList.add('active');
+                        }
+                    });
+                });
+            });
+        });
+        
+        // 3. 复制全部代码 - 原封不动复制
+        function copyAll() {
+            const codeContent = document.getElementById('code-content').textContent;
+            navigator.clipboard.writeText(codeContent).then(() => {
+                showToast();
+            }).catch(err => {
+                console.error('复制失败:', err);
+            });
+        }
+        
+        // 4. 显示提示框
+        function showToast() {
+            const toast = document.getElementById('toast');
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 1500);
+        }
+    </script>
+</body>
+</html>

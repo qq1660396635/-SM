@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>服务导航中心</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { 
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    min-height: 100vh; overflow-x: hidden; position: relative;
+    background: linear-gradient(135deg, #2e1a47 0%, #4a2c6e 50%, #6b3f8f 100%);
+    color: #ffffff;
+}
+
+.background { 
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0;
+    background: linear-gradient(135deg, #2e1a47 0%, #4a2c6e 50%, #6b3f8f 100%);
+}
+
+.bg-pattern { 
+    position: absolute; width: 100%; height: 100%;
+    background-image: 
+        radial-gradient(circle at 20% 30%, rgba(255, 105, 180, 0.2) 0%, transparent 50%),
+        radial-gradient(circle at 80% 70%, rgba(138, 43, 226, 0.2) 0%, transparent 50%);
+    animation: bgFloat 20s ease-in-out infinite;
+}
+
+@keyframes bgFloat {
+    0%, 100% { transform: translate(0, 0) rotate(0deg); }
+    50% { transform: translate(-10px, -10px) rotate(1deg); }
+}
+
+.container { 
+    position: relative; z-index: 1; max-width: 500px; margin: 0 auto; 
+    padding: 15px; min-height: 100vh; display: flex; flex-direction: column;
+}
+
+header { 
+    text-align: center; margin-bottom: 25px;
+    animation: fadeInDown 0.8s ease;
+}
+
+header h1 { 
+    font-size: 1.8rem; font-weight: 700; margin-bottom: 5px;
+    background: linear-gradient(135deg, #ff69b4, #ba55d3, #9370db);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+header p { 
+    font-size: 0.9rem; color: rgba(255, 255, 255, 0.7);
+}
+
+.nav-grid { 
+    display: grid; 
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px; 
+    flex: 1; 
+    align-content: start; 
+    padding: 10px 0;
+    animation: fadeInUp 0.8s ease 0.2s both;
+}
+
+.tool-card { 
+    background: linear-gradient(135deg, rgba(255, 105, 180, 0.15), rgba(186, 85, 211, 0.15));
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    cursor: pointer; transition: all 0.3s ease;
+    position: relative; overflow: hidden;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    width: 100%;
+    aspect-ratio: 1;
+    transform: rotate(45deg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tool-card-content {
+    transform: rotate(-45deg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    width: 70%;
+    height: 70%;
+}
+
+.tool-card:hover { 
+    transform: rotate(45deg) scale(1.1);
+    background: linear-gradient(135deg, rgba(255, 105, 180, 0.25), rgba(186, 85, 211, 0.25));
+    box-shadow: 0 8px 25px rgba(255, 105, 180, 0.3);
+}
+
+.tool-icon { 
+    font-size: 1.5rem; margin-bottom: 5px;
+    transition: all 0.3s ease;
+}
+
+.tool-card:hover .tool-icon { 
+    transform: scale(1.2);
+    filter: drop-shadow(0 0 10px rgba(255, 105, 180, 0.6));
+}
+
+.tool-title { 
+    font-size: 0.7rem; font-weight: 600; color: #ffffff;
+    line-height: 1.1;
+}
+
+@keyframes fadeInDown {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 400px) { 
+    header h1 { font-size: 1.6rem; } 
+    .nav-grid { 
+        grid-template-columns: repeat(3, 1fr); 
+        gap: 12px; 
+    } 
+    .tool-icon { font-size: 1.3rem; } 
+    .tool-title { font-size: 0.65rem; } 
+}
+</style>
+</head>
+<body>
+<div class="background">
+    <div class="bg-pattern"></div>
+</div>
+
+<div class="container">
+<header>
+<h1>✨服务导航中心</h1>
+<p>精选实用工具，一键直达</p>
+</header>
+
+<div class="nav-grid" id="navGrid">
+<!-- 工具卡片将在这里动态生成 -->
+</div>
+</div>
+
+<script src="服务_nav-config.js"></script>
+<script>
+// 初始化应用
+class NavigationApp {
+    constructor() {
+        this.init();
+    }
+    
+    init() {
+        // 等待配置加载完成
+        if (typeof window.navConfig === 'undefined') {
+            setTimeout(() => this.init(), 100);
+            return;
+        }
+        
+        // 直接渲染所有工具
+        this.renderAllTools();
+    }
+    
+    renderAllTools() {
+        const navGrid = document.getElementById('navGrid');
+        const tools = window.navConfig.getAllTools();
+        
+        // 渲染工具卡片
+        navGrid.innerHTML = tools.map(tool => `
+            <div class="tool-card" onclick="navigateTo('${tool.file}')">
+                <div class="tool-card-content">
+                    <div class="tool-icon">${tool.icon || '🔧'}</div>
+                    <div class="tool-title">${tool.name}</div>
+                </div>
+            </div>
+        `).join('');
+    }
+}
+
+// 导航到指定页面
+function navigateTo(file) {
+    window.location.href = file;
+}
+
+// 启动应用
+document.addEventListener('DOMContentLoaded', () => {
+    new NavigationApp();
+});
+</script>
+</body>
+</html>

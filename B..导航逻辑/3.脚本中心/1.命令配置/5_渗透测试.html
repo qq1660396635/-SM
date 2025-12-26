@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>代码文件阅读器</title>
+    
+    <!-- Prism.js 代码高亮 -->
+   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" id="prism-theme">
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>  
+    
+    <!-- 引入数据库管理器 -->
+    <script src="/db.js"></script>
+    <!-- 引入缩放插件 -->
+    <script src="/A2_全局中心/B_插件工具/3.插件_字体缩放.js"></script>
+    
+    
+    <!-- 引入样式配置文件 -->
+    <script src="5_style_config.js"></script>   
+    <!-- 引入配置文件 -->
+    <script src="5_渗透测试.js"></script>
+
+    <script>
+        let currentFileIndex = 0;
+        let allFiles = [];
+        let configData = null;
+
+        // 配置文件键名
+        const CONFIG_KEY = 'E_渗透测试资料';
+        const STYLE_KEY = 'E_样式配置';
+
+        // 页面初始化
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                console.log('🚀 页面开始初始化...');
+                
+                // 等待数据库初始化
+                await IDB.init();
+                console.log('✅ 数据库初始化完成');
+
+                // 加载样式配置
+                await loadStyleConfig();
+
+                // 加载配置（优先从数据库，没有则从JS文件）
+                await loadConfig();
+
+                // 绑定搜索功能
+                document.getElementById('searchInput').addEventListener('input', handleSearch);
+
+                // 绑定ESC键关闭弹窗
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape') {
+                        closeModal();
+                    }
+                });
+
+            } catch (error) {
+                console.error('❌ 初始化失败:', error);
+                showError('页面初始化失败: ' + error.message);
+            }
+        });
+
+        // 加载样式配置（优先数据库，没有则从JS文件）
+        async function loadStyleConfig() {
+            try {
+                console.log('🔄 开始加载样式配置...');
+                
+                // 1. 先检查数据库
+                const styleText = await IDB.get(STYLE_KEY, 'userdata');
+                
+                if (styleText) {
+                    console.log('✅ 样式配置数据库命中');
+                    applyStyleConfig(styleText);
+                } else {
+                    console.log('⚠️ 样式配置数据库未命中，使用JS文件');
+                    
+                    // 2. 数据库没有，从JS文件获取
+                    if (typeof styleConfig !== 'undefined') {
+                        const styleString = JSON.stringify(styleConfig);
+                        
+                        // 存储到数据库
+                        await IDB.put(STYLE_KEY, styleString, 'userdata');
+                        console.log('✅ 样式配置已缓存到数据库');
+                        
+                        applyStyleConfig(styleString);
+                    } else {
+                        throw new Error('样式配置文件未找到');
+                    }
+                }
+            } catch (error) {
+                console.error('❌ 加载样式配置失败:', error);
+                throw error;
+            }
+        }
+
+        // 应用样式配置
+        function applyStyleConfig(styleText) {
+            try {
+                const styleConfig = JSON.parse(styleText);
+                
+                // 创建style标签并插入CSS
+                const styleElement = document.createElement('style');
+                styleElement.textContent = styleConfig.css;
+                document.head.appendChild(styleElement);
+                
+                // 保存反转义函数到全局
+                window.unescapeContent = styleConfig.unescapeContent;
+                
+                console.log('✅ 样式配置应用成功');
+            } catch (error) {
+                console.error('❌ 应用样式配置失败:', error);
+                throw error;
+            }
+        }
+
+        // 加载配置（优先数据库，没有则从JS文件）
+        async function loadConfig() {
+            try {
+                console.log('🔄 开始加载配置...');
+                
+                // 1. 先检查数据库
+                const configText = await IDB.get(CONFIG_KEY, 'userdata');
+                
+                if (configText) {
+                    console.log('✅ 数据库命中，使用缓存配置');
+                    
+                    // 执行配置代码
+                    executeConfig(configText);
+                    
+                    // 初始化文件列表
+                    initializeFileList();
+                    
+                    // 加载阅读进度
+                    const savedProgress = await IDB.get('E_readingProgress', 'userdata');
+                    if (savedProgress) {
+                        currentFileIndex = savedProgress.index || 0;
+                    }
+                } else {
+                    console.log('⚠️ 数据库未命中，尝试从JS文件加载');
+                    
+                    // 2. 数据库没有，从JS文件获取
+                    if (typeof codeFiles !== 'undefined') {
+                        console.log('✅ 从JS文件加载配置成功');
+                        
+                        // 将配置序列化存储到数据库
+                        const configString = JSON.stringify({
+                            codeFiles: codeFiles,
+                            codeFilesMeta: typeof codeFilesMeta !== 'undefined' ? codeFilesMeta : {}
+                        });
+                        
+                        await IDB.put(CONFIG_KEY, configString, 'userdata');
+                        console.log('✅ 配置已缓存到数据库');
+                        
+                        // 初始化文件列表
+                        initializeFileList();
+                    } else {
+                        console.error('❌ JS文件中未找到codeFiles');
+                        showError('配置文件格式错误，未找到codeFiles');
+                    }
+                }
+            } catch (error) {
+                console.error('❌ 加载配置失败:', error);
+                showError('加载配置失败: ' + error.message);
+            }
+        }
+
+        // 执行配置代码
+        function executeConfig(configText) {
+            try {
+                if (typeof configText === 'string') {
+                    // 如果是字符串，解析为JSON
+                    const config = JSON.parse(configText);
+                    if (config.codeFiles) {
+                        window.codeFiles = config.codeFiles;
+                    }
+                    if (config.codeFilesMeta) {
+                        window.codeFilesMeta = config.codeFilesMeta;
+                    }
+                }
+                console.log('✅ 配置代码执行成功');
+            } catch (error) {
+                console.error('❌ 配置代码执行失败:', error);
+                throw error;
+            }
+        }
+
+        // 初始化文件列表
+        function initializeFileList() {
+            if (typeof codeFiles !== 'undefined') {
+                allFiles = Object.keys(codeFiles).map(varName => ({
+                    variableName: varName,
+                    filename: codeFiles[varName].filename,
+                    content: codeFiles[varName].content,
+                    size: codeFiles[varName].size,
+                    modTime: codeFiles[varName].modTime,
+                    index: codeFiles[varName].index
+                }));
+
+                // 按索引排序
+                allFiles.sort((a, b) => a.index - b.index);
+
+                // 更新统计信息
+                document.getElementById('totalFiles').textContent = allFiles.length;
+                document.getElementById('fileCount').textContent = `共 ${allFiles.length} 个文件`;
+
+                // 渲染文件列表
+                renderFileList();
+                
+                console.log(`✅ 已加载 ${allFiles.length} 个文件`);
+            } else {
+                showError('配置数据格式错误');
+            }
+        }
+
+        // 渲染文件列表
+        function renderFileList(searchResults = null) {
+            const fileList = document.getElementById('fileList');
+            const filesToShow = searchResults || allFiles;
+            
+            fileList.innerHTML = '';
+            filesToShow.forEach((file, index) => {
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-item';
+                const actualIndex = allFiles.findIndex(f => f.variableName === file.variableName);
+                if (actualIndex === currentFileIndex && !searchResults) {
+                    fileItem.classList.add('active');
+                }
+                
+                fileItem.innerHTML = `
+                    <div class="file-info">
+                        <div class="file-name">${file.index}. ${file.filename}</div>
+                        <div class="file-meta">${file.modTime}</div>
+                    </div>
+                    <div class="file-size">${formatFileSize(file.size)}</div>
+                `;
+                
+                fileItem.onclick = () => {
+                    openFileInModal(actualIndex);
+                };
+                
+                fileList.appendChild(fileItem);
+            });
+        }
+
+        // 格式化文件大小
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+        }
+
+        // 在弹窗中打开文件
+        function openFileInModal(index) {
+            if (index < 0 || index >= allFiles.length) return;
+
+            currentFileIndex = index;
+            const file = allFiles[index];
+
+            // 更新弹窗标题
+            document.getElementById('modalTitle').textContent = `${file.index}. ${file.filename}`;
+
+            // 更新内容区域 - 修复换行问题
+            const contentArea = document.getElementById('modalContent');
+            let content = file.content;
+
+            // 使用反转义函数修复\n问题
+            if (window.unescapeContent) {
+                content = window.unescapeContent(content);
+            }
+
+            // 检测文件类型并应用语法高亮
+            const extension = file.filename.split('.').pop().toLowerCase();
+            let languageClass = '';
+            
+            switch(extension) {
+                case 'js': languageClass = 'language-javascript'; break;
+                case 'py': languageClass = 'language-python'; break;
+                case 'java': languageClass = 'language-java'; break;
+                case 'c': case 'cpp': case 'h': case 'hpp': languageClass = 'language-cpp'; break;
+                case 'css': languageClass = 'language-css'; break;
+                case 'html': case 'htm': languageClass = 'language-html'; break;
+                case 'json': languageClass = 'language-json'; break;
+                case 'sql': languageClass = 'language-sql'; break;
+                case 'sh': case 'bash': languageClass = 'language-bash'; break;
+                case 'xml': languageClass = 'language-xml'; break;
+                case 'yaml': case 'yml': languageClass = 'language-yaml'; break;
+                case 'md': languageClass = 'language-markdown'; break;
+                default: languageClass = 'language-text';
+            }
+
+            contentArea.innerHTML = `<pre><code class="${languageClass}">${content.replace(/\\n/g, '\n')}</code></pre>`;
+
+            // 应用语法高亮
+            if (typeof Prism !== 'undefined') {
+                Prism.highlightAll();
+            }
+
+            // 更新导航
+            updateModalNavigation();
+
+            // 更新统计信息
+            updateStats();
+
+            // 保存阅读进度到数据库
+            IDB.put('E_readingProgress', { index: currentFileIndex }, 'userdata');
+
+            // 更新文件列表激活状态
+            renderFileList();
+
+            // 显示弹窗
+            document.getElementById('fileModal').classList.add('active');
+        }
+
+        // 关闭弹窗
+        function closeModal() {
+            document.getElementById('fileModal').classList.remove('active');
+        }
+
+        // 更新弹窗导航
+        function updateModalNavigation() {
+            const prevBtn = document.getElementById('modalPrevBtn');
+            const nextBtn = document.getElementById('modalNextBtn');
+            const pageInfo = document.getElementById('modalPageInfo');
+
+            prevBtn.disabled = currentFileIndex <= 0;
+            nextBtn.disabled = currentFileIndex >= allFiles.length - 1;
+
+            if (allFiles.length > 0) {
+                pageInfo.textContent = `${currentFileIndex + 1} / ${allFiles.length}`;
+            } else {
+                pageInfo.textContent = '无文件';
+            }
+        }
+
+        // 弹窗中的导航功能
+        function previousFileInModal() {
+            if (currentFileIndex > 0) {
+                openFileInModal(currentFileIndex - 1);
+            }
+        }
+
+        function nextFileInModal() {
+            if (currentFileIndex < allFiles.length - 1) {
+                openFileInModal(currentFileIndex + 1);
+            }
+        }
+
+        // 更新统计信息
+        function updateStats() {
+            document.getElementById('currentFile').textContent = currentFileIndex + 1;
+            const progress = Math.round(((currentFileIndex + 1) / allFiles.length) * 100);
+            document.getElementById('readProgress').textContent = progress + '%';
+            document.getElementById('progressBar').style.width = progress + '%';
+        }
+
+        // 搜索功能
+        function handleSearch(event) {
+            const keyword = event.target.value.toLowerCase();
+            
+            if (!keyword) {
+                renderFileList();
+                return;
+            }
+
+            const results = allFiles.filter(file => 
+                file.filename.toLowerCase().includes(keyword) ||
+                file.content.toLowerCase().includes(keyword)
+            );
+
+            renderFileList(results);
+        }
+
+        // 主题切换
+        function switchTheme() {
+            const body = document.body;
+            const themeBtn = document.querySelector('.theme-btn');
+            
+            if (body.getAttribute('data-theme') === 'light') {
+                body.removeAttribute('data-theme');
+                themeBtn.textContent = '🌙';
+                localStorage.setItem('theme', 'dark');
+            } else {
+                body.setAttribute('data-theme', 'light');
+                themeBtn.textContent = '☀️';
+                localStorage.setItem('theme', 'light');
+            }
+        }
+
+        function loadTheme() {
+            const savedTheme = localStorage.getItem('theme');
+            const themeBtn = document.querySelector('.theme-btn');
+            
+            if (savedTheme === 'light') {
+                document.body.setAttribute('data-theme', 'light');
+                themeBtn.textContent = '☀️';
+            }
+        }
+
+        // HTML转义
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, m => map[m]);
+        }
+
+        // 错误显示
+        function showError(message) {
+            const fileList = document.getElementById('fileList');
+            fileList.innerHTML = `
+                <div style="text-align: center; color: #ff4444; padding: 50px;">
+                    <h3>❌ 错误</h3>
+                    <p>${message}</p>
+                </div>
+            `;
+        }
+    </script>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📚 代码文件阅读器</h1>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressBar"></div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="controls">
+                <div class="search-box">
+                    <input type="text" class="search-input" id="searchInput" placeholder="搜索文件名...">
+                </div>
+                <div class="stats">
+                    <div class="stat-item">
+                        <span>文件:</span>
+                        <span class="stat-value" id="totalFiles">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span>当前:</span>
+                        <span class="stat-value" id="currentFile">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span>进度:</span>
+                        <span class="stat-value" id="readProgress">0%</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="file-list-container">
+                <div class="file-list-header">
+                    <span>📁 文件列表</span>
+                    <span id="fileCount">共 0 个文件</span>
+                </div>
+                <div class="file-list" id="fileList">
+                    <div class="loading">
+                        <div class="loading-spinner"></div>
+                        正在加载文件列表...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主题切换器 -->
+    <div class="theme-switcher">
+        <button class="theme-btn" onclick="switchTheme()">🌙</button>
+    </div>
+
+    <!-- 文件阅读弹窗 -->
+    <div class="modal" id="fileModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title" id="modalTitle">文件名</div>
+                <button class="modal-close" onclick="closeModal()">✕ 关闭</button>
+            </div>
+            <div class="modal-body">
+                <div class="content-area" id="modalContent">
+                    <div class="loading">
+                        <div class="loading-spinner"></div>
+                        正在加载内容...
+                    </div>
+                </div>
+            </div>
+            <div class="modal-navigation">
+                <button class="nav-button" id="modalPrevBtn" onclick="previousFileInModal()">⬅️ 上一个</button>
+                <div class="stat-value" id="modalPageInfo">1 / 1</div>
+                <button class="nav-button" id="modalNextBtn" onclick="nextFileInModal()">下一个 ➡️</button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

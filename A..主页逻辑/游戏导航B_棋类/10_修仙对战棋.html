@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>仙家对战棋- 暗棋版</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { display: flex; flex-direction: column; align-items: center; background-color: #f0e6d6; padding: 10px 0; font-family: 'Microsoft YaHei', sans-serif; overflow: hidden; height: 100vh; }
+.game-container { width: 100%; max-width: 500px; margin: 0 auto; display: flex; flex-direction: column; height: 100%; }
+#stats { background: rgba(255, 255, 255, 0.95); padding: 10px; margin-bottom: 10px; border-radius: 10px; text-align: center; font-size: 16px; font-weight: bold; color: #5a3e2b; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+#status { background: rgba(255, 255, 255, 0.9); padding: 12px; margin-bottom: 15px; border-radius: 10px; text-align: center; font-size: 18px; font-weight: bold; color: #5a3e2b; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+#game-board { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; padding: 15px; background: #c2b280; border-radius: 10px; box-shadow: 0 8px 16px rgba(0,0,0,0.2); position: relative; flex-grow: 1; }
+#game-board::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-image: linear-gradient(to right, #8b7355 1px, transparent 1px), linear-gradient(to bottom, #8b7355 1px, transparent 1px); background-size: calc(100% / 6) calc(100% / 6); border-radius: 10px; pointer-events: none; opacity: 0.3; }
+.chess-piece { aspect-ratio: 1; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; cursor: pointer; transition: all 0.3s ease; position: relative; overflow: hidden; background-color: #8b7355; border: 2px solid #5a3e2b; }
+.chess-piece.hidden { background: linear-gradient(135deg, #8b7355 0%, #6b5635 100%); color: transparent; }
+.chess-piece.hidden::after { content: '?'; position: absolute; color: #f0e6d6; font-size: 24px; font-weight: bold; }
+.chess-piece.empty { background: transparent; border: 2px dashed #8b7355; cursor: pointer; }
+.chess-piece.empty:hover { background: rgba(139, 115, 85, 0.1); }
+.chess-piece::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255,255,255,0.2); transform: translateX(-100%); transition: transform 0.3s; }
+.chess-piece:hover::before { transform: translateX(0); }
+.camp-red { background-color: #e63946; color: white; }
+.camp-blue { background-color: #457b9d; color: white; }
+.camp-green { background-color: #2a9d8f; color: white; }
+.selected { transform: scale(1.15); box-shadow: 0 0 20px #FFD700, 0 0 40px #FFD700; animation: pulse 1s infinite; }
+@keyframes pulse { 0%, 100% { transform: scale(1.15); } 50% { transform: scale(1.25); } }
+.valid-move { box-shadow: inset 0 0 15px #00FF00, 0 0 10px #00FF00; animation: glow 0.8s infinite alternate; }
+@keyframes glow { from { box-shadow: inset 0 0 15px #00FF00, 0 0 10px #00FF00; } to { box-shadow: inset 0 0 25px #00FF00, 0 0 20px #00FF00; } }
+.captured { animation: capture 0.5s forwards; }
+@keyframes capture { 0% { transform: scale(1) rotate(0deg); opacity: 1; } 50% { transform: scale(1.3) rotate(180deg); } 100% { transform: scale(0) rotate(360deg); opacity: 0; } }
+.flipping { animation: flip 0.6s ease-in-out; }
+@keyframes flip { 0% { transform: rotateY(0deg); } 50% { transform: rotateY(90deg); } 100% { transform: rotateY(0deg); } }
+#game-over { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #5a3e2b; color: white; padding: 30px; border-radius: 20px; text-align: center; display: none; z-index: 1000; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+#game-over h2 { font-size: 28px; margin-bottom: 20px; }
+#game-over button { margin-top: 15px; padding: 12px 30px; font-size: 18px; cursor: pointer; background: white; color: #5a3e2b; border: none; border-radius: 10px; font-weight: bold; transition: all 0.3s; }
+#game-over button:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
+.score-board { background: rgba(255, 255, 255, 0.9); padding: 10px; margin-bottom: 10px; border-radius: 10px; display: flex; justify-content: space-around; font-size: 14px; }
+.score-item { text-align: center; }
+.score-item .camp-name { font-weight: bold; margin-bottom: 5px; }
+.score-item .base-count { font-size: 20px; font-weight: bold; }
+.turn-indicator { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-left: 5px; animation: blink 1s infinite; }
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+.rules { background: rgba(255, 255, 255, 0.9); padding: 15px; margin-top: 15px; border-radius: 10px; font-size: 14px; color: #5a3e2b; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-height: 30vh; overflow-y: auto; }
+.rules h3 { margin-bottom: 10px; text-align: center; color: #2a9d8f; }
+.rules p { margin: 5px 0; line-height: 1.5; }
+</style>
+</head>
+<body>
+<div class="game-container">
+<div id="stats">胜: 0 | 负: 0</div>
+<div id="status">点击棋子翻面开始游戏</div>
+<div class="score-board">
+<div class="score-item">
+<div class="camp-name" style="color: #e63946;">红方(你)</div>
+<div class="base-count" id="red-bases">6</div>
+</div>
+<div class="score-item">
+<div class="camp-name" style="color: #457b9d;">蓝方(凉安)</div>
+<div class="base-count" id="blue-bases">6</div>
+</div>
+<div class="score-item">
+<div class="camp-name" style="color: #2a9d8f;">绿方(凤九歌)</div>
+<div class="base-count" id="green-bases">6</div>
+</div>
+</div>
+<div id="game-board"></div>
+<div class="rules">
+<h3>游戏规则</h3>
+<p>1. 空白位置不能翻转，但棋子可以移动到空白位置</p>
+<p>2. 三方对战：玩家（红方）对抗两个AI（凉安和凤九歌）</p>
+<p>3. 移动规则：所有棋子可向上、下、左、右移动一格</p>
+<p>4. 吃子规则：</p>
+<p style="margin-left:20px;">• 化神：可吃元婴、结丹、筑基</p>
+<p style="margin-left:20px;">• 元婴：可吃结丹、筑基</p>
+<p style="margin-left:20px;">• 结丹：可吃筑基</p>
+<p style="margin-left:20px;">• 筑基：可吃化神（特殊克制）</p>
+<p>5. 棋子数量：每方1 化神、2 元婴、3 结丹、6 筑基</p>
+<p>6. 胜负判定：失去所有筑基的一方失败。若玩家失败则游戏结束；若只剩一方有筑基 则该方获胜</p>
+</div>
+</div>
+<div id="game-over">
+<h2 id="game-result"></h2>
+<button onclick="resetGame()">再来一局</button>
+</div>
+<script>
+// 游戏配置
+const PIECE_TYPES = ['化神', '元婴', '结丹', '筑基'];
+const PIECE_COUNTS = [1, 2, 3, 6];
+const CAMPS = ['red', 'blue', 'green'];
+const BOARD_SIZE = 6;
+
+// 吃子规则
+const CAN_EAT = {
+    '化神': ['元婴', '结丹', '筑基'],
+    '元婴': ['结丹', '筑基'],
+    '结丹': ['筑基'],
+    '筑基': ['化神']
+};
+
+// 游戏状态
+let pieces = [];
+let revealed = [];
+let selectedPiece = null;
+let playerCamp = 'red';
+let currentTurn = 'red';
+let gameActive = true;
+let turnOrder = ['red', 'blue', 'green'];
+let currentTurnIndex = 0;
+
+const gameBoard = document.getElementById('game-board');
+const statusText = document.getElementById('status');
+const gameOverDiv = document.getElementById('game-over');
+const gameResult = document.getElementById('game-result');
+const statsDiv = document.getElementById('stats');
+
+// 统计功能
+function loadStats() {
+    const stats = localStorage.getItem('gameStats');
+    if (stats) {
+        return JSON.parse(stats);
+    }
+    return { wins: 0, losses: 0 };
+}
+
+function saveStats(wins, losses) {
+    localStorage.setItem('gameStats', JSON.stringify({ wins, losses }));
+}
+
+function updateStatsDisplay() {
+    const stats = loadStats();
+    statsDiv.textContent = `胜: ${stats.wins} | 负: ${stats.losses}`;
+}
+
+// 初始化棋盘
+function initBoard() {
+    pieces = new Array(BOARD_SIZE * BOARD_SIZE).fill(null);
+    revealed = new Array(BOARD_SIZE * BOARD_SIZE).fill(false);
+    selectedPiece = null;
+    currentTurnIndex = 0;
+    currentTurn = turnOrder[currentTurnIndex];
+    gameActive = true;
+    gameOverDiv.style.display = 'none';
+    gameBoard.innerHTML = '';
+
+    // 生成所有棋子
+    const allPieces = [];
+    CAMPS.forEach(camp => {
+        PIECE_TYPES.forEach((type, idx) => {
+            for (let i = 0; i < PIECE_COUNTS[idx]; i++) {
+                allPieces.push({ type, camp });
+            }
+        });
+    });
+
+    // 随机打乱棋子顺序
+    allPieces.sort(() => Math.random() - 0.5);
+
+    // 创建棋盘
+    for (let i = 0; i < BOARD_SIZE * BOARD_SIZE; i++) {
+        pieces[i] = allPieces[i];
+        const div = document.createElement('div');
+        div.className = 'chess-piece hidden';
+        div.dataset.index = i;
+        div.onclick = () => handleCellClick(i);
+        gameBoard.appendChild(div);
+    }
+    updateStatus();
+    updateBaseCounts();
+}
+
+// 更新单元格
+function updateCell(index) {
+    const cell = gameBoard.children[index];
+    const piece = pieces[index];
+
+    // 如果没有棋子，显示为空白
+    if (!piece) {
+        cell.textContent = '';
+        cell.className = 'chess-piece empty';
+        cell.onclick = () => handleCellClick(index); // 恢复点击事件
+        return;
+    }
+
+    // 恢复点击事件
+    cell.onclick = () => handleCellClick(index);
+
+    // 如果有棋子但未翻开
+    if (!revealed[index]) {
+        cell.textContent = '';
+        cell.className = 'chess-piece hidden';
+    } else {
+        // 已翻开的棋子
+        cell.textContent = piece.type;
+        cell.className = `chess-piece camp-${piece.camp}`;
+    }
+}
+
+// 处理点击
+function handleCellClick(index) {
+    if (!gameActive || currentTurn !== playerCamp) return;
+    const piece = pieces[index];
+
+    // 如果棋子未翻开，翻开它
+    if (!revealed[index] && piece) {
+        revealPiece(index);
+        return;
+    }
+
+    // 如果是自己的棋子，选中它
+    if (piece && piece.camp === playerCamp && revealed[index]) {
+        selectPiece(index);
+    }
+    // 如果已选中棋子，尝试移动
+    else if (selectedPiece !== null) {
+        tryMove(selectedPiece, index);
+    }
+}
+
+// 翻开棋子
+function revealPiece(index) {
+    // 空白位置不能翻转
+    if (!pieces[index]) return;
+    
+    revealed[index] = true;
+    const cell = gameBoard.children[index];
+    cell.classList.add('flipping');
+
+    setTimeout(() => {
+        updateCell(index);
+        cell.classList.remove('flipping');
+        nextTurn();
+    }, 600);
+}
+
+// 选中棋子
+function selectPiece(index) {
+    document.querySelectorAll('.selected, .valid-move').forEach(el => el.classList.remove('selected', 'valid-move'));
+    selectedPiece = index;
+    gameBoard.children[index].classList.add('selected');
+
+    const validMoves = getValidMoves(index);
+    validMoves.forEach(moveIndex => {
+        gameBoard.children[moveIndex].classList.add('valid-move');
+    });
+}
+
+// 获取有效移动
+function getValidMoves(index) {
+    const moves = [];
+    const row = Math.floor(index / BOARD_SIZE);
+    const col = index % BOARD_SIZE;
+    const piece = pieces[index];
+
+    if (!piece || !revealed[index]) return moves;
+
+    // 四个方向：上、下、左、右
+    const directions = [
+        [-1, 0], [1, 0], [0, -1], [0, 1]
+    ];
+
+    for (const [dr, dc] of directions) {
+        const newRow = row + dr;
+        const newCol = col + dc;
+
+        if (newRow >= 0 && newRow < BOARD_SIZE && newCol >= 0 && newCol < BOARD_SIZE) {
+            const newIndex = newRow * BOARD_SIZE + newCol;
+            const target = pieces[newIndex];
+
+            // 可以移动到空格、未翻开的格子或敌方棋子
+            if (!target || !revealed[newIndex] || target.camp !== piece.camp) {
+                moves.push(newIndex);
+            }
+        }
+    }
+    return moves;
+}
+
+// 尝试移动- 参考明棋版的逻辑
+function tryMove(from, to) {
+    const validMoves = getValidMoves(from);
+    if (!validMoves.includes(to)) return;
+
+    const piece = pieces[from];
+    const target = pieces[to];
+
+    // 清除选中状态
+    selectedPiece = null;
+    document.querySelectorAll('.selected, .valid-move').forEach(el => el.classList.remove('selected', 'valid-move'));
+
+    // 如果目标位置是空格，直接移动（像明棋版一样）
+    if (!target) {
+        movePiece(from, to);
+        return;
+    }
+
+    // 如果目标位置未翻开，翻开它
+    if (!revealed[to]) {
+        revealed[to] = true;
+        const targetCell = gameBoard.children[to];
+        targetCell.classList.add('flipping');
+
+        setTimeout(() => {
+            updateCell(to);
+            targetCell.classList.remove('flipping');
+
+            // 翻开后检查是否可以吃子
+            const revealedTarget = pieces[to];
+            if (revealedTarget && revealedTarget.camp !== piece.camp) {
+                if (CAN_EAT[piece.type].includes(revealedTarget.type)) {
+                    captureAndMove(from, to);
+                }
+                else if (piece.type === revealedTarget.type) {
+                    bothDisappear(from, to);
+                }
+                else {
+                    // 不能吃，移动失败
+                    nextTurn();
+                }
+            }
+            else {
+                // 己方棋子或空格，不能移动
+                nextTurn();
+            }
+        }, 600);
+    }
+    else {
+        // 目标位置已翻开
+        if (target.camp !== piece.camp) {
+            if (CAN_EAT[piece.type].includes(target.type)) {
+                captureAndMove(from, to);
+            }
+            else if (piece.type === target.type) {
+                bothDisappear(from, to);
+            }
+            else {
+                nextTurn();
+            }
+        }
+        else {
+            // 己方棋子，不能移动
+            nextTurn();
+        }
+    }
+}
+
+// 移动棋子- 修复版本
+function movePiece(from, to) {
+    // 保存原位置的翻开状态
+    const wasRevealed = revealed[from];
+
+    // 移动棋子
+    pieces[to] = pieces[from];
+    pieces[from] = null;
+
+    // 转移翻开状态
+    revealed[to] = wasRevealed;
+    revealed[from] = false;
+
+    // 更新显示
+    updateCell(from);
+    updateCell(to);
+    nextTurn();
+}
+
+// 吃子并移动
+function captureAndMove(from, to) {
+    const targetCell = gameBoard.children[to];
+    targetCell.classList.add('captured');
+
+    setTimeout(() => {
+        // 保存原位置的翻开状态
+        const wasRevealed = revealed[from];
+
+        // 吃子后，攻击方移动到目标位置，原位置变空
+        pieces[to] = pieces[from];
+        pieces[from] = null;
+
+        // 转移翻开状态
+        revealed[to] = wasRevealed;
+        revealed[from] = false;
+
+        updateCell(from); // 更新原位置为空白
+        updateCell(to); // 更新目标位置
+        updateBaseCounts();
+        checkGameOver();
+
+        if (gameActive) nextTurn();
+    }, 500);
+}
+
+// 双方都消失
+function bothDisappear(from, to) {
+    const fromCell = gameBoard.children[from];
+    const toCell = gameBoard.children[to];
+    fromCell.classList.add('captured');
+    toCell.classList.add('captured');
+
+    setTimeout(() => {
+        pieces[from] = null;
+        pieces[to] = null;
+        revealed[from] = false;
+        revealed[to] = false;
+
+        updateCell(from); // 更新为空白
+        updateCell(to); // 更新为空白
+        updateBaseCounts();
+        checkGameOver();
+        if (gameActive) nextTurn();
+    }, 500);
+}
+
+// 切换回合
+function nextTurn() {
+    currentTurnIndex = (currentTurnIndex + 1) % 3;
+    currentTurn = turnOrder[currentTurnIndex];
+    updateStatus();
+
+    if (currentTurn !== playerCamp && gameActive) {
+        setTimeout(aiMove, 1000);
+    }
+}
+
+// AI 移动- 优化版，优先吃子
+function aiMove() {
+    if (!gameActive) return;
+
+    // 获取AI 的所有已翻开棋子
+    const aiPieces = [];
+    pieces.forEach((p, i) => {
+        if (p && p.camp === currentTurn && revealed[i]) {
+            aiPieces.push({ piece: p, index: i });
+        }
+    });
+
+    // 评估所有可能的吃子移动
+    const captureMoves = [];
+    for (const { piece, index } of aiPieces) {
+        const moves = getValidMoves(index);
+        for (const move of moves) {
+            const target = pieces[move];
+            if (target && revealed[move] && target.camp !== currentTurn) {
+                if (CAN_EAT[piece.type].includes(target.type)) {
+                    captureMoves.push({
+                        from: index,
+                        to: move,
+                        score: target.type === '筑基' ? 200 : 100
+                    });
+                }
+            }
+        }
+    }
+
+    // 如果有吃子机会，选择最佳吃子
+    if (captureMoves.length > 0) {
+        captureMoves.sort((a, b) => b.score - a.score);
+        const bestCapture = captureMoves[0];
+        tryMove(bestCapture.from, bestCapture.to);
+        return;
+    }
+
+    // 获取所有未翻开的格子
+    const hiddenCells = [];
+    for (let i = 0; i < pieces.length; i++) {
+        if (!revealed[i] && pieces[i]) {
+            hiddenCells.push(i);
+        }
+    }
+
+    // 评估翻开后可能的吃子机会
+    const revealMoves = [];
+    for (const hiddenIndex of hiddenCells) {
+        const row = Math.floor(hiddenIndex / BOARD_SIZE);
+        const col = hiddenIndex % BOARD_SIZE;
+        let potentialScore = 0;
+
+        // 检查周围是否有AI 的棋子可以吃这个位置的棋子
+        const directions = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+        for (const [dr, dc] of directions) {
+            const newRow = row + dr;
+            const newCol = col + dc;
+            if (newRow >= 0 && newRow < BOARD_SIZE && newCol >= 0 && newCol < BOARD_SIZE) {
+                const neighborIndex = newRow * BOARD_SIZE + newCol;
+                const neighbor = pieces[neighborIndex];
+                if (neighbor && neighbor.camp === currentTurn && revealed[neighborIndex]) {
+                    // 如果这个位置是敌方棋子且能被吃，加分
+                    const hiddenPiece = pieces[hiddenIndex];
+                    if (hiddenPiece && hiddenPiece.camp !== currentTurn) {
+                        if (CAN_EAT[neighbor.type].includes(hiddenPiece.type)) {
+                            potentialScore += hiddenPiece.type === '筑基' ? 150 : 50;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (potentialScore > 0) {
+            revealMoves.push({ index: hiddenIndex, score: potentialScore });
+        }
+    }
+
+    // 如果有潜在吃子机会，优先翻这些棋
+    if (revealMoves.length > 0) {
+        revealMoves.sort((a, b) => b.score - a.score);
+        revealPiece(revealMoves[0].index);
+        return;
+    }
+
+    // 随机翻一个未翻开的棋子
+    if (hiddenCells.length > 0) {
+        const randomIndex = hiddenCells[Math.floor(Math.random() * hiddenCells.length)];
+        revealPiece(randomIndex);
+    }
+    else {
+        // 没有未翻开的棋子，随机移动到空格
+        const allMoves = [];
+        for (const { piece, index } of aiPieces) {
+            const moves = getValidMoves(index);
+            for (const move of moves) {
+                if (!pieces[move]) { // 只移动到空格
+                    allMoves.push({ from: index, to: move });
+                }
+            }
+        }
+
+        if (allMoves.length > 0) {
+            const randomMove = allMoves[Math.floor(Math.random() * allMoves.length)];
+            tryMove(randomMove.from, randomMove.to);
+        }
+        else {
+            nextTurn();
+        }
+    }
+}
+
+// 检查游戏结束
+function checkGameOver() {
+    const baseCount = { red: 0, blue: 0, green: 0 };
+    pieces.forEach(p => {
+        if (p && p.type === '筑基') {
+            baseCount[p.camp]++;
+        }
+    });
+
+    // 检查是否有阵营失去所有筑基
+    for (const camp of CAMPS) {
+        if (baseCount[camp] === 0) {
+            // 清除该阵营所有棋子
+            pieces.forEach((p, i) => {
+                if (p && p.camp === camp) {
+                    pieces[i] = null;
+                    revealed[i] = false;
+                    if (gameBoard.children[i]) {
+                        gameBoard.children[i].classList.add('captured');
+                    }
+                }
+            });
+
+            setTimeout(() => {
+                for (let i = 0; i < pieces.length; i++) {
+                    updateCell(i); // 更新所有位置，包括空位
+                }
+                updateBaseCounts();
+
+                if (camp === playerCamp) {
+                    endGame('游戏结束！你输了！');
+                    const stats = loadStats();
+                    saveStats(stats.wins, stats.losses + 1);
+                    updateStatsDisplay();
+                }
+                else {
+                    const activeCamps = CAMPS.filter(c => baseCount[c] > 0);
+                    if (activeCamps.length === 1) {
+                        endGame('恭喜！你赢了！');
+                        const stats = loadStats();
+                        saveStats(stats.wins + 1, stats.losses);
+                        updateStatsDisplay();
+                    }
+                }
+            }, 500);
+            return;
+        }
+    }
+}
+
+// 结束游戏
+function endGame(msg) {
+    gameActive = false;
+    gameResult.textContent = msg;
+    gameOverDiv.style.display = 'block';
+}
+
+// 更新状态
+function updateStatus() {
+    const names = {
+        red: '红方(你)',
+        blue: '蓝方(凉安)',
+        green: '绿方(凤九歌)'
+    };
+    const colors = {
+        red: '#e63946',
+        blue: '#457b9d',
+        green: '#2a9d8f'
+    };
+
+    statusText.innerHTML = `当前回合：${names[currentTurn]}<span class="turn-indicator" style="background: ${colors[currentTurn]}"></span>`;
+}
+
+// 更新筑基数量显示
+function updateBaseCounts() {
+    const counts = { red: 0, blue: 0, green: 0 };
+    pieces.forEach(p => {
+        if (p && p.type === '筑基') {
+            counts[p.camp]++;
+        }
+    });
+
+    document.getElementById('red-bases').textContent = counts.red;
+    document.getElementById('blue-bases').textContent = counts.blue;
+    document.getElementById('green-bases').textContent = counts.green;
+}
+
+// 重置游戏
+function resetGame() {
+    initBoard();
+}
+
+// 初始化游戏
+updateStatsDisplay();
+initBoard();
+</script>
+</body>
+</html>

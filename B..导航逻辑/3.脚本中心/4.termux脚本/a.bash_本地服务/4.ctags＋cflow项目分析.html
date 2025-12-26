@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cflow + Ctags 交互式分析</title>
+    
+        <!-- prism.js 语法高亮   -->
+      <script src="/A2_全局中心/B_插件缓存-CDN/1.prism代码高亮/1.prism-css-白色主题.js"></script>   
+      <script src="/A2_全局中心/B_插件缓存-CDN/1.prism代码高亮/prism-core.min.js"></script>    <!-- 核心文件 -->
+      <script src="/A2_全局中心/B_插件缓存-CDN/1.prism代码高亮/prism-bash.min.js"></script>   <!-- Bash语言支持 -->
+    
+     <!-- 引入缩放插件 -->
+    <script src="/A2_全局中心/B_插件工具/3.插件_字体缩放.js"></script>
+    
+    <style>
+        /* 1. 基础样式重置 */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        /* 2. 页面主体样式 */
+        body { font-family: 'Consolas', 'Monaco', 'Courier New', monospace; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); color: #2c3e50; line-height: 1.6; padding: 20px; min-height: 100vh; }
+        
+        /* 3. 主容器 */
+        .container { max-width: 1200px; margin: 0 auto; animation: fadeIn 0.5s ease-in; }
+        
+        /* 4. 页面标题 */
+        h1 { color: #27ae60; margin-bottom: 30px; font-size: 28px; display: flex; align-items: center; gap: 12px; text-shadow: 0 2px 4px rgba(39, 174, 96, 0.2); animation: slideDown 0.6s ease-out; }
+        
+        /* 5. 代码块容器 */
+        .code-container { background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1); border: 1px solid #e1e8ed; transition: transform 0.3s ease, box-shadow 0.3s ease; }
+        
+        /* 6. 代码块悬停效果 */
+        .code-container:hover { transform: translateY(-2px); box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15); }
+        
+        /* 7. 代码头部 */
+        .code-header { background: linear-gradient(90deg, #f8f9fa 0%, #e9ecef 100%); padding: 15px 20px; border-bottom: 1px solid #dee2e6; display: flex; justify-content: space-between; align-items: center; }
+        
+        /* 8. 代码标题 */
+        .code-title { color: #6c757d; font-size: 14px; font-weight: 600; letter-spacing: 0.5px; }
+        
+        /* 9. 复制按钮 */
+        .copy-btn { background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%); color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.3s ease; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 4px rgba(39, 174, 96, 0.3); }
+        
+        /* 10. 复制按钮悬停效果 */
+        .copy-btn:hover { background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%); transform: scale(1.05); box-shadow: 0 4px 8px rgba(39, 174, 96, 0.4); }
+        
+        /* 11. 复制按钮已复制状态 */
+        .copy-btn.copied { background: linear-gradient(135deg, #3498db 0%, #2980b9 100%); }
+        
+        /* 12. 代码内容区 */
+        pre { background: #f8f9fa; padding: 20px; overflow-x: auto; font-size: 13px; line-height: 1.5; border-radius: 0 0 12px 12px; margin: 0; }
+        
+        /* 13. 代码标签 */
+        code { color: #495057; font-family: inherit; white-space: pre; }
+        
+        /* 14. 底部信息区 - 更紧凑 */
+        .info-section { margin-top: 20px; padding: 15px; background: rgba(255, 255, 255, 0.9); border-radius: 12px; backdrop-filter: blur(10px); border: 1px solid #e1e8ed; }
+        
+        /* 15. 信息区标题 */
+        .info-section h2 { color: #27ae60; margin-bottom: 8px; font-size: 18px; }
+        
+        /* 16. 信息网格布局 - 更紧凑 */
+        .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; margin-top: 10px; }
+        
+        /* 17. 信息项 - 更紧凑 */
+        .info-item { background: rgba(248, 249, 250, 0.9); padding: 10px; border-radius: 8px; border-left: 3px solid #27ae60; transition: transform 0.3s ease, box-shadow 0.3s ease; }
+        
+        /* 18. 信息项悬停效果 */
+        .info-item:hover { transform: translateX(5px); box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); }
+        
+        /* 19. 信息标签 - 更紧凑 */
+        .info-label { color: #6c757d; font-size: 11px; margin-bottom: 3px; text-transform: uppercase; letter-spacing: 0.5px; }
+        
+        /* 20. 信息内容 - 更紧凑 */
+        .info-content { color: #2c3e50; font-size: 12px; }
+        
+        /* 21. Toast提示 */
+        .toast { position: fixed; bottom: 20px; right: 20px; background: #27ae60; color: white; padding: 12px 20px; border-radius: 6px; font-size: 14px; z-index: 1000; opacity: 0; transform: translateY(10px); transition: all 0.3s ease; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); }
+        
+        /* 22. Toast显示状态 */
+        .toast.show { opacity: 1; transform: translateY(0); }
+        
+        /* 23. 响应式设计 */
+        @media (max-width: 768px) { body { padding: 10px; } pre { padding: 15px; font-size: 12px; } .info-grid { grid-template-columns: 1fr; } }
+        
+        /* 24. 动画定义 */
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        
+        /* 25. 滑入动画 */
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h3>Cflow + Ctags 交互式分析</h3>
+        
+        <div class="code-container">
+            <div class="code-header">
+                <span class="code-title">cflow＋ctags交互式分析.bash</span>
+                <button class="copy-btn" id="copyBtn">
+                    <span>📋</span>
+                    <span id="copyBtnText">复制</span>
+                </button>
+            </div>
+            <pre><code id="codeContent" class="language-bash">#!/bin/bash
+# 一键中文分析报告：调用树 + 符号列表，结果与源文件同目录
+set -euo pipefail
+
+# 1. 读取用户输入的文件路径，并进行有效性检查
+read -r -p "请输入要分析的 C 源文件路径（支持空格）: " SRC
+[[ -z "$SRC" ]] && { echo "❌ 未输入路径，退出"; exit 1; }
+SRC="${SRC%\"}"
+SRC="${SRC#\"}"
+[[ -f "$SRC" ]] || { echo "❌ 文件不存在：$SRC"; exit 1; }
+
+# 2. 获取文件信息并构建输出报告路径
+DIR=$(dirname "$SRC")
+BASE=$(basename "$SRC" | sed 's/\.[^.]*$//')
+REPORT="$DIR/${BASE}_分析报告.md"
+
+# 3. 写入 Markdown 报告的头部信息
+cat > "$REPORT" <<EOF
+# ${BASE}  中文分析报告
+> 文件：\`$SRC\`  
+> 生成时间：$(date "+%Y-%m-%d %H:%M:%S")
+
+---
+
+## 一、函数调用关系
+EOF
+
+# 4. 生成函数调用树部分，并添加序号
+echo "🔄 生成调用树 ..."
+if ! cflow "$SRC" 2>/dev/null | awk '
+BEGIN{idx=1}
+/^[^ \t]/{gsub(/<.*>/,"");gsub(/\(.*\)/,"");gsub(/^[ \t]+|[ \t]+$/,"");printf "%2d. %s\n",idx++,$0}
+/^[ \t]+/{gsub(/<.*>/,"");gsub(/\(.*\)/,"");gsub(/^[ \t]+|[ \t]+$/,"");printf "    ├─ %s\n",$0}
+' >> "$REPORT"; then
+   echo "⚠️  cflow 未安装或解析失败，已跳过调用树"
+fi
+
+# 5. 生成符号列表部分（中文归类，一行三列）
+echo "🔄 生成符号列表 ..."
+ctags --output-format=json \
+  --kinds-c=+c+d+e+f+g+l+m+n+p+s+t+u+v+x \
+  --kinds-c++=+c+d+e+f+g+l+m+n+p+s+t+u+v+x \
+  --fields=+iafkmnsSt \
+  --extras=+F+q+r \
+  "$SRC" 2>/dev/null \
+| jq -r 'select(.name|startswith("__anon")|not)|(.kind+"\t"+.name)' \
+| awk -v OFS="" '
+BEGIN{
+  map["f"]="函数"; map["p"]="原型"; map["d"]="宏定义"
+  map["s"]="结构体"; map["u"]="联合体"; map["e"]="枚举"
+  map["g"]="枚举值"; map["t"]="类型"; map["v"]="变量"
+  map["l"]="局部"; map["h"]="头文件"; map["x"]="外部变量"
+}
+{
+  k=(($1 in map)?map[$1]:$1); list[k]=list[k] (list[k]?" ":"") $2
+}
+END{
+  print "\n---\n## 二、符号列表"
+  idx=0
+  for(k in list){
+    n=split(list[k],arr," ")
+    printf "\n**%s**：\n",k
+    for(i=1;i<=n;i++){
+      idx++
+      printf " %2d. %-22s",idx,arr[i]
+      if(i%3==0) printf "\n"
+    }
+    if(n%3) printf "\n"
+  }
+}' >> "$REPORT"
+
+# 6. 输出完成信息
+echo "✅ 中文分析报告已生成：$REPORT"</code></pre>
+        </div>
+        
+        <div class="info-section">
+            <h2>📋 脚本说明</h2>
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label">🎯 功能</div>
+                    <div class="info-content">一键生成包含函数调用树和符号列表的中文分析报告</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">📁 输出</div>
+                    <div class="info-content">在源文件同目录生成 ${filename}_分析报告.md</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">⚡ 特性</div>
+                    <div class="info-content">函数调用树（带序号）、符号列表（中文分类、连续编号、三列对齐）</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">🛠️ 依赖</div>
+                    <div class="info-content">需要安装 cflow, ctags 和 jq 工具</div>
+                    <div class="info-label"> 一定要保存为bash文件再运行</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Toast 提示 -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // 1. 复制按钮点击事件处理
+        document.getElementById('copyBtn').addEventListener('click', function() {
+            const copyBtn = this;
+            const copyBtnText = document.getElementById('copyBtnText');
+            const toast = document.getElementById('toast');
+            
+            // 获取纯文本内容（去除HTML标签）
+            const codeElement = document.getElementById('codeContent');
+            const textContent = codeElement.textContent || codeElement.innerText;
+            
+            // 使用现代API复制
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(textContent).then(function() {
+                    // 显示成功提示
+                    handleCopySuccess(copyBtn, copyBtnText, toast);
+                }).catch(function(err) {
+                    showCopyError(copyBtn, copyBtnText, toast);
+                });
+            } else {
+                // 备用方法
+                fallbackCopy(textContent, copyBtn, copyBtnText, toast);
+            }
+        });
+        
+        // 2. 处理复制成功
+        function handleCopySuccess(copyBtn, copyBtnText, toast) {
+            copyBtn.classList.add('copied');
+            copyBtnText.textContent = '已复制';
+            
+            // 显示toast
+            toast.textContent = '✅ 脚本已复制到剪贴板';
+            toast.classList.add('show');
+            
+            // 2秒后恢复按钮状态
+            setTimeout(function() {
+                copyBtn.classList.remove('copied');
+                copyBtnText.textContent = '复制';
+            }, 2000);
+            
+            // 3秒后隐藏toast
+            setTimeout(function() {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+        
+        // 3. 备用复制方法
+        function fallbackCopy(text, copyBtn, copyBtnText, toast) {
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            textArea.style.position = 'fixed';
+            textArea.style.opacity = '0';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    handleCopySuccess(copyBtn, copyBtnText, toast);
+                } else {
+                    showCopyError(copyBtn, copyBtnText, toast);
+                }
+            } catch (err) {
+                showCopyError(copyBtn, copyBtnText, toast);
+            }
+            
+            document.body.removeChild(textArea);
+        }
+        
+        // 4. 显示复制错误
+        function showCopyError(copyBtn, copyBtnText, toast) {
+            // 显示错误提示
+            toast.textContent = '❌ 复制失败，请手动选择复制';
+            toast.style.background = '#e74c3c';
+            toast.classList.add('show');
+            
+            // 3秒后隐藏toast
+            setTimeout(function() {
+                toast.classList.remove('show');
+                toast.style.background = '#27ae60';
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

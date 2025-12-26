@@ -1,0 +1,1125 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JavaScript源码分析工具</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            min-height: 100vh;
+            padding: 15px;
+            color: #333;
+            transition: background 0.5s ease;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        header {
+            margin-bottom: 20px;
+            padding: 15px 20px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+            backdrop-filter: blur(10px);
+        }
+        
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        h1 {
+            color: #2c3e50;
+            font-size: 1.8rem;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            white-space: nowrap;
+        }
+        
+        .description {
+            color: #7f8c8d;
+            font-size: 0.95rem;
+        }
+        
+        /* 控制面板按钮 */
+        .settings-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 3px 12px rgba(102, 126, 234, 0.3);
+            flex-shrink: 0;
+        }
+        
+        .settings-btn:hover {
+            transform: rotate(90deg) scale(1.1);
+            box-shadow: 0 5px 18px rgba(102, 126, 234, 0.4);
+        }
+        
+        /* 模态框样式 */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            animation: fadeIn 0.3s ease;
+        }
+        
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .modal-content {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 380px;
+            width: 90%;
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .modal-header h3 {
+            color: #2c3e50;
+            font-size: 1.3rem;
+        }
+        
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 22px;
+            cursor: pointer;
+            color: #95a5a6;
+            transition: color 0.3s ease;
+        }
+        
+        .close-btn:hover {
+            color: #e74c3c;
+        }
+        
+        .option-item {
+            display: flex;
+            align-items: center;
+            margin: 12px 0;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            transition: background 0.3s ease;
+        }
+        
+        .option-item:hover {
+            background: #e9ecef;
+        }
+        
+        .option-item input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            margin-right: 12px;
+            cursor: pointer;
+        }
+        
+        .option-item label {
+            cursor: pointer;
+            font-size: 15px;
+            color: #2c3e50;
+        }
+        
+        .input-section {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 18px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+            backdrop-filter: blur(10px);
+        }
+        
+        textarea {
+            width: 100%;
+            height: 180px;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            resize: vertical;
+            margin-bottom: 12px;
+            transition: all 0.3s ease;
+        }
+        
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+.button-group {
+    display: flex;
+    gap: 10px;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+}
+
+        
+        button {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 3px 12px rgba(102, 126, 234, 0.3);
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 18px rgba(102, 126, 234, 0.4);
+        }
+        
+        .clear-btn {
+            background: linear-gradient(135deg, #f093fb, #f5576c);
+        }
+        
+        .copy-all-btn {
+            background: linear-gradient(135deg, #f77062, #fe5196);
+        }
+        
+        .results-section {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+        
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+            backdrop-filter: blur(10px);
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        
+        .card h2 {
+            color: #2c3e50;
+            font-size: 1.3rem;
+            margin: 0;
+        }
+        
+        /* 复制按钮样式 */
+        .copy-btn {
+            background: linear-gradient(135deg, #56ab2f, #a8e063);
+            color: white;
+            border: none;
+            padding: 6px 14px;
+            border-radius: 18px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(86, 171, 47, 0.3);
+        }
+        
+        .copy-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(86, 171, 47, 0.4);
+        }
+        
+        .copy-btn.copied {
+            background: linear-gradient(135deg, #11998e, #38ef7d);
+            animation: pulse 0.5s ease;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        
+        .call-tree {
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+        }
+        
+        .tree-node {
+            margin: 6px 0;
+            padding-left: 18px;
+            position: relative;
+        }
+        
+        .tree-node::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 10px;
+            width: 10px;
+            height: 1px;
+            background: #667eea;
+        }
+        
+        .tree-root {
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 8px;
+        }
+        
+        .tree-branch {
+            margin-left: 18px;
+            border-left: 1px dashed #bdc3c7;
+            padding-left: 12px;
+        }
+        
+        .tree-leaf {
+            color: #27ae60;
+        }
+        
+        /* 函数列表样式 */
+        .function-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+            line-height: 1.6;
+        }
+        
+        .function-item {
+            display: inline-flex;
+            align-items: center;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 16px;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            box-shadow: 0 2px 6px rgba(240, 147, 251, 0.3);
+        }
+        
+        .function-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(240, 147, 251, 0.4);
+        }
+        
+        .function-number {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.3);
+            color: white;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 18px;
+            font-size: 11px;
+            font-weight: bold;
+            margin-right: 6px;
+        }
+        
+        .function-name {
+            font-weight: 600;
+        }
+        
+        .function-line {
+            font-size: 11px;
+            opacity: 0.9;
+            margin-left: 4px;
+        }
+        
+        .function-separator {
+            color: #999;
+            margin: 0 4px;
+            font-size: 14px;
+        }
+        
+        .comment {
+            color: #95a5a6;
+            font-style: italic;
+            margin-left: 8px;
+        }
+        
+        .error {
+            color: #e74c3c;
+            background: #fadbd8;
+            padding: 8px;
+            border-radius: 5px;
+            margin-top: 8px;
+            display: none;
+        }
+        
+        .stats-info {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            display: inline-block;
+            font-size: 13px;
+        }
+        
+        /* CSS选择器列表样式 */
+        .css-selector-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+            line-height: 1.6;
+        }
+        
+        .css-selector-item {
+            display: inline-flex;
+            align-items: center;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 16px;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(79, 172, 254, 0.3);
+        }
+        
+        .css-selector-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(79, 172, 254, 0.4);
+        }
+        
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.5rem;
+            }
+            
+            .description {
+                font-size: 0.9rem;
+            }
+            
+            .function-list, .css-selector-list {
+                gap: 6px;
+            }
+            
+            .function-item, .css-selector-item {
+                font-size: 12px;
+                padding: 4px 8px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 1.3rem;
+            }
+            
+            .function-list, .css-selector-list {
+                gap: 5px;
+            }
+            
+            .function-item, .css-selector-item {
+                font-size: 11px;
+                padding: 3px 7px;
+            }
+            
+            .function-line {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-top">
+                <h1>JS源码分析工具</h1>
+                <button class="settings-btn" onclick="openSettings()">⚙️</button>
+            </div>
+            <p class="description">粘贴代码，自动分析函数和调用关系</p>
+        </header>
+        
+        <section class="input-section">
+            <textarea id="codeInput" placeholder="请将您的JavaScript源码粘贴到这里..."></textarea>
+            <div class="button-group">
+                <button id="analyzeBtn">分析代码</button>
+                <button class="clear-btn" onclick="clearContent()">清空内容</button>
+                <button class="copy-all-btn" onclick="copyAllResults()">📋 一键复制</button>
+            </div>
+            <div id="errorMessage" class="error"></div>
+        </section>
+        
+        <section class="results-section">
+            <div class="card">
+                <div class="card-header">
+                    <h2>调用关系</h2>
+                    <button class="copy-btn" onclick="copyCallTree()">📋 复制</button>
+                </div>
+                <div id="callTree" class="call-tree">
+                    <div class="tree-node">分析后将显示调用关系树</div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h2>函数列表</h2>
+                    <button class="copy-btn" onclick="copyFunctionList()">📋 复制</button>
+                </div>
+                <div id="statsInfo" class="stats-info" style="display: none;"></div>
+                <div id="functionList" class="function-list">
+                    <div class="function-item">分析后将显示函数列表</div>
+                </div>
+            </div>
+            
+            <!-- CSS选择器卡片 -->
+            <div class="card" id="cssCard">
+                <div class="card-header">
+                    <h2>CSS选择器</h2>
+                    <button class="copy-btn" onclick="copyCssSelectors()">📋 复制</button>
+                </div>
+                <div id="cssStatsInfo" class="stats-info" style="display: none;"></div>
+                <div id="cssSelectorList" class="css-selector-list">
+                    <div class="css-selector-item">分析后将显示CSS选择器列表</div>
+                </div>
+            </div>
+        </section>
+    </div>
+    
+    <!-- 控制面板模态框 -->
+    <div id="settingsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>分析设置</h3>
+                <button class="close-btn" onclick="closeSettings()">&times;</button>
+            </div>
+            <div class="option-item">
+                <input type="checkbox" id="analyzeCss" checked onchange="toggleCssAnalysis()">
+                <label for="analyzeCss">分析CSS选择器</label>
+            </div>
+            <div class="option-item">
+                <input type="checkbox" id="showLineNumbers" checked>
+                <label for="showLineNumbers">显示行号</label>
+            </div>
+            <div class="option-item">
+                <input type="checkbox" id="autoAnalyze" checked>
+                <label for="autoAnalyze">自动分析（粘贴后）</label>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 随机背景渐变色数组
+        const gradients = [
+            'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+            'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+            'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+            'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+            'linear-gradient(135deg, #30cfd0 0%, #330867 100%)',
+            'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
+            'linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)',
+            'linear-gradient(135deg, #fbc2eb 0%, #a6c1ee 100%)',
+            'linear-gradient(135deg, #fdcbf1 0%, #e6dee9 100%)',
+            'linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 100%)',
+            'linear-gradient(135deg, #d299c2 0%, #fef9d7 100%)',
+            'linear-gradient(135deg, #89f7fe 0%, #66a6ff 100%)',
+            'linear-gradient(135deg, #fddb92 0%, #d1fdff 100%)',
+            'linear-gradient(135deg, #9890e3 0%, #b1f4cf 100%)'
+        ];
+        
+        // 随机选择并应用背景
+        function applyRandomBackground() {
+            const randomGradient = gradients[Math.floor(Math.random() * gradients.length)];
+            document.body.style.background = randomGradient;
+        }
+        
+        // 全局变量
+        let analysisResult = null;
+        let cssAnalysisResult = null;
+        
+        // 打开设置面板
+        function openSettings() {
+            document.getElementById('settingsModal').classList.add('show');
+        }
+        
+        // 关闭设置面板
+        function closeSettings() {
+            document.getElementById('settingsModal').classList.remove('show');
+        }
+        
+        // 点击模态框外部关闭
+        window.onclick = function(event) {
+            const modal = document.getElementById('settingsModal');
+            if (event.target === modal) {
+                closeSettings();
+            }
+        }
+        
+        // 切换CSS分析
+        function toggleCssAnalysis() {
+            const cssCard = document.getElementById('cssCard');
+            const isChecked = document.getElementById('analyzeCss').checked;
+            
+            if (isChecked) {
+                cssCard.style.display = 'block';
+                if (document.getElementById('codeInput').value.trim()) {
+                    analyzeCode(document.getElementById('codeInput').value);
+                }
+            } else {
+                cssCard.style.display = 'none';
+            }
+        }
+        
+        // 清空内容
+        function clearContent() {
+            document.getElementById('codeInput').value = '';
+            document.getElementById('callTree').innerHTML = '<div class="tree-node">分析后将显示调用关系树</div>';
+            document.getElementById('functionList').innerHTML = '<div class="function-item">分析后将显示函数列表</div>';
+            document.getElementById('statsInfo').style.display = 'none';
+            document.getElementById('cssSelectorList').innerHTML = '<div class="css-selector-item">分析后将显示CSS选择器列表</div>';
+            document.getElementById('cssStatsInfo').style.display = 'none';
+            document.getElementById('errorMessage').style.display = 'none';
+            analysisResult = null;
+            cssAnalysisResult = null;
+        }
+        
+        // 一键复制所有结果
+        function copyAllResults() {
+            let allText = '=== JavaScript源码分析结果 ===\n\n';
+            
+            // 添加调用关系
+            if (analysisResult && analysisResult.callTree && Object.keys(analysisResult.callTree).length > 0) {
+                allText += '【调用关系】\n';
+                Object.keys(analysisResult.callTree).forEach(funcName => {
+                    const calls = analysisResult.callTree[funcName];
+                    allText += `${funcName} -> ${calls.length > 0 ? calls.join(', ') : '无调用'}\n`;
+                });
+                allText += '\n';
+            } else {
+                allText += '【调用关系】未检测到调用关系\n\n';
+            }
+            
+            // 添加函数列表
+            if (analysisResult && analysisResult.functions && analysisResult.functions.length > 0) {
+                allText += '【函数列表】\n';
+                analysisResult.functions.forEach((func, index) => {
+                    allText += `${index + 1}. ${func.name}${func.line ? ` (行${func.line})` : ''}\n`;
+                });
+                allText += '\n';
+            } else {
+                allText += '【函数列表】未检测到函数定义\n\n';
+            }
+            
+            // 添加CSS选择器
+            if (document.getElementById('analyzeCss').checked) {
+                if (cssAnalysisResult && cssAnalysisResult.selectors && cssAnalysisResult.selectors.length > 0) {
+                    allText += '【CSS选择器】\n';
+                    cssAnalysisResult.selectors.forEach((selector, index) => {
+                        allText += `${index + 1}. ${selector}\n`;
+                    });
+                } else {
+                    allText += '【CSS选择器】未检测到CSS选择器\n';
+                }
+            }
+            
+            copyToClipboard(allText, event.target);
+        }
+        
+        // 复制调用关系
+        function copyCallTree() {
+            if (!analysisResult || !analysisResult.callTree) {
+                showError('没有可复制的调用关系');
+                return;
+            }
+            
+            let text = '调用关系：\n';
+            Object.keys(analysisResult.callTree).forEach(funcName => {
+                text += `${funcName} -> ${analysisResult.callTree[funcName].join(', ')}\n`;
+            });
+            
+            copyToClipboard(text, event.target);
+        }
+        
+        // 复制函数列表
+        function copyFunctionList() {
+            if (!analysisResult || !analysisResult.functions) {
+                showError('没有可复制的函数列表');
+                return;
+            }
+            
+            const text = analysisResult.functions.map(f => f.name).join(', ');
+            copyToClipboard(text, event.target);
+        }
+        
+        // 复制CSS选择器
+        function copyCssSelectors() {
+            if (!cssAnalysisResult || !cssAnalysisResult.selectors) {
+                showError('没有可复制的CSS选择器');
+                return;
+            }
+            
+            const text = cssAnalysisResult.selectors.join(', ');
+            copyToClipboard(text, event.target);
+        }
+        
+        // 复制到剪贴板
+        function copyToClipboard(text, button) {
+            navigator.clipboard.writeText(text).then(() => {
+                // 按钮变色反馈
+                const originalText = button.innerHTML;
+                button.innerHTML = '✓ 已复制';
+                button.classList.add('copied');
+                
+                setTimeout(() => {
+                    button.innerHTML = originalText;
+                    button.classList.remove('copied');
+                }, 2000);
+            }).catch(err => {
+                showError('复制失败：' + err.message);
+            });
+        }
+        
+        document.getElementById('analyzeBtn').addEventListener('click', function() {
+            const codeInput = document.getElementById('codeInput').value;
+            
+            if (!codeInput.trim()) {
+                showError('请输入JavaScript代码');
+                return;
+            }
+            
+            analyzeCode(codeInput);
+        });
+        
+        // 自动分析功能
+        document.getElementById('codeInput').addEventListener('paste', function() {
+            if (document.getElementById('autoAnalyze').checked) {
+                setTimeout(() => {
+                    const codeInput = this.value;
+                    if (codeInput.trim()) {
+                        analyzeCode(codeInput);
+                    }
+                }, 100);
+            }
+        });
+        
+        function showError(message) {
+            const errorMessage = document.getElementById('errorMessage');
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+            
+            setTimeout(() => {
+                errorMessage.style.display = 'none';
+            }, 3000);
+        }
+        
+        function analyzeCode(code) {
+            try {
+                // 分析JavaScript函数
+                analysisResult = analyzeJavaScript(code);
+                displayFunctionList(analysisResult.functions);
+                displayCallTree(analysisResult.callTree);
+                
+                // 如果开启了CSS分析
+                if (document.getElementById('analyzeCss').checked) {
+                    cssAnalysisResult = analyzeCSS(code);
+                    displayCssSelectors(cssAnalysisResult.selectors);
+                }
+                
+                document.getElementById('errorMessage').style.display = 'none';
+            } catch (error) {
+                showError('代码分析出错: ' + error.message);
+            }
+        }
+        
+        function analyzeJavaScript(code) {
+            // 清理代码：移除注释
+            const cleanedCode = code
+                .replace(/\/\*[\s\S]*?\*\//g, '')  // 移除多行注释
+                .replace(/\/\/.*$/gm, '')          // 移除单行注释
+                .trim();
+            
+            // 提取函数定义
+            const functionRegex = /(?:function\s+(\w+)\s*\([^)]*\)|(?:const|let|var)\s+(\w+)\s*=\s*function\s*\([^)]*\)|(?:const|let|var)\s+(\w+)\s*=\s*\([^)]*\)\s*=>)/g;
+            const functions = [];
+            let match;
+            
+            // 获取所有行
+            const lines = code.split('\n');
+            const showLineNumbers = document.getElementById('showLineNumbers').checked;
+            
+            while ((match = functionRegex.exec(cleanedCode)) !== null) {
+                const functionName = match[1] || match[2] || match[3];
+                if (functionName) {
+                    // 查找函数在源代码中的行号
+                    const functionDefIndex = match.index;
+                    let lineNumber = 1;
+                    let currentIndex = 0;
+                    
+                    for (let i = 0; i < lines.length; i++) {
+                        currentIndex += lines[i].length + 1; // +1 用于换行符
+                        if (currentIndex > functionDefIndex) {
+                            lineNumber = i + 1;
+                            break;
+                        }
+                    }
+                    
+                    functions.push({
+                        name: functionName,
+                        line: showLineNumbers ? lineNumber : null
+                    });
+                }
+            }
+            
+            // 构建调用关系树
+            const callTree = buildCallTree(cleanedCode, functions);
+            
+            return {
+                functions: functions,
+                callTree: callTree
+            };
+        }
+        
+        function analyzeCSS(code) {
+            // 提取CSS选择器（大括号外的部分）
+            const cssRegex = /([.#]?[\w-]+(?:\s*>\s*[.#]?[\w-]+)*(?:\s*,\s*[.#]?[\w-]+(?:\s*>\s*[.#]?[\w-]+)*)*)\s*\{/g;
+            const selectors = [];
+            let match;
+            const uniqueSelectors = new Set();
+            
+            while ((match = cssRegex.exec(code)) !== null) {
+                const selectorGroup = match[1].trim();
+                // 分割多个选择器
+                const individualSelectors = selectorGroup.split(/\s*,\s*/);
+                individualSelectors.forEach(selector => {
+                    if (selector && !uniqueSelectors.has(selector)) {
+                        uniqueSelectors.add(selector);
+                        selectors.push(selector);
+                    }
+                });
+            }
+            
+            return {
+                selectors: selectors
+            };
+        }
+        
+        function buildCallTree(code, functions) {
+            const tree = {};
+            const functionNames = functions.map(f => f.name);
+            
+            // 分析每个函数的调用关系
+            functions.forEach(func => {
+                const funcBody = extractFunctionBody(code, func.name);
+                tree[func.name] = findCalledFunctions(funcBody, functionNames);
+            });
+            
+            return tree;
+        }
+        
+        function extractFunctionBody(code, functionName) {
+            // 简化版函数体提取 - 实际应用中需要更复杂的解析
+            const funcRegex = new RegExp(`(?:function\\s+${functionName}|(?:const|let|var)\\s+${functionName}\\s*=\\s*(?:function|\\([^)]*\\)\\s*=>))\\s*(\\([^)]*\\))\\s*\\{`);
+            const match = funcRegex.exec(code);
+            
+            if (!match) return '';
+            
+            const startIndex = match.index + match[0].length;
+            let braceCount = 1;
+            let currentIndex = startIndex;
+            
+            while (braceCount > 0 && currentIndex < code.length) {
+                if (code[currentIndex] === '{') braceCount++;
+                if (code[currentIndex] === '}') braceCount--;
+                currentIndex++;
+            }
+            
+            return code.substring(startIndex, currentIndex - 1);
+        }
+        
+        function findCalledFunctions(funcBody, functionNames) {
+            const calls = [];
+            
+            functionNames.forEach(name => {
+                // 简单的调用匹配 - 实际应用中需要更精确的解析
+                const callRegex = new RegExp(`\\b${name}\\s*\\(`, 'g');
+                if (callRegex.test(funcBody)) {
+                    calls.push(name);
+                }
+            });
+            
+            return calls;
+        }
+        
+        function displayFunctionList(functions) {
+            const functionList = document.getElementById('functionList');
+            const statsInfo = document.getElementById('statsInfo');
+            functionList.innerHTML = '';
+            
+            if (functions.length === 0) {
+                functionList.innerHTML = '<div class="function-item">未检测到函数定义</div>';
+                statsInfo.style.display = 'none';
+                return;
+            }
+            
+            // 显示统计信息
+            statsInfo.textContent = `共检测到 ${functions.length} 个函数`;
+            statsInfo.style.display = 'inline-block';
+            
+            // 创建函数列表
+            functions.forEach((func, index) => {
+                const item = document.createElement('div');
+                item.className = 'function-item';
+                item.innerHTML = `
+                    <span class="function-number">${index + 1}</span>
+                    <span class="function-name">${func.name}</span>
+                    ${func.line ? `<span class="function-line">(行${func.line})</span>` : ''}
+                `;
+                
+                // 添加点击事件，可以高亮显示或跳转到对应行
+                item.addEventListener('click', function() {
+                    // 可以添加更多交互功能
+                    this.style.transform = 'scale(1.1)';
+                    setTimeout(() => {
+                        this.style.transform = '';
+                    }, 200);
+                });
+                
+                functionList.appendChild(item);
+                
+                // 添加分隔符（除了最后一个）
+                if (index < functions.length - 1) {
+                    const separator = document.createElement('span');
+                    separator.className = 'function-separator';
+                    separator.textContent = '•';
+                    functionList.appendChild(separator);
+                }
+            });
+        }
+        
+        function displayCallTree(callTree) {
+            const callTreeElement = document.getElementById('callTree');
+            callTreeElement.innerHTML = '';
+            
+            if (Object.keys(callTree).length === 0) {
+                callTreeElement.innerHTML = '<div class="tree-node">未检测到调用关系</div>';
+                return;
+            }
+            
+            // 构建调用树显示
+            Object.keys(callTree).forEach(funcName => {
+                const calls = callTree[funcName];
+                
+                const node = document.createElement('div');
+                node.className = 'tree-node';
+                
+                const root = document.createElement('div');
+                root.className = 'tree-root';
+                root.textContent = funcName;
+                node.appendChild(root);
+                
+                if (calls.length > 0) {
+                    const branch = document.createElement('div');
+                    branch.className = 'tree-branch';
+                    
+                    calls.forEach(calledFunc => {
+                        const leaf = document.createElement('div');
+                        leaf.className = 'tree-leaf';
+                        leaf.textContent = `└── ${calledFunc}`;
+                        branch.appendChild(leaf);
+                    });
+                    
+                    node.appendChild(branch);
+                }
+                
+                callTreeElement.appendChild(node);
+            });
+        }
+        
+        function displayCssSelectors(selectors) {
+            const cssSelectorList = document.getElementById('cssSelectorList');
+            const cssStatsInfo = document.getElementById('cssStatsInfo');
+            cssSelectorList.innerHTML = '';
+            
+            if (selectors.length === 0) {
+                cssSelectorList.innerHTML = '<div class="css-selector-item">未检测到CSS选择器</div>';
+                cssStatsInfo.style.display = 'none';
+                return;
+            }
+            
+            // 显示统计信息
+            cssStatsInfo.textContent = `共检测到 ${selectors.length} 个CSS选择器`;
+            cssStatsInfo.style.display = 'inline-block';
+            
+            // 创建CSS选择器列表
+            selectors.forEach((selector, index) => {
+                const item = document.createElement('div');
+                item.className = 'css-selector-item';
+                item.innerHTML = selector;
+                
+                // 添加点击事件
+                item.addEventListener('click', function() {
+                    this.style.transform = 'scale(1.1)';
+                    setTimeout(() => {
+                        this.style.transform = '';
+                    }, 200);
+                });
+                
+                cssSelectorList.appendChild(item);
+                
+                // 添加分隔符（除了最后一个）
+                if (index < selectors.length - 1) {
+                    const separator = document.createElement('span');
+                    separator.className = 'function-separator';
+                    separator.textContent = '•';
+                    cssSelectorList.appendChild(separator);
+                }
+            });
+        }
+        
+        // 示例代码加载（包含CSS）
+        document.addEventListener('DOMContentLoaded', function() {
+            // 应用随机背景
+            applyRandomBackground();
+            
+            const exampleCode = `// 示例代码
+function initRandomBackground() {
+    // 随机设置背景渐变
+    const gradient = getRandomGradient();
+    document.body.style.background = gradient;
+}
+
+function initTools() {
+    // 初始化工具列表
+    const tools = getAllTools();
+    renderTools(tools);
+    renderPagination();
+}
+
+function renderTools(tools) {
+    // 渲染当前页工具卡片
+    console.log('渲染工具卡片');
+}
+
+function renderPagination() {
+    // 渲染分页按钮
+    console.log('渲染分页');
+}
+
+function changePage(page) {
+    // 切换页码
+    renderTools();
+    renderPagination();
+}
+
+function getAllTools() {
+    // 返回全部工具
+    return [];
+}
+
+function getRandomGradient() {
+    // 返回随机渐变
+    return 'linear-gradient(45deg, red, blue)';
+}
+
+// CSS样式示例
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.card {
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+
+.header .title {
+    font-size: 24px;
+    font-weight: bold;
+}
+
+.main-content > .section {
+    margin-bottom: 30px;
+}
+
+.nav-item.active {
+    background: #667eea;
+    color: white;
+}
+
+// 事件监听器
+window.addEventListener('load', function() {
+    initRandomBackground();
+    initTools();
+});
+
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'ArrowLeft') {
+        changePage('prev');
+    } else if (e.key === 'ArrowRight') {
+        changePage('next');
+    }
+});`;
+            
+            document.getElementById('codeInput').value = exampleCode;
+        });
+    </script>
+</body>
+</html>

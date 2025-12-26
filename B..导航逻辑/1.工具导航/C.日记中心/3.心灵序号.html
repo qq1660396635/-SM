@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>心灵序号</title>
+    <style>
+        :root {
+            /* 新的配色方案：午夜蓝紫风格 */
+            --bg-color-start: #0f172a;
+            --bg-color-end: #1e1b4b;
+            --text-color: #e2e8f0;
+            
+            /* 小球颜色 */
+            --ball-empty: #334155;       /* 空状态：深蓝灰 */
+            --ball-filled: #8b5cf6;     /* 填充状态：亮紫 */
+            --ball-text: #94a3b8;
+            --ball-text-filled: #ffffff;
+            
+            /* 字体 */
+            --font-mono: 'Courier New', Courier, monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background: radial-gradient(circle at top center, var(--bg-color-end), var(--bg-color-start));
+            color: var(--text-color);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* 顶部标题区 - 调整 */
+        header {
+            text-align: center;
+            padding: 12px 0 8px;  /* 减小padding */
+            flex-shrink: 0;
+            z-index: 10;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 22px;  /* 稍微缩小字体 */
+            font-weight: 200;
+            letter-spacing: 4px;
+            color: #fff;
+            text-shadow: 0 0 10px rgba(139, 92, 246, 0.3);
+        }
+
+        .subtitle {
+            margin-top: 4px;  /* 减小间距 */
+            font-size: 11px;  /* 稍微缩小字体 */
+            color: #64748b;
+            letter-spacing: 1px;
+        }
+
+        /* 核心数字网格区 - 增加上边距 */
+        main {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;  /* 改为从顶部开始 */
+            padding: 20px 20px 10px;  /* 增加顶部padding */
+            overflow-y: auto; /* 允许小屏幕滚动 */
+        }
+
+        .digit-grid {
+            display: grid;
+            /* 6 列 */
+            grid-template-columns: repeat(6, 1fr);
+            gap: 10px 5px;
+            font-family: var(--font-mono);
+            font-size: 14px;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        /* 小球样式 */
+        .ball {
+            position: relative;
+            width: 100%;
+            padding-bottom: 100%; /* 保持正圆 */
+            border-radius: 50%;
+            background: rgba(51, 65, 85, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        /* 绝对定位居中的文字 */
+        .ball span {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: var(--ball-text);
+            font-size: 16px;
+        }
+
+        /* 三个一隔：第3个和第6个的右侧间距处理 */
+        .ball:nth-child(6n-2) { /* 3, 9, 15... 即索引3n，在CSS中是3n (1-based)，这里用 6n-2 */
+            margin-right: 12px;
+        }
+        .ball:nth-child(6n) {
+            margin-right: 0;
+        }
+        
+        /* 状态：已填充 */
+        .ball.filled {
+            background: var(--ball-filled);
+            box-shadow: 0 0 15px rgba(139, 92, 246, 0.4);
+            transform: scale(1.05);
+        }
+        
+        .ball.filled span {
+            color: var(--ball-text-filled);
+        }
+
+        /* 点击效果 */
+        .ball:active {
+            transform: scale(0.9);
+        }
+
+        /* 底部控制区 */
+        footer {
+            padding: 16px 20px;  /* 稍微减小padding */
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(15, 23, 42, 0.6);
+            flex-shrink: 0;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+        }
+
+        .page-info {
+            font-size: 13px;  /* 稍微缩小字体 */
+            color: #64748b;
+        }
+
+        .pagination-controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        button.nav-btn {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: #cbd5e1;
+            padding: 6px 14px;  /* 稍微减小padding */
+            border-radius: 20px;
+            font-size: 12px;  /* 稍微缩小字体 */
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        button.nav-btn:active {
+            background: rgba(255,255,255,0.1);
+        }
+
+        /* --- 编辑器弹窗 --- */
+        #editor-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #0f172a;
+            z-index: 200;
+            display: none;
+            flex-direction: column;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        #editor-modal.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        .editor-header {
+            padding: 16px 20px;  /* 稍微减小padding */
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .editor-title {
+            font-size: 1.1rem;
+            color: #fff;
+            font-family: var(--font-mono);
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: #94a3b8;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 5px;
+        }
+
+        .editor-content {
+            flex-grow: 1;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        textarea {
+            width: 100%;
+            height: 100%;
+            background: transparent;
+            border: none;
+            color: #e2e8f0;
+            font-size: 16px;
+            line-height: 1.6;
+            resize: none;
+            outline: none;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        .editor-footer {
+            padding: 16px 20px;  /* 稍微减小padding */
+            display: flex;
+            gap: 15px;
+            justify-content: flex-end;
+            border-top: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .btn {
+            padding: 8px 20px;  /* 稍微减小padding */
+            border-radius: 8px;
+            border: none;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .btn-delete {
+            background: rgba(239, 68, 68, 0.2);
+            color: #fca5a5;
+        }
+
+        .btn-save {
+            background: #8b5cf6;
+            color: white;
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+        }
+        
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        /* 响应式调整 */
+        @media (max-width: 400px) {
+            .digit-grid {
+                gap: 8px 2px;
+            }
+            .ball span {
+                font-size: 12px;
+            }
+            /* 手机上调整间隔 */
+            .ball:nth-child(6n-2) {
+                margin-right: 6px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>心灵序号</h1>
+    <div class="subtitle">MIND INDEX</div>
+</header>
+
+<main id="grid-container">
+    <!-- 网格将通过JS 动态生成 -->
+    <div class="digit-grid" id="digitGrid"></div>
+</main>
+
+<footer>
+    <div class="page-info">序号 <span id="startIndex">1</span> - <span id="endIndex">72</span></div>
+    <div class="pagination-controls">
+        <span id="pageIndicator" class="page-info" style="margin-right:10px;">1/10</span>
+        <button class="nav-btn" onclick="app.prevPage()">&lt;</button>
+        <button class="nav-btn" onclick="app.nextPage()">&gt;</button>
+    </div>
+</footer>
+
+<!-- 编辑器全屏弹窗 -->
+<div id="editor-modal">
+    <div class="editor-header">
+        <div class="editor-title">序号 #<span id="editor-id">0</span></div>
+        <button class="close-btn" onclick="app.closeEditor()">&times;</button>
+    </div>
+    <div class="editor-content">
+        <textarea id="editor-text" placeholder="在这里写下你的想法..."></textarea>
+    </div>
+    <div class="editor-footer">
+        <button class="btn btn-delete" onclick="app.deleteEntry()">删除</button>
+        <button class="btn btn-save" onclick="app.saveEntry()">保存</button>
+    </div>
+</div>
+
+<script>
+/**
+* 心灵序号日记应用逻辑
+*/
+class DiaryApp {
+    constructor() {
+        // 配置参数
+        this.cols = 6;
+        this.rows = 12;
+        this.itemsPerPage = this.cols * this.rows; // 72个
+        this.totalPages = 10;
+        
+        // 数据存储
+        this.diaryData = this.loadData(); // 格式: { index: "content", ... }
+        this.currentPage = 0;
+        this.currentEditingId = null;
+
+        // DOM 元素
+        this.gridEl = document.getElementById('digitGrid');
+        this.pageIndicatorEl = document.getElementById('pageIndicator');
+        this.startIndexEl = document.getElementById('startIndex');
+        this.endIndexEl = document.getElementById('endIndex');
+        
+        this.modalEl = document.getElementById('editor-modal');
+        this.editorIdEl = document.getElementById('editor-id');
+        this.editorTextEl = document.getElementById('editor-text');
+
+        this.init();
+    }
+
+    init() {
+        this.renderGrid();
+    }
+
+    // 加载数据
+    loadData() {
+        const data = localStorage.getItem('mind_index_data');
+        return data ? JSON.parse(data) : {};
+    }
+
+    // 保存数据
+    saveData() {
+        localStorage.setItem('mind_index_data', JSON.stringify(this.diaryData));
+    }
+
+    // 渲染网格
+    renderGrid() {
+        this.gridEl.innerHTML = '';
+        
+        // 计算当前页的ID范围
+        const startId = this.currentPage * this.itemsPerPage + 1;
+        const endId = startId + this.itemsPerPage - 1;
+
+        // 更新页脚信息
+        this.pageIndicatorEl.textContent = `${this.currentPage + 1}/${this.totalPages}`;
+        this.startIndexEl.textContent = startId;
+        this.endIndexEl.textContent = endId;
+
+        // 生成小球
+        for (let i = 0; i < this.itemsPerPage; i++) {
+            const id = startId + i;
+            const cell = document.createElement('div');
+            
+            // 基础类名
+            let className = 'ball';
+            // 如果有内容，添加 filled 类
+            if (this.diaryData[id] && this.diaryData[id].trim() !== '') {
+                className += ' filled';
+            }
+            
+            cell.className = className;
+            
+            // 内部数字
+            const span = document.createElement('span');
+            span.textContent = id;
+            cell.appendChild(span);
+
+            // 点击事件
+            cell.onclick = () => this.openEditor(id);
+
+            this.gridEl.appendChild(cell);
+        }
+    }
+
+    // 翻页逻辑
+    changePage(delta) {
+        let newPage = this.currentPage + delta;
+        if (newPage < 0) newPage = 0;
+        if (newPage >= this.totalPages) newPage = this.totalPages - 1;
+
+        if (newPage !== this.currentPage) {
+            this.currentPage = newPage;
+            this.renderGrid();
+        }
+    }
+
+    nextPage() {
+        this.changePage(1);
+    }
+
+    prevPage() {
+        this.changePage(-1);
+    }
+
+    // 打开编辑器
+    openEditor(id) {
+        this.currentEditingId = id;
+        this.editorIdEl.textContent = id;
+        // 加载已有内容，如果没有则为空
+        this.editorTextEl.value = this.diaryData[id] || '';
+        
+        this.modalEl.classList.add('active');
+    }
+
+    // 关闭编辑器
+    closeEditor() {
+        this.modalEl.classList.remove('active');
+        this.currentEditingId = null;
+    }
+
+    // 保存内容
+    saveEntry() {
+        if (!this.currentEditingId) return;
+        
+        const content = this.editorTextEl.value;
+        if (content.trim() !== '') {
+            this.diaryData[this.currentEditingId] = content;
+        } else {
+            // 如果清空了内容，视为删除该条记录
+            delete this.diaryData[this.currentEditingId];
+        }
+        
+        this.saveData();
+        this.renderGrid(); // 重新渲染以更新小球颜色
+        this.closeEditor();
+    }
+
+    // 删除内容
+    deleteEntry() {
+        if (!this.currentEditingId) return;
+        
+        if (confirm('确定要清空这条日记吗？')) {
+            delete this.diaryData[this.currentEditingId];
+            this.saveData();
+            this.renderGrid();
+            this.closeEditor();
+        }
+    }
+}
+
+// 初始化应用
+const app = new DiaryApp();
+
+// 绑定键盘快捷键（ESC关闭）
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && app.modalEl.classList.contains('active')) {
+        app.closeEditor();
+    }
+});
+
+</script>
+</body>
+</html>

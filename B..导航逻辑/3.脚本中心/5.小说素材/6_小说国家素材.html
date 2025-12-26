@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>全球前10国家综合实力速查表</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 8px;
+            line-height: 1.3;
+        }
+        
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 12px;
+            padding: 8px;
+        }
+        
+        .header h1 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 4px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .header p {
+            font-size: 0.7rem;
+            opacity: 0.9;
+        }
+        
+        .selector {
+            background: rgba(255,255,255,0.95);
+            border-radius: 12px;
+            padding: 10px;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        
+        .selector select {
+            width: 100%;
+            padding: 8px;
+            font-size: 0.8rem;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            background: white;
+        }
+        
+        .category-card {
+            background: white;
+            border-radius: 12px;
+            margin-bottom: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            overflow: hidden;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .category-card:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        }
+        
+        .category-header {
+            padding: 8px 10px;
+            font-weight: 600;
+            font-size: 0.8rem;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .category-icon {
+            width: 18px;
+            height: 18px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.6rem;
+        }
+        
+        .category-content {
+            padding: 6px 10px;
+        }
+        
+        .indicator-table {
+            width: 100%;
+            font-size: 0.65rem;
+            border-collapse: collapse;
+        }
+        
+        .indicator-table tr {
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .indicator-table tr:last-child {
+            border-bottom: none;
+        }
+        
+        .indicator-table td {
+            padding: 3px 2px;
+            vertical-align: top;
+        }
+        
+        .indicator-name {
+            font-weight: 500;
+            color: #333;
+            width: 18%;
+        }
+        
+        .indicator-metrics {
+            color: #666;
+            width: 42%;
+            font-size: 0.6rem;
+        }
+        
+        .indicator-desc {
+            color: #999;
+            width: 40%;
+            font-size: 0.55rem;
+        }
+        
+        .framework-section {
+            background: rgba(255,255,255,0.95);
+            border-radius: 12px;
+            padding: 10px;
+            margin-bottom: 8px;
+        }
+        
+        .framework-title {
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .quick-check {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 5px;
+            margin-bottom: 6px;
+        }
+        
+        .check-item {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            padding: 5px;
+            border-radius: 6px;
+            font-size: 0.6rem;
+        }
+        
+        .check-item strong {
+            display: block;
+            color: #333;
+            margin-bottom: 2px;
+        }
+        
+        .scoring-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 4px;
+            margin-bottom: 6px;
+        }
+        
+        .score-item {
+            background: #f8f9fa;
+            padding: 3px 5px;
+            border-radius: 4px;
+            font-size: 0.55rem;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .risk-list {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .risk-item {
+            background: #fff3cd;
+            padding: 3px 5px;
+            margin-bottom: 2px;
+            border-radius: 4px;
+            font-size: 0.6rem;
+            border-left: 3px solid #ffc107;
+        }
+        
+        .tips-section {
+            background: rgba(255,255,255,0.95);
+            border-radius: 12px;
+            padding: 10px;
+        }
+        
+        .data-sources {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 3px;
+            margin-bottom: 6px;
+        }
+        
+        .source-item {
+            font-size: 0.55rem;
+            color: #666;
+        }
+        
+        .source-item strong {
+            color: #333;
+        }
+        
+        .motto {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 6px;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 0.65rem;
+            font-weight: 500;
+            margin-top: 6px;
+        }
+        
+        /* 渐变色定义 */
+        .gradient-1 { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .gradient-2 { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+        .gradient-3 { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+        .gradient-4 { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+        .gradient-5 { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
+        .gradient-6 { background: linear-gradient(135deg, #30cfd0 0%, #330867 100%); }
+        .gradient-7 { background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); }
+        
+        /* 加载动画 */
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 200px;
+            color: white;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .loading-spinner {
+            width: 30px;
+            height: 30px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-top: 3px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        @media (max-width: 380px) {
+            .indicator-table {
+                font-size: 0.6rem;
+            }
+            .indicator-metrics, .indicator-desc {
+                font-size: 0.55rem;
+            }
+            .check-item {
+                font-size: 0.55rem;
+            }
+            .score-item {
+                font-size: 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌍 全球前10国家综合实力速查表</h1>
+            <p>快速掌握国家核心实力与潜在风险</p>
+        </div>
+        
+        <div class="selector">
+            <select id="countrySelect" onchange="changeCountry()">
+                <option value="usa">美国</option>
+                <option value="russia">俄罗斯</option>
+                <option value="india">印度</option>
+                <option value="uk">英国</option>
+                <option value="skorea">韩国</option>
+                <option value="pakistan">巴基斯坦</option>
+                <option value="france">法国</option>
+                <option value="turkey">土耳其</option>
+                <option value="italy">意大利</option>
+                <option value="japan">日本</option>
+            </select>
+        </div>
+
+        <div id="contentContainer">
+            <div class="loading">
+                <div class="loading-spinner"></div>
+                正在加载数据...
+            </div>
+        </div>
+    </div>
+
+    <!-- 引入数据库管理器 -->
+    <script src="/db.js"></script>
+    <script src="6_小说国家素材配置.js"></script>
+    
+    <script>
+        // 加载配置文件并缓存
+        async function loadCountryData() {
+            try {
+                // 使用IDB.CacheMgr获取配置文件（优先从缓存）
+                const configText = await IDB.CacheMgr.get('6_小说国家素材配置.js');
+                
+                // 执行配置文件内容
+                eval(configText);
+                
+                // 初始化页面
+                changeCountry();
+                
+                // 缓存当前选择的国家
+                const savedCountry = await IDB.get('E_currentCountry', 'userdata');
+                if (savedCountry) {
+                    document.getElementById('countrySelect').value = savedCountry;
+                    changeCountry();
+                }
+            } catch (error) {
+                console.error('加载配置文件失败:', error);
+                document.getElementById('contentContainer').innerHTML = 
+                    `<div class="loading" style="flex-direction: column; gap: 15px;">
+                        <div style="color: #ff6b6b; font-size: 1.1rem;">⚠️ 数据加载失败</div>
+                        <div style="font-size: 0.9rem;">请检查网络连接或稍后重试</div>
+                        <button onclick="location.reload()" style="
+                            padding: 8px 16px;
+                            background: rgba(255,255,255,0.2);
+                            border: 1px solid white;
+                            color: white;
+                            border-radius: 20px;
+                            cursor: pointer;
+                            margin-top: 10px;
+                            font-size: 0.8rem;
+                        ">重新加载</button>
+                    </div>`;
+            }
+        }
+
+        function changeCountry() {
+            const select = document.getElementById('countrySelect');
+            const countryKey = select.value;
+            const data = countryData[countryKey];
+            const container = document.getElementById('contentContainer');
+            container.innerHTML = '';
+
+            // 保存当前选择的国家到数据库
+            IDB.put('E_currentCountry', countryKey, 'userdata');
+
+            // 渲染所有分类卡片
+            data.categories.forEach((cat, index) => {
+                const categoryDiv = document.createElement('div');
+                categoryDiv.className = 'category-card';
+
+                const header = document.createElement('div');
+                header.className = `category-header gradient-${(index % 7) + 1}`;
+                header.innerHTML = `
+                    <div class="category-icon">${cat.icon}</div>
+                    <span>${index + 1}. ${cat.title}</span>
+                `;
+
+                const contentDiv = document.createElement('div');
+                contentDiv.className = 'category-content';
+
+                const table = document.createElement('table');
+                table.className = 'indicator-table';
+                
+                cat.items.forEach(item => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td class="indicator-name">${item.name}</td>
+                        <td class="indicator-metrics">${item.metrics}</td>
+                        <td class="indicator-desc">${item.desc}</td>
+                    `;
+                    table.appendChild(tr);
+                });
+
+                contentDiv.appendChild(table);
+                categoryDiv.appendChild(header);
+                categoryDiv.appendChild(contentDiv);
+                container.appendChild(categoryDiv);
+            });
+
+            // 添加评估框架
+            const frameworkDiv = document.createElement('div');
+            frameworkDiv.className = 'framework-section';
+            frameworkDiv.innerHTML = `
+                <div class="framework-title">
+                    <span>🔍</span>
+                    <span>快速评估框架</span>
+                </div>
+                <div class="quick-check">
+                    <div class="check-item">
+                        <strong>三分钟速查法</strong>
+                        1.看规模：GDP、人口、国土<br>
+                        2.看硬实力：军费、制造、能源<br>
+                        3.看软实力：教育、科技、影响<br>
+                        4.看潜力：人口、资源、创新
+                    </div>
+                    <div class="check-item">
+                        <strong>综合评分法</strong>
+                        经济40%：GDP15%+制造15%+贸易10%<br>
+                        军事30%：军费15%+装备10%+核5%<br>
+                        科技20%：研发10%+教育10%<br>
+                        资源10%：能源5%+人口5%
+                    </div>
+                </div>
+                <div class="framework-title">
+                    <span>🚨</span>
+                    <span>风险预警指标</span>
+                </div>
+                <ul class="risk-list">
+                    <li class="risk-item">能源进口依赖度>70%</li>
+                    <li class="risk-item">外汇储备<3个月进口额</li>
+                    <li class="risk-item">政府债务占GDP>100%</li>
+                    <li class="risk-item">人口老龄化率>20%</li>
+                    <li class="risk-item">基尼系数>0.4</li>
+                </ul>
+            `;
+            container.appendChild(frameworkDiv);
+
+            // 添加实用技巧
+            const tipsDiv = document.createElement('div');
+            tipsDiv.className = 'tips-section';
+            tipsDiv.innerHTML = `
+                <div class="framework-title">
+                    <span>📋</span>
+                    <span>数据来源速查</span>
+                </div>
+                <div class="data-sources">
+                    <div class="source-item"><strong>经济：</strong>世界银行、IMF、统计局</div>
+                    <div class="source-item"><strong>军事：</strong>SIPRI、IISS、国防部</div>
+                    <div class="source-item"><strong>科技：</strong>WIPO专利、QS排名</div>
+                    <div class="source-item"><strong>能源：</strong>IEA、OPEC、BP统计</div>
+                </div>
+                <div class="motto">
+                    💡 快速判断口诀：<br>
+                    经济看制造，军事看海军，科技看专利，能源看储备，未来看教育
+                </div>
+            `;
+            container.appendChild(tipsDiv);
+
+            // 保存浏览历史
+            saveViewHistory(countryKey);
+        }
+
+        // 保存浏览历史
+        async function saveViewHistory(countryKey) {
+            try {
+                const history = await IDB.get('E_viewHistory', 'userdata') || [];
+                const now = new Date().toISOString();
+                
+                // 添加新的浏览记录
+                history.unshift({
+                    country: countryKey,
+                    timestamp: now
+                });
+                
+                // 只保留最近20条记录
+                if (history.length > 20) {
+                    history.splice(20);
+                }
+                
+                await IDB.put('E_viewHistory', history, 'userdata');
+            } catch (error) {
+                console.error('保存浏览历史失败:', error);
+            }
+        }
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            // 初始化数据库
+            IDB.init().then(() => {
+                console.log('数据库初始化完成');
+                // 加载配置文件
+                loadCountryData();
+            }).catch(error => {
+                console.error('数据库初始化失败:', error);
+                document.getElementById('contentContainer').innerHTML = 
+                    `<div class="loading" style="flex-direction: column; gap: 15px;">
+                        <div style="color: #ff6b6b; font-size: 1.1rem;">⚠️ 数据库初始化失败</div>
+                        <div style="font-size: 0.9rem;">请检查浏览器是否支持IndexedDB</div>
+                    </div>`;
+            });
+        });
+    </script>
+</body>
+</html>

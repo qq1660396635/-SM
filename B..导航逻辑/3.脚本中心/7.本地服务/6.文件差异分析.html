@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文件差异分析工具</title>
+    <style>
+        :root { --primary: #6366f1; --primary-dark: #4f46e5; --secondary: #10b981; --secondary-dark: #059669; --error: #ef4444; --warning: #f59e0b; --success: #10b981; --bg: #f8fafc; --card: #ffffff; --text: #1e293b; --text-light: #64748b; --border: #e2e8f0; --shadow: rgba(0,0,0,0.1); }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; }
+        body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; color: var(--text); line-height: 1.6; }
+        .container { max-width: 600px; margin: 0 auto; padding: 15px; }
+        header { text-align: center; margin-bottom: 25px; padding: 30px 20px; background: rgba(255,255,255,0.95); backdrop-filter: blur(20px); border-radius: 20px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); border: 1px solid rgba(255,255,255,0.2); }
+        h1 { font-size: 1.8rem; margin-bottom: 8px; background: linear-gradient(45deg, var(--primary), var(--secondary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 700; }
+        .tabs { display: flex; margin-bottom: 20px; background: rgba(255,255,255,0.9); border-radius: 12px; padding: 4px; backdrop-filter: blur(10px); }
+        .tab { flex: 1; padding: 12px; text-align: center; cursor: pointer; border-radius: 8px; transition: all 0.3s; font-weight: 600; }
+        .tab.active { background: var(--primary); color: white; }
+        .tab:hover:not(.active) { background: rgba(99, 102, 241, 0.1); }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .card { background: rgba(255,255,255,0.95); backdrop-filter: blur(20px); border-radius: 16px; padding: 20px; margin-bottom: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); border: 1px solid rgba(255,255,255,0.2); }
+        .card:hover { transform: translateY(-3px); box-shadow: 0 15px 40px rgba(0,0,0,0.15); }
+        .form-group { margin-bottom: 18px; }
+        label { display: block; margin-bottom: 8px; font-weight: 600; color: var(--text); font-size: 0.9rem; }
+        input, select { width: 100%; padding: 14px 16px; border: 2px solid var(--border); border-radius: 12px; font-size: 16px; transition: all 0.3s; background: rgba(255,255,255,0.9); }
+        input:focus, select:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1); transform: translateY(-1px); }
+        button { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white; border: none; padding: 14px 28px; border-radius: 12px; cursor: pointer; font-size: 16px; font-weight: 600; transition: all 0.3s; display: inline-block; margin-right: 10px; box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3); }
+        button:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4); }
+        button:disabled { background: #cbd5e1; cursor: not-allowed; transform: none; box-shadow: none; }
+        .btn-secondary { background: linear-gradient(135deg, var(--secondary), var(--secondary-dark)); box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3); }
+        .btn-secondary:hover { box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4); }
+        .connection-status { display: flex; align-items: center; margin-bottom: 18px; padding: 16px; border-radius: 12px; background: rgba(255,255,255,0.7); backdrop-filter: blur(10px); }
+        .status-indicator { width: 12px; height: 12px; border-radius: 50%; margin-right: 12px; background: #cbd5e1; box-shadow: 0 0 0 2px rgba(255,255,255,0.8); }
+        .status-indicator.connected { background: var(--success); animation: pulse 2s infinite; box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2); }
+        .status-indicator.error { background: var(--error); box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2); }
+        @keyframes pulse { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.7; transform: scale(1.2); } 100% { opacity: 1; transform: scale(1); } }
+        .result { margin-top: 20px; padding: 20px; border-radius: 12px; display: none; animation: slideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .result.success { background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0.05)); border-left: 4px solid var(--success); }
+        .result.error { background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(239, 68, 68, 0.05)); border-left: 4px solid var(--error); }
+        .file-list { margin-top: 12px; max-height: 180px; overflow-y: auto; background: rgba(255,255,255,0.6); padding: 12px; border-radius: 8px; backdrop-filter: blur(10px); }
+        .file-item { padding: 8px 0; border-bottom: 1px solid rgba(0,0,0,0.05); font-size: 0.9rem; transition: background 0.2s; }
+        .file-item:hover { background: rgba(99, 102, 241, 0.05); }
+        .file-item:last-child { border-bottom: none; }
+        .loading { display: none; text-align: center; margin: 25px 0; }
+        .spinner { border: 3px solid rgba(255,255,255,0.3); width: 40px; height: 40px; border-radius: 50%; border-left-color: var(--primary); animation: spin 1s linear infinite; margin: 0 auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        footer { text-align: center; margin-top: 25px; padding: 15px; color: white; font-size: 0.85rem; opacity: 0.9; }
+        /* 手机端适配 */
+        @media (max-width: 768px) {
+            .container { padding: 10px; }
+            header { padding: 25px 15px; margin-bottom: 20px; }
+            h1 { font-size: 1.5rem; }
+            .card { padding: 18px; margin-bottom: 15px; }
+            button { width: 100%; margin-right: 0; margin-bottom: 10px; padding: 16px; }
+            .form-group { margin-bottom: 15px; }
+            input, select { padding: 16px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔍 文件差异分析工具</h1>
+            <p style="color: var(--text-light); font-size: 0.9rem; margin-top: 5px;">智能分析两个文件的差异，生成详细报告</p>
+        </header>
+        
+        <main>
+            <div class="card">
+                <div class="connection-status" id="connectionStatus">
+                    <div class="status-indicator" id="statusIndicator"></div>
+                    <span id="statusText">未连接</span>
+                </div>
+                
+                <button id="connectBtn" class="btn-secondary">🔗 连接服务器</button>
+                
+                <div class="form-group">
+                    <label for="serverUrl">服务器地址</label>
+                    <input type="text" id="serverUrl" value="http://localhost:8080" placeholder="输入服务器地址">
+                </div>
+            </div>
+            
+            <div class="card">
+                <h2 style="margin-bottom: 18px; color: var(--primary); font-size: 1.3rem;">⚙️ 差异分析设置</h2>
+                
+                <div class="form-group">
+                    <label for="file1">第一个文件路径</label>
+                    <input type="text" id="file1" placeholder="/storage/emulated/0/Download/file1.c">
+                </div>
+                
+                <div class="form-group">
+                    <label for="file2">第二个文件路径</label>
+                    <input type="text" id="file2" placeholder="/storage/emulated/0/Download/file2.c">
+                </div>
+                
+                <div class="form-group">
+                    <label for="outputDir">输出目录</label>
+                    <input type="text" id="outputDir" placeholder="/storage/emulated/0/Download/差异分析报告">
+                </div>
+                
+                <button id="diffBtn" disabled>🔍 开始分析</button>
+                
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <p style="margin-top: 15px; color: var(--text-light); font-weight: 500;">正在分析文件差异，请稍候...</p>
+                </div>
+                
+                <div class="result" id="result"></div>
+            </div>
+        </main>
+        
+        <footer>
+            <p>文件差异分析工具 &copy; 2024 | 服务器运行在Termux环境</p>
+        </footer>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const serverUrlInput = document.getElementById('serverUrl');
+            const connectBtn = document.getElementById('connectBtn');
+            const statusIndicator = document.getElementById('statusIndicator');
+            const statusText = document.getElementById('statusText');
+            const diffBtn = document.getElementById('diffBtn');
+            const file1 = document.getElementById('file1');
+            const file2 = document.getElementById('file2');
+            const outputDir = document.getElementById('outputDir');
+            const loading = document.getElementById('loading');
+            const result = document.getElementById('result');
+            
+            let isConnected = false;
+            
+            // 连接服务器
+            connectBtn.addEventListener('click', async () => {
+                const serverUrl = serverUrlInput.value.trim();
+                if (!serverUrl) {
+                    showStatus('请输入服务器地址', 'error');
+                    return;
+                }
+                
+                connectBtn.disabled = true;
+                connectBtn.textContent = '连接中...';
+                
+                try {
+                    const response = await fetch(`${serverUrl}/test`);
+                    const data = await response.json();
+                    
+                    if (data.status === 'success') {
+                        isConnected = true;
+                        showStatus('✅ 已连接到服务器', 'connected');
+                        diffBtn.disabled = false;
+                        connectBtn.textContent = '🔄 重新连接';
+                    } else {
+                        showStatus('❌ 连接失败', 'error');
+                    }
+                } catch (error) {
+                    showStatus('❌ 连接失败: ' + error.message, 'error');
+                } finally {
+                    connectBtn.disabled = false;
+                }
+            });
+            
+            // 执行差异分析
+            diffBtn.addEventListener('click', async () => {
+                if (!isConnected) {
+                    showStatus('请先连接服务器', 'error');
+                    return;
+                }
+                
+                const serverUrl = serverUrlInput.value.trim();
+                const file1Value = file1.value.trim();
+                const file2Value = file2.value.trim();
+                const outputDirValue = outputDir.value.trim() || '/storage/emulated/0/Download/差异分析报告';
+                
+                if (!file1Value || !file2Value) {
+                    showStatus('请输入两个文件路径', 'error');
+                    return;
+                }
+                
+                loading.style.display = 'block';
+                result.style.display = 'none';
+                diffBtn.disabled = true;
+                
+                try {
+                    const response = await fetch(`${serverUrl}/diff`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            file1: file1Value,
+                            file2: file2Value,
+                            output_dir: outputDirValue
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.status === 'success') {
+                        showResult(data, 'success');
+                    } else {
+                        showResult(data, 'error');
+                    }
+                } catch (error) {
+                    showResult({message: '请求失败: ' + error.message}, 'error');
+                } finally {
+                    loading.style.display = 'none';
+                    diffBtn.disabled = false;
+                }
+            });
+            
+            function showStatus(message, type) {
+                statusText.textContent = message;
+                statusIndicator.className = 'status-indicator ' + type;
+            }
+            
+            function showResult(data, type) {
+                result.className = 'result ' + type;
+                result.style.display = 'block';
+                
+                if (type === 'success') {
+                    result.innerHTML = `
+                        <h3 style="margin-bottom: 15px; color: var(--success);">✅ 差异分析完成</h3>
+                        <p><strong>📄 文件1:</strong> ${data.file1}</p>
+                        <p><strong>📄 文件2:</strong> ${data.file2}</p>
+                        <p><strong>📊 HTML报告:</strong> ${data.html_report}</p>
+                        <p><strong>📝 分析报告:</strong> ${data.analysis_report}</p>
+                        <div style="margin-top: 15px; padding: 10px; background: rgba(99, 102, 241, 0.1); border-radius: 8px;">
+                            <p style="font-weight: 600; margin-bottom: 5px;">💡 使用提示:</p>
+                            <p style="font-size: 0.9rem;">• HTML报告提供直观的代码差异可视化</p>
+                            <p style="font-size: 0.9rem;">• 文本分析报告包含所有关键差异信息</p>
+                        </div>
+                    `;
+                } else {
+                    result.innerHTML = `
+                        <h3 style="margin-bottom: 15px; color: var(--error);">❌ 差异分析失败</h3>
+                        <p>${data.message}</p>
+                    `;
+                }
+            }
+        });
+    </script>
+</body>
+</html>

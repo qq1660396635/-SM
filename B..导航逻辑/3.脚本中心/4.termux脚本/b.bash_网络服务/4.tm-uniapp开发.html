@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Termux 工具合集</title>
+    <script src="/A2_全局中心/B_插件缓存-CDN/1.prism代码高亮/1.prism-css-白色主题.js"></script>
+    <script src="/A2_全局中心/B_插件缓存-CDN/1.prism代码高亮/prism-core.min.js"></script>
+    <script src="/A2_全局中心/B_插件缓存-CDN/1.prism代码高亮/prism-bash.min.js"></script>
+    <script src="/A2_全局中心/B_插件工具/3.插件_字体缩放.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: #2c3e50;
+            line-height: 1.4;
+            padding: 10px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+            animation: fadeIn 0.5s ease-in;
+        }
+        h1 {
+            color: #ffffff;
+            margin-bottom: 15px;
+            font-size: 22px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-shadow: 0 2px 4px rgba(255, 255, 255, 0.3);
+            animation: slideDown 0.6s ease-out;
+        }
+        .tabs {
+            display: flex;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 4px;
+            margin-bottom: 15px;
+            backdrop-filter: blur(10px);
+        }
+        .tab {
+            flex: 1;
+            padding: 10px;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+        }
+        .tab.active {
+            background: rgba(255, 255, 255, 0.95);
+            color: #f5576c;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease-in;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .code-container {
+            background: #ffffff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            border: 1px solid #e1e8ed;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            margin-bottom: 15px;
+        }
+        .code-container:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+        }
+        .code-header {
+            background: linear-gradient(90deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 10px 15px;
+            border-bottom: 1px solid #dee2e6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .code-title {
+            color: #6c757d;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+        .copy-btn {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            box-shadow: 0 2px 4px rgba(245, 87, 108, 0.3);
+        }
+        .copy-btn:hover {
+            background: linear-gradient(135deg, #f5576c 0%, #f093fb 100%);
+            transform: scale(1.05);
+            box-shadow: 0 4px 8px rgba(245, 87, 108, 0.4);
+        }
+        .copy-btn.copied {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+        }
+        pre {
+            background: #f8f9fa;
+            padding: 15px;
+            overflow-x: auto;
+            font-size: 11px;
+            line-height: 1.4;
+            border-radius: 0 0 8px 8px;
+            margin: 0;
+        }
+        code {
+            color: #495057;
+            font-family: inherit;
+            white-space: pre;
+        }
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            border: 1px solid #e1e8ed;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+        }
+        .card-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .quick-step {
+            background: #f8f9fa;
+            border-radius: 6px;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-left: 3px solid #667eea;
+        }
+        .quick-step:last-child {
+            margin-bottom: 0;
+        }
+        .quick-step-title {
+            color: #667eea;
+            font-size: 11px;
+            font-weight: 600;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .quick-step-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+        }
+        .quick-step-code {
+            font-size: 11px;
+            color: #2c3e50;
+            word-break: break-all;
+            flex: 1;
+        }
+        .quick-copy-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 10px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+            box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);
+        }
+        .quick-copy-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 8px rgba(102, 126, 234, 0.4);
+        }
+        .quick-copy-btn.copied {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+        }
+        .step-number {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            margin-right: 8px;
+        }
+        .step-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+        }
+        .step-content {
+            font-size: 12px;
+            color: #495057;
+            padding-left: 32px;
+        }
+        .highlight {
+            background: rgba(245, 87, 108, 0.1);
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-family: monospace;
+            font-weight: 600;
+            color: #f5576c;
+        }
+        .info-section {
+            margin-top: 15px;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 8px;
+            backdrop-filter: blur(10px);
+            border: 1px solid #e1e8ed;
+        }
+        .info-section h2 {
+            color: #f5576c;
+            margin-bottom: 8px;
+            font-size: 16px;
+        }
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        .info-item {
+            background: rgba(248, 249, 250, 0.9);
+            padding: 8px;
+            border-radius: 6px;
+            border-left: 3px solid #f5576c;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .info-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .info-label {
+            color: #6c757d;
+            font-size: 10px;
+            margin-bottom: 2px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .info-content {
+            color: #2c3e50;
+            font-size: 11px;
+        }
+        .note-box {
+            background: rgba(255, 193, 7, 0.1);
+            border-left: 3px solid #ffc107;
+            padding: 8px;
+            border-radius: 4px;
+            margin-top: 8px;
+            font-size: 11px;
+            color: #856404;
+        }
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #f5576c;
+            color: white;
+            padding: 10px 16px;
+            border-radius: 6px;
+            font-size: 12px;
+            z-index: 1000;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📱 Termux 工具合集</h1>
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('uniapp')">🚀Uniapp 项目创建</div>
+            <div class="tab" onclick="switchTab('sync')">🔄外部存储同步</div>
+        </div>
+
+        <div id="uniapp" class="tab-content active">
+            <div class="code-container">
+                <div class="code-header">
+                    <span class="code-title">第一步：检查环境</span>
+                    <button class="copy-btn" id="copyBtn1" onclick="copyCode('code1', 'copyBtn1')">
+                        <span>📋</span>
+                        <span id="copyBtnText1">复制</span>
+                    </button>
+                </div>
+                <pre><code id="code1" class="language-bash">node -v
+npm -v</code></pre>
+            </div>
+
+            <div class="code-container">
+                <div class="code-header">
+                    <span class="code-title">第二步：进入目录</span>
+                    <button class="copy-btn" id="copyBtn2" onclick="copyCode('code2', 'copyBtn2')">
+                        <span>📋</span>
+                        <span id="copyBtnText2">复制</span>
+                    </button>
+                </div>
+                <pre><code id="code2" class="language-bash">cd $HOME</code></pre>
+            </div>
+
+            <div class="code-container">
+                <div class="code-header">
+                    <span class="code-title">第三步：创建项目</span>
+                    <button class="copy-btn" id="copyBtn3" onclick="copyCode('code3', 'copyBtn3')">
+                        <span>📋</span>
+                        <span id="copyBtnText3">复制</span>
+                    </button>
+                </div>
+                <pre><code id="code3" class="language-bash">npx degit dcloudio/uni-preset-vue#vite uniapp项目</code></pre>
+            </div>
+
+            <div class="code-container">
+                <div class="code-header">
+                    <span class="code-title">第四步：安装依赖并运行</span>
+                    <button class="copy-btn" id="copyBtn4" onclick="copyCode('code4', 'copyBtn4')">
+                        <span>📋</span>
+                        <span id="copyBtnText4">复制</span>
+                    </button>
+                </div>
+                <pre><code id="code4" class="language-bash">cd "$HOME/uniapp项目"
+npm i && npm run dev:h5</code></pre>
+            </div>
+
+            <div class="info-section">
+                <h2>📋说明</h2>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <div class="info-label">🎯功能</div>
+                        <div class="info-content">一键创建基于 Vite 的 Uniapp 项目</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">📁项目位置</div>
+                        <div class="info-content"><span class="highlight">~/uniapp项目</span></div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">⚡访问地址</div>
+                        <div class="info-content"><span class="highlight">http://localhost:5173</span></div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">🛠️依赖</div>
+                        <div class="info-content">需要 Node.js 和 npm 环境</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="sync" class="tab-content">
+            <div class="card">
+                <div class="step-title"><span class="step-number">⚠️</span> 背景说明</div>
+                <div class="step-content">
+                    Android 10 以后，普通应用在外部存储里禁止创建软链（Google 的 SAF 限制），所以 ln -s 报 Permission denied
+                </div>
+            </div>
+
+            <div class="code-container">
+                <div class="code-header">
+                    <span class="code-title">第一步：安装同步工具</span>
+                    <button class="copy-btn" id="copyBtn5" onclick="copyCode('code5', 'copyBtn5')">
+                        <span>📋</span>
+                        <span id="copyBtnText5">复制</span>
+                    </button>
+                </div>
+                <pre><code id="code5" class="language-bash">pkg install rsync</code></pre>
+            </div>
+
+            <div class="code-container">
+                <div class="code-header">
+                    <span class="code-title">第二步：首次完整拷贝</span>
+                    <button class="copy-btn" id="copyBtn6" onclick="copyCode('code6', 'copyBtn6')">
+                        <span>📋</span>
+                        <span id="copyBtnText6">复制</span>
+                    </button>
+                </div>
+                <pre><code id="code6" class="language-bash">rsync -av --delete "$HOME/uniapp项目/" "/sdcard/Download/OnePlus Share/05_APP/uniapp项目/"</code></pre>
+            </div>
+
+            <div class="code-container">
+                <div class="code-header">
+                    <span class="code-title">第三步：Termux → MT 同步</span>
+                    <button class="copy-btn" id="copyBtn7" onclick="copyCode('code7', 'copyBtn7')">
+                        <span>📋</span>
+                        <span id="copyBtnText7">复制</span>
+                    </button>
+                </div>
+                <pre><code id="code7" class="language-bash">rsync -av --delete "$HOME/uniapp项目/" "/sdcard/Download/OnePlus Share/05_APP/uniapp项目/"</code></pre>
+            </div>
+
+            <div class="code-container">
+                <div class="code-header">
+                    <span class="code-title">第四步：MT → Termux 同步</span>
+                    <button class="copy-btn" id="copyBtn8" onclick="copyCode('code8', 'copyBtn8')">
+                        <span>📋</span>
+                        <span id="copyBtnText8">复制</span>
+                    </button>
+                </div>
+                <pre><code id="code8" class="language-bash">rsync -av --delete "/sdcard/Download/OnePlus Share/05_APP/uniapp项目/" "$HOME/uniapp项目/"</code></pre>
+            </div>
+
+            <div class="code-container">
+                <div class="code-header">
+                    <span class="code-title">第五步：配置别名</span>
+                    <button class="copy-btn" id="copyBtn9" onclick="copyCode('code9', 'copyBtn9')">
+                        <span>📋</span>
+                        <span id="copyBtnText9">复制</span>
+                    </button>
+                </div>
+                <pre><code id="code9" class="language-bash">echo 'alias2mt="rsync -av --delete \$HOME/uniapp项目/ /sdcard/Download/OnePlus\ Share/05_APP/uniapp项目/"' >> ~/.bashrc
+echo 'alias2tm="rsync -av --delete /sdcard/Download/OnePlus\ Share/05_APP/uniapp项目/ \$HOME/uniapp项目/"' >> ~/.bashrc
+source ~/.bashrc</code></pre>
+            </div>
+
+            <div class="card">
+                <div class="step-title"><span class="step-number">📌</span> 使用方法</div>
+                <div class="step-content">
+                    <span class="highlight">alias2mt</span> = 推送到 MT<br>
+                    <span class="highlight">alias2tm</span> = 拉回 Termux
+                </div>
+            </div>
+
+            <div class="note-box">
+                💡 结论：无 root 无法建软链，但用 rsync 一条命令就能秒同步，比手动复制快得多，也安全
+            </div>
+
+            <div class="card" style="margin-top: 20px;">
+                <div class="card-header">
+                    <span>⚡</span>
+                    <span>常用三步</span>
+                </div>
+                
+                <div class="quick-step">
+                    <div class="quick-step-title">步骤 1：拉取最新代码</div>
+                    <div class="quick-step-content">
+                        <div class="quick-step-code" id="quickCode1">rsync -av --delete "/sdcard/Download/OnePlus Share/05_APP/uniapp项目/" "$HOME/uniapp项目/"</div>
+                        <button class="quick-copy-btn" id="quickCopyBtn1" onclick="quickCopy('quickCode1', 'quickCopyBtn1')">📋 复制</button>
+                    </div>
+                </div>
+
+                <div class="quick-step">
+                    <div class="quick-step-title">步骤 2：进入目录并运行</div>
+                    <div class="quick-step-content">
+                        <div class="quick-step-code" id="quickCode2">cd "$HOME/uniapp项目" && npm i && npm run dev:h5</div>
+                        <button class="quick-copy-btn" id="quickCopyBtn2" onclick="quickCopy('quickCode2', 'quickCopyBtn2')">📋 复制</button>
+                    </div>
+                </div>
+
+                <div class="quick-step">
+                    <div class="quick-step-title">步骤 3：修复 esbuild 权限</div>
+                    <div class="quick-step-content">
+                        <div class="quick-step-code" id="quickCode3">chmod +x node_modules/@esbuild/android-arm64/bin/esbuild</div>
+                        <button class="quick-copy-btn" id="quickCopyBtn3" onclick="quickCopy('quickCode3', 'quickCopyBtn3')">📋 复制</button>
+                    </div>
+                </div>
+
+                <div class="quick-step">
+                    <div class="quick-step-title">访问地址</div>
+                    <div class="quick-step-content">
+                        <div class="quick-step-code" id="quickCode4" style="color: #667eea; font-weight: 600;">http://localhost:5173/</div>
+                        <button class="quick-copy-btn" id="quickCopyBtn4" onclick="quickCopy('quickCode4', 'quickCopyBtn4')">📋 复制</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        function switchTab(tabName) {
+            const tabs = document.querySelectorAll('.tab');
+            const contents = document.querySelectorAll('.tab-content');
+            
+            tabs.forEach(tab => tab.classList.remove('active'));
+            contents.forEach(content => content.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(tabName).classList.add('active');
+        }
+
+        function copyCode(codeId, btnId) {
+            const codeElement = document.getElementById(codeId);
+            const textContent = codeElement.textContent;
+            const copyBtn = document.getElementById(btnId);
+            const copyBtnText = document.getElementById(btnId.replace('Btn', 'BtnText'));
+            const toast = document.getElementById('toast');
+
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(textContent).then(function() {
+                    copyBtn.classList.add('copied');
+                    copyBtnText.textContent = '已复制';
+                    toast.textContent = '代码已复制到剪贴板';
+                    toast.classList.add('show');
+                    
+                    setTimeout(function() {
+                        copyBtn.classList.remove('copied');
+                        copyBtnText.textContent = '复制';
+                    }, 2000);
+                    
+                    setTimeout(function() {
+                        toast.classList.remove('show');
+                    }, 3000);
+                }).catch(function(err) {
+                    showCopyError(toast);
+                });
+            } else {
+                const textArea = document.createElement('textarea');
+                textArea.value = textContent;
+                textArea.style.position = 'fixed';
+                textArea.style.opacity = '0';
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                
+                try {
+                    const successful = document.execCommand('copy');
+                    if (successful) {
+                        copyBtn.classList.add('copied');
+                        copyBtnText.textContent = '已复制';
+                        toast.textContent = '代码已复制到剪贴板';
+                        toast.classList.add('show');
+                        
+                        setTimeout(function() {
+                            copyBtn.classList.remove('copied');
+                            copyBtnText.textContent = '复制';
+                        }, 2000);
+                        
+                        setTimeout(function() {
+                            toast.classList.remove('show');
+                        }, 3000);
+                    } else {
+                        showCopyError(toast);
+                    }
+                } catch (err) {
+                    showCopyError(toast);
+                }
+                
+                document.body.removeChild(textArea);
+            }
+        }
+
+        function quickCopy(codeId, btnId) {
+            const codeElement = document.getElementById(codeId);
+            const textContent = codeElement.textContent;
+            const copyBtn = document.getElementById(btnId);
+            const toast = document.getElementById('toast');
+
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(textContent).then(function() {
+                    copyBtn.classList.add('copied');
+                    copyBtn.textContent = '✓ 已复制';
+                    toast.textContent = '代码已复制到剪贴板';
+                    toast.classList.add('show');
+                    
+                    setTimeout(function() {
+                        copyBtn.classList.remove('copied');
+                        copyBtn.textContent = '📋 复制';
+                    }, 2000);
+                    
+                    setTimeout(function() {
+                        toast.classList.remove('show');
+                    }, 3000);
+                }).catch(function(err) {
+                    showCopyError(toast);
+                });
+            } else {
+                const textArea = document.createElement('textarea');
+                textArea.value = textContent;
+                textArea.style.position = 'fixed';
+                textArea.style.opacity = '0';
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                
+                try {
+                    const successful = document.execCommand('copy');
+                    if (successful) {
+                        copyBtn.classList.add('copied');
+                        copyBtn.textContent = '✓ 已复制';
+                        toast.textContent = '代码已复制到剪贴板';
+                        toast.classList.add('show');
+                        
+                        setTimeout(function() {
+                            copyBtn.classList.remove('copied');
+                            copyBtn.textContent = '📋 复制';
+                        }, 2000);
+                        
+                        setTimeout(function() {
+                            toast.classList.remove('show');
+                        }, 3000);
+                    } else {
+                        showCopyError(toast);
+                    }
+                } catch (err) {
+                    showCopyError(toast);
+                }
+                
+                document.body.removeChild(textArea);
+            }
+        }
+
+        function showCopyError(toast) {
+            toast.textContent = '复制失败，请手动选择复制';
+            toast.style.background = '#e74c3c';
+            toast.classList.add('show');
+            
+            setTimeout(function() {
+                toast.classList.remove('show');
+                toast.style.background = '#f5576c';
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

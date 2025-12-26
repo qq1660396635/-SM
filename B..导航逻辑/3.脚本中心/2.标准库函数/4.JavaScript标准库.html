@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>JS 官方标准库函数分类速查(ECMA-262 2025)</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="A.插件_字体缩放.js"></script>
+    <style>
+        :root {
+            --primary-color: #0891b2;
+            --secondary-color: #06b6d4;
+            --accent-color: #22d3ee;
+            --text-color: #0f172a;
+            --text-secondary: #475569;
+            --bg-color: #f0fdfa;
+            --border-color: #bae6fd;
+            --hover-bg: #e0f2fe;
+            --code-bg: #ffffff;
+            --tree-line: #7dd3fc;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            color: #0f172a;
+            background: linear-gradient(135deg, #f0fdfa 0%, #e0f2fe 100%);
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: rgba(255, 255, 255, 0.95);
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: #fff;
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+            flex-shrink: 0;
+            z-index: 10;
+        }
+
+        header h1 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        header p {
+            opacity: 0.9;
+            font-size: 12px;
+        }
+
+        .controls {
+            padding: 10px 16px;
+            background-color: var(--code-bg);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        .controls button {
+            background: linear-gradient(135deg, var(--accent-color), var(--secondary-color));
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 12px;
+            font-family: inherit;
+        }
+
+        .controls button:hover {
+            background: linear-gradient(135deg, var(--secondary-color), var(--primary-color));
+            transform: translateY(-1px);
+        }
+
+        #searchInput {
+            padding: 6px 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background-color: rgba(240, 253, 250, 0.8);
+            color: #0f172a;
+            font-size: 12px;
+            font-family: inherit;
+            width: 180px;
+        }
+
+        #searchInput:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.2);
+        }
+
+        .tree-container {
+            flex: 1;
+            padding: 12px;
+            overflow: auto;
+            background-color: rgba(240, 253, 250, 0.5);
+        }
+
+        .tree ul {
+            list-style-type: none;
+            padding-left: 16px;
+            margin: 0;
+        }
+
+        .tree li {
+            position: relative;
+            padding: 1px 0;
+            white-space: nowrap;
+        }
+
+        .tree li::before {
+            content: "";
+            position: absolute;
+            left: -10px;
+            top: 8px;
+            width: 10px;
+            height: 1px;
+            background-color: var(--tree-line);
+        }
+
+        .tree li::after {
+            content: "";
+            position: absolute;
+            left: -10px;
+            top: -2px;
+            width: 1px;
+            height: 100%;
+            background-color: var(--tree-line);
+        }
+
+        .tree li:last-child::after {
+            height: 10px;
+        }
+
+        .tree > ul > li::before,
+        .tree > ul > li::after {
+            display: none;
+        }
+
+        .tree-node {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            padding: 2px 4px;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+
+        .tree-node:hover {
+            background-color: var(--hover-bg);
+        }
+
+        .tree-node i {
+            margin-right: 6px;
+            color: var(--text-color);
+            width: 12px;
+            text-align: center;
+            font-size: 10px;
+        }
+
+        .tree-node .folder {
+            color: #0891b2;
+        }
+
+        .tree-node .file {
+            color: var(--text-secondary);
+        }
+
+        .tree-node .toggle {
+            color: #94a3b8;
+            margin-right: 3px;
+            font-size: 9px;
+        }
+
+        .tree-content {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            min-width: 0;
+        }
+
+        .tree-name {
+            font-weight: 500;
+            font-size: 13px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: #0f172a;
+        }
+
+        .tree-desc {
+            color: #475569;
+            font-size: 10px;
+            margin-left: 8px;
+            font-style: italic;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 180px;
+        }
+
+        .collapsed > ul {
+            display: none;
+        }
+
+        .collapsed .toggle.fa-chevron-down::before {
+            content: "\f054";
+        }
+
+        .highlight {
+            background: linear-gradient(135deg, var(--accent-color), var(--secondary-color));
+            padding: 0 3px;
+            border-radius: 3px;
+            color: #fff;
+        }
+
+        footer {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 8px 16px;
+            text-align: center;
+            font-size: 10px;
+            border-top: 1px solid var(--border-color);
+            flex-shrink: 0;
+            z-index: 10;
+        }
+
+        /* 移动端优化 */
+        @media (max-width: 768px) {
+            body {
+                font-size: 12px;
+            }
+
+            header h1 {
+                font-size: 16px;
+            }
+
+            header p {
+                font-size: 11px;
+            }
+
+            .tree ul {
+                padding-left: 14px;
+            }
+
+            .tree li {
+                padding: 0.5px 0;
+            }
+
+            .tree-name {
+                font-size: 12px;
+            }
+
+            .tree-desc {
+                font-size: 9px;
+                margin-left: 6px;
+                max-width: 120px;
+            }
+
+            #searchInput {
+                width: 140px;
+                font-size: 11px;
+            }
+
+            .controls button {
+                font-size: 11px;
+                padding: 5px 10px;
+            }
+        }
+
+        /* 超小屏幕优化 */
+        @media (max-width: 480px) {
+            body {
+                font-size: 13px;
+            }
+
+            header h1 {
+                font-size: 14px;
+            }
+
+            header p {
+                font-size: 10px;
+            }
+
+            .tree ul {
+                padding-left: 12px;
+            }
+
+            .tree li {
+                padding: 0;
+            }
+
+            .tree-node {
+                padding: 1px 3px;
+            }
+
+            .tree-node i {
+                margin-right: 4px;
+                width: 10px;
+                font-size: 9px;
+            }
+
+            .tree-name {
+                font-size: 11px;
+            }
+
+            .tree-desc {
+                font-size: 8px;
+                margin-left: 4px;
+                max-width: 90px;
+            }
+
+            .tree-container {
+                padding: 8px;
+            }
+
+            .controls {
+                padding: 8px 12px;
+            }
+
+            #searchInput {
+                width: 120px;
+                font-size: 10px;
+                padding: 4px 8px;
+            }
+
+            .controls button {
+                font-size: 10px;
+                padding: 4px 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>JS 官方标准库函数分类速查(ECMA-262 2025)</h1>
+            <p>JavaScript Official Standard Library Functions Quick Reference</p>
+        </header>
+        <div class="controls">
+            <div>
+                <button id="expandAll"><i class="fas fa-plus-square"></i>展开</button>
+                <button id="collapseAll"><i class="fas fa-minus-square"></i> 折叠</button>
+            </div>
+            <div>
+                <input type="text" id="searchInput" placeholder="搜索...">
+            </div>
+        </div>
+        <div class="tree-container">
+            <div class="tree" id="treeContainer"></div>
+        </div>
+        <footer>
+            <p>© 2025 JS 官方标准库函数分类速查 | Generated by 凉安</p>
+        </footer>
+    </div>
+
+    <script>
+        // JavaScript标准库数据结构
+        const jsStdLib = [
+            {
+                name: "1️⃣ 语言根基",
+                type: "folder",
+                children: [
+                    {
+                        name: "1.1 核心对象与异常体系",
+                        type: "folder",
+                        children: [
+                            { name: "Object", desc: "语言本体&异常体系", type: "file" },
+                            { name: "Function", desc: "语言本体&异常体系", type: "file" },
+                            { name: "Boolean", desc: "语言本体&异常体系", type: "file" },
+                            { name: "Symbol", desc: "语言本体&异常体系", type: "file" },
+                            { name: "Error", desc: "语言本体&异常体系", type: "file" },
+                            { name: "AggregateError", desc: "语言本体&异常体系", type: "file" },
+                            { name: "EvalError", desc: "语言本体&异常体系", type: "file" },
+                            { name: "RangeError", desc: "语言本体&异常体系", type: "file" },
+                            { name: "ReferenceError", desc: "语言本体&异常体系", type: "file" },
+                            { name: "SyntaxError", desc: "语言本体&异常体系", type: "file" },
+                            { name: "TypeError", desc: "语言本体&异常体系", type: "file" },
+                            { name: "URIError", desc: "语言本体&异常体系", type: "file" }
+                        ]
+                    }
+                ]
+            },
+            {
+                name: "2️⃣ 数值与数学",
+                type: "folder",
+                children: [
+                    {
+                        name: "2.1 算术、日期与数字格式化",
+                        type: "folder",
+                        children: [
+                            { name: "Number", desc: "算术、日期、数字格式化", type: "file" },
+                            { name: "Math", desc: "算术、日期、数字格式化", type: "file" },
+                            { name: "BigInt", desc: "算术、日期、数字格式化", type: "file" },
+                            { name: "Date", desc: "算术、日期、数字格式化", type: "file" },
+                            { name: "Intl.NumberFormat", desc: "算术、日期、数字格式化", type: "file" },
+                            { name: "Intl.PluralRules", desc: "算术、日期、数字格式化", type: "file" }
+                        ]
+                    }
+                ]
+            },
+            {
+                name: "3️⃣ 模板字面量标签",
+                type: "folder",
+                children: [
+                    {
+                        name: "3.1 原生模板字符串处理",
+                        type: "folder",
+                        children: [
+                            { name: "String.raw", desc: "原生模板字符串标签", type: "file" }
+                        ]
+                    }
+                ]
+            },
+            {
+                name: "4️⃣ 字符串与正则",
+                type: "folder",
+                children: [
+                    {
+                        name: "4.1 文本处理、排序与分词",
+                        type: "folder",
+                        children: [
+                            { name: "String", desc: "文本处理、排序、分词", type: "file" },
+                            { name: "RegExp", desc: "文本处理、排序、分词", type: "file" },
+                            { name: "Intl.Collator", desc: "文本处理、排序、分词", type: "file" },
+                            { name: "Intl.Segmenter", desc: "文本处理、排序、分词", type: "file" }
+                        ]
+                    }
+                ]
+            },
+            {
+                name: "5️⃣ 二进制缓冲",
+                type: "folder",
+                children: [
+                    {
+                        name: "5.1 字节级数据处理",
+                        type: "folder",
+                        children: [
+                            { name: "ArrayBuffer", desc: "字节级数据", type: "file" },
+                            { name: "SharedArrayBuffer", desc: "字节级数据", type: "file" },
+                            { name: "DataView", desc: "字节级数据", type: "file" },
+                            { name: "Int8Array", desc: "字节级数据", type: "file" },
+                            { name: "Uint8Array", desc: "字节级数据", type: "file" },
+                            { name: "Uint8ClampedArray", desc: "字节级数据", type: "file" },
+                            { name: "Int16Array", desc: "字节级数据", type: "file" },
+                            { name: "Uint16Array", desc: "字节级数据", type: "file" },
+                            { name: "Int32Array", desc: "字节级数据", type: "file" },
+                            { name: "Uint32Array", desc: "字节级数据", type: "file" },
+                            { name: "Float32Array", desc: "字节级数据", type: "file" },
+                            { name: "Float64Array", desc: "字节级数据", type: "file" },
+                            { name: "BigInt64Array", desc: "字节级数据", type: "file" },
+                            { name: "BigUint64Array", desc: "字节级数据", type: "file" }
+                        ]
+                    }
+                ]
+            },
+            {
+                name: "6️⃣ JSON",
+                type: "folder",
+                children: [
+                    {
+                        name: "6.1 数据序列化与安全处理",
+                        type: "folder",
+                        children: [
+                            { name: "JSON.parse", desc: "数据序列化&安全raw", type: "file" },
+                            { name: "JSON.stringify", desc: "数据序列化&安全raw", type: "file" },
+                            { name: "JSON.isRawJSON", desc: "数据序列化&安全raw (2025)", type: "file" },
+                            { name: "JSON.rawJSON", desc: "数据序列化&安全raw (2025)", type: "file" }
+                        ]
+                    }
+                ]
+            },
+            {
+                name: "7️⃣ URL & 编码",
+                type: "folder",
+                children: [
+                    {
+                        name: "7.1 URI 编解码与处理",
+                        type: "folder",
+                        children: [
+                            { name: "URL", desc: "URI 编解码", type: "file" },
+                            { name: "URLSearchParams", desc: "URI 编解码", type: "file" },
+                            { name: "encodeURI", desc: "URI 编解码", type: "file" },
+                            { name: "decodeURI", desc: "URI 编解码", type: "file" },
+                            { name: "encodeURIComponent", desc: "URI 编解码", type: "file" },
+                            { name: "decodeURIComponent", desc: "URI 编解码", type: "file" }
+                        ]
+                    }
+                ]
+            },
+            {
+                name: "8️⃣ Base64",
+                type: "folder",
+                children: [
+                    {
+                        name: "8.1 Base64 格式互转",
+                        type: "folder",
+                        children: [
+                            { name: "atob, btoa", desc: "Base64 互转（浏览器）", type: "file" },
+                            { name: "Buffer.from, toString('base64')", desc: "Base64 互转", type: "file" }
+                        ]
+                    }
+                ]
+            },
+            {
+                name: "9️⃣ UUID",
+                type: "folder",
+                children: [
+                    {
+                        name: "9.1 唯一标识符生成",
+                        type: "folder",
+                        children: [
+                            { name: "crypto.randomUUID()", desc: "生成v4 UUID（浏览器& Node 18+）", type: "file" }
+                        ]
+                    }
+                ]
+            },
+            {
+                name: "🔟 控制台",
+                type: "folder",
+                children: [
+                    {
+                        name: "10.1 调试输出",
+                        type: "folder",
+                        children: [
+                            { name: "console", desc: "调试输出（宿主实现，但已标准化）", type: "file" }
+                        ]
+                    }
+                ]
+            },
+            {
+                name: "1️⃣1️⃣ 全局反射",
+                type: "folder",
+                children: [
+                    {
+                        name: "11.1 元编程与拦截",
+                        type: "folder",
+                        children: [
+                            { name: "Reflect", desc: "元编程&拦截", type: "file" },
+                            { name: "Proxy", desc: "元编程&拦截", type: "file" }
+                        ]
+                    }
+                ]
+            },
+            {
+                name: "1️⃣2️⃣ 异步原语",
+                type: "folder",
+                children: [
+                    {
+                        name: "12.1 异步控制流",
+                        type: "folder",
+                        children: [
+                            { name: "Promise", desc: "异步控制", type: "file" },
+                            { name: "Promise.withResolvers()", desc: "异步控制(2024)", type: "file" },
+                            { name: "AsyncFunction", desc: "异步控制", type: "file" },
+                            { name: "GeneratorFunction", desc: "异步控制", type: "file" }
+                        ]
+                    }
+                ]
+            },
+            {
+                name: "1️⃣3️⃣ 微任务调度",
+                type: "folder",
+                children: [
+                    {
+                        name: "13.1 任务队列管理",
+                        type: "folder",
+                        children: [
+                            { name: "queueMicrotask", desc: "显式排入微任务队列", type: "file" }
+                        ]
+                    }
+                ]
+            },
+            {
+                name: "1️⃣4️⃣ 定时器",
+                type: "folder",
+                children: [
+                    {
+                        name: "14.1 宿主定时器",
+                        type: "folder",
+                        children: [
+                            { name: "setTimeout", desc: "宿主定时（浏览器/Node）", type: "file" },
+                            { name: "setInterval", desc: "宿主定时（浏览器/Node）", type: "file" },
+                            { name: "clearTimeout", desc: "宿主定时（浏览器/Node）", type: "file" },
+                            { name: "clearInterval", desc: "宿主定时（浏览器/Node）", type: "file" }
+                        ]
+                    }
+                ]
+            },
+            {
+                name: "1️⃣5️⃣ 即时任务",
+                type: "folder",
+                children: [
+                    {
+                        name: "15.1 Node 零延迟调度",
+                        type: "folder",
+                        children: [
+                            { name: "setImmediate", desc: "Node 端零延迟调度", type: "file" },
+                            { name: "clearImmediate", desc: "Node 端零延迟调度", type: "file" }
+                        ]
+                    }
+                ]
+            },
+            {
+                name: "1️⃣6️⃣ 动画帧",
+                type: "folder",
+                children: [
+                    {
+                        name: "16.1 浏览器渲染调度",
+                        type: "folder",
+                        children: [
+                            { name: "requestAnimationFrame", desc: "60 fps 渲染调度", type: "file" },
+                            { name: "cancelAnimationFrame", desc: "60 fps 渲染调度", type: "file" }
+                        ]
+                    }
+                ]
+            },
+            {
+                name: "1️⃣7️⃣ 信号",
+                type: "folder",
+                children: [
+                    {
+                        name: "17.1 统一取消语义",
+                        type: "folder",
+                        children: [
+                            { name: "AbortController", desc: "统一取消语义（fetch, 事件, 定时器）", type: "file" },
+                            { name: "AbortSignal", desc: "统一取消语义（fetch, 事件, 定时器）", type: "file" }
+                        ]
+                    }
+                ]
+            },
+            {
+                name: "1️⃣8️⃣ 结构化克隆",
+                type: "folder",
+                children: [
+                    {
+                        name: "18.1 深度复制与内存转移",
+                        type: "folder",
+                        children: [
+                            { name: "structuredClone(value, {transfer})", desc: "深度复制+ Transferable", type: "file" }
+                        ]
+                    }
+                ]
+            },
+            {
+                name: "1️⃣9️⃣ Intl 国际化全家桶",
+                type: "folder",
+                children: [
+                    {
+                        name: "19.1 本地化全套工具",
+                        type: "folder",
+                        children: [
+                            { name: "Intl.Collator", desc: "本地化全套", type: "file" },
+                            { name: "Intl.DateTimeFormat", desc: "本地化全套", type: "file" },
+                            { name: "Intl.DisplayNames", desc: "本地化全套", type: "file" },
+                            { name: "Intl.DurationFormat", desc: "本地化全套(2024)", type: "file" },
+                            { name: "Intl.ListFormat", desc: "本地化全套", type: "file" },
+                            { name: "Intl.Locale", desc: "本地化全套", type: "file" },
+                            { name: "Intl.NumberFormat", desc: "本地化全套", type: "file" },
+                            { name: "Intl.PluralRules", desc: "本地化全套", type: "file" },
+                            { name: "Intl.RelativeTimeFormat", desc: "本地化全套", type: "file" },
+                            { name: "Intl.Segmenter", desc: "本地化全套", type: "file" }
+                        ]
+                    }
+                ]
+            },
+            {
+                name: "2️⃣0️⃣ Temporal",
+                type: "folder",
+                children: [
+                    {
+                        name: "20.1 现代日期时间API",
+                        type: "folder",
+                        children: [
+                            { name: "Temporal.Now", desc: "现代日期时间API（替代Date）", type: "file" },
+                            { name: "Temporal.Instant", desc: "现代日期时间API（替代Date）", type: "file" },
+                            { name: "Temporal.ZonedDateTime", desc: "现代日期时间API（替代Date）", type: "file" },
+                            { name: "Temporal.PlainDate", desc: "现代日期时间API（替代Date）", type: "file" },
+                            { name: "Temporal.PlainTime", desc: "现代日期时间API（替代Date）", type: "file" },
+                            { name: "Temporal.Duration", desc: "现代日期时间API（替代Date）", type: "file" }
+                        ]
+                    }
+                ]
+            },
+            {
+                name: "2️⃣1️⃣ Iterator Helpers",
+                type: "folder",
+                children: [
+                    {
+                        name: "21.1 惰性迭代器链式操作",
+                        type: "folder",
+                        children: [
+                            { name: "Iterator.from", desc: "惰性迭代器链式操作", type: "file" },
+                            { name: ".map", desc: "惰性迭代器链式操作", type: "file" },
+                            { name: ".filter", desc: "惰性迭代器链式操作", type: "file" },
+                            { name: ".take", desc: "惰性迭代器链式操作", type: "file" },
+                            { name: ".drop", desc: "惰性迭代器链式操作", type: "file" },
+                            { name: ".flatMap", desc: "惰性迭代器链式操作", type: "file" },
+                            { name: ".zip", desc: "惰性迭代器链式操作", type: "file" },
+                            { name: ".reduce", desc: "惰性迭代器链式操作", type: "file" },
+                            { name: ".some", desc: "惰性迭代器链式操作", type: "file" },
+                            { name: ".every", desc: "惰性迭代器链式操作", type: "file" },
+                            { name: ".find", desc: "惰性迭代器链式操作", type: "file" }
+                        ]
+                    }
+                ]
+            },
+            {
+                name: "2️⃣2️⃣ Set 新方法",
+                type: "folder",
+                children: [
+                    {
+                        name: "22.1 集合代数运算",
+                        type: "folder",
+                        children: [
+                            { name: "Set.prototype.union", desc: "集合代数运算(2024)", type: "file" },
+                            { name: "Set.prototype.intersection", desc: "集合代数运算(2024)", type: "file" },
+                            { name: "Set.prototype.difference", desc: "集合代数运算(2024)", type: "file" },
+                            { name: "Set.prototype.symmetricDifference", desc: "集合代数运算(2024)", type: "file" },
+                            { name: "Set.prototype.isSubsetOf", desc: "集合代数运算(2024)", type: "file" },
+                            { name: "Set.prototype.isSupersetOf", desc: "集合代数运算(2024)", type: "file" },
+                            { name: "Set.prototype.isDisjointFrom", desc: "集合代数运算(2024)", type: "file" }
+                        ]
+                    }
+                ]
+            },
+            {
+                name: "2️⃣3️⃣ Map/Set 序列化",
+                type: "folder",
+                children: [
+                    {
+                        name: "23.1 数据分组",
+                        type: "folder",
+                        children: [
+                            { name: "Map.groupBy", desc: "按回调分组为Map 或Object (2024)", type: "file" },
+                            { name: "Object.groupBy", desc: "按回调分组为Map 或Object (2024)", type: "file" }
+                        ]
+                    }
+                ]
+            },
+            {
+                name: "2️⃣4️⃣ Array 稳定排序",
+                type: "folder",
+                children: [
+                    {
+                        name: "24.1 不可变副本与反向查找",
+                        type: "folder",
+                        children: [
+                            { name: "Array.prototype.toSorted", desc: "不可变副本&反向查找(ES2023)", type: "file" },
+                            { name: "Array.prototype.toReversed", desc: "不可变副本&反向查找(ES2023)", type: "file" },
+                            { name: "Array.prototype.with", desc: "不可变副本&反向查找(ES2023)", type: "file" },
+                            { name: "Array.prototype.findLast", desc: "不可变副本&反向查找(ES2023)", type: "file" },
+                            { name: "Array.prototype.findLastIndex", desc: "不可变副本&反向查找(ES2023)", type: "file" }
+                        ]
+                    }
+                ]
+            },
+            {
+                name: "2️⃣5️⃣ ArrayBuffer 转移",
+                type: "folder",
+                children: [
+                    {
+                        name: "25.1 零拷贝内存转移",
+                        type: "folder",
+                        children: [
+                            { name: "ArrayBuffer.prototype.transfer", desc: "零拷贝转移底层内存(2025)", type: "file" }
+                        ]
+                    }
+                ]
+            },
+            {
+                name: "2️⃣6️⃣ WeakRef & Finalization",
+                type: "folder",
+                children: [
+                    {
+                        name: "26.1 弱引用与清理回调",
+                        type: "folder",
+                        children: [
+                            { name: "WeakRef", desc: "弱引用&清理回调", type: "file" },
+                            { name: "FinalizationRegistry", desc: "弱引用&清理回调", type: "file" }
+                        ]
+                    }
+                ]
+            },
+            {
+                name: "2️⃣7️⃣ Atomics",
+                type: "folder",
+                children: [
+                    {
+                        name: "27.1 共享内存线程同步",
+                        type: "folder",
+                        children: [
+                            { name: "Atomics.load", desc: "SAB 线程同步", type: "file" },
+                            { name: "Atomics.store", desc: "SAB 线程同步", type: "file" },
+                            { name: "Atomics.add", desc: "SAB 线程同步", type: "file" },
+                            { name: "Atomics.sub", desc: "SAB 线程同步", type: "file" },
+                            { name: "Atomics.and", desc: "SAB 线程同步", type: "file" },
+                            { name: "Atomics.or", desc: "SAB 线程同步", type: "file" },
+                            { name: "Atomics.xor", desc: "SAB 线程同步", type: "file" },
+                            { name: "Atomics.exchange", desc: "SAB 线程同步", type: "file" },
+                            { name: "Atomics.compareExchange", desc: "SAB 线程同步", type: "file" },
+                            { name: "Atomics.wait", desc: "SAB 线程同步", type: "file" },
+                            { name: "Atomics.notify", desc: "SAB 线程同步", type: "file" }
+                        ]
+                    }
+                ]
+            },
+            {
+                name: "2️⃣8️⃣ crypto 命名空间",
+                type: "folder",
+                children: [
+                    {
+                        name: "28.1 密码学与安全随机",
+                        type: "folder",
+                        children: [
+                            { name: "crypto.subtle", desc: "密码学&安全随机", type: "file" },
+                            { name: "crypto.getRandomValues", desc: "密码学&安全随机", type: "file" },
+                            { name: "crypto.randomUUID", desc: "密码学&安全随机", type: "file" }
+                        ]
+                    }
+                ]
+            },
+            {
+                name: "2️⃣9️⃣ 性能测量",
+                type: "folder",
+                children: [
+                    {
+                        name: "29.1 高精度时间与用户计时",
+                        type: "folder",
+                        children: [
+                            { name: "performance", desc: "高精度时间&用户计时(浏览器)", type: "file" },
+                            { name: "performance.now()", desc: "高精度时间&用户计时(浏览器)", type: "file" },
+                            { name: "performance.mark", desc: "高精度时间&用户计时(浏览器)", type: "file" },
+                            { name: "performance.measure", desc: "高精度时间&用户计时(浏览器)", type: "file" },
+                            { name: "node:perf_hooks", desc: "高精度时间&用户计时(Node)", type: "file" }
+                        ]
+                    }
+                ]
+            },
+            {
+                name: "3️⃣0️⃣ 命令行参数",
+                type: "folder",
+                children: [
+                    {
+                        name: "30.1 宿主提供CLI 入参",
+                        type: "folder",
+                        children: [
+                            { name: "Deno.args", desc: "宿主提供CLI 入参", type: "file" },
+                            { name: "Bun.argv", desc: "宿主提供CLI 入参", type: "file" },
+                            { name: "process.argv", desc: "宿主提供CLI 入参(Node)", type: "file" }
+                        ]
+                    }
+                ]
+            },
+            {
+                name: "3️⃣1️⃣ 环境变量",
+                type: "folder",
+                children: [
+                    {
+                        name: "31.1 宿主环境变量",
+                        type: "folder",
+                        children: [
+                            { name: "Deno.env", desc: "宿主环境变量", type: "file" },
+                            { name: "Bun.env", desc: "宿主环境变量", type: "file" },
+                            { name: "process.env", desc: "宿主环境变量(Node)", type: "file" }
+                        ]
+                    }
+                ]
+            },
+            {
+                name: "3️⃣2️⃣ 模块说明",
+                type: "folder",
+                children: [
+                    {
+                        name: "32.1 规范与兼容性",
+                        type: "folder",
+                        children: [
+                            { name: "说明", desc: "以上所有均在ECMA-262 2025 或WHATWG/Node 官方规范中定义，无需安装第三方包。", type: "file" }
+                        ]
+                    }
+                ]
+            }
+        ];
+
+        // 递归生成树形结构的HTML
+        function generateTreeHTML(data) {
+            let html = '<ul>';
+            data.forEach(item => {
+                const hasChildren = item.children && item.children.length > 0;
+                const iconClass = item.type === 'folder' ? 'folder' : 'file';
+                const iconName = item.type === 'folder' ? 'fa-folder' : 'fa-file';
+                
+                html += '<li>';
+                html += '<div class="tree-node">';
+                
+                if (hasChildren) {
+                    html += '<i class="fas fa-chevron-down toggle"></i>';
+                }
+                
+                html += `<i class="fas ${iconName} ${iconClass}"></i>`;
+                html += '<div class="tree-content">';
+                html += `<span class="tree-name">${item.name}</span>`;
+                
+                if (item.desc) {
+                    html += `<span class="tree-desc">${item.desc}</span>`;
+                }
+                
+                html += '</div>';
+                html += '</div>';
+                
+                if (hasChildren) {
+                    html += generateTreeHTML(item.children);
+                }
+                
+                html += '</li>';
+            });
+            html += '</ul>';
+            return html;
+        }
+
+        // 初始化树形结构
+        document.addEventListener('DOMContentLoaded', function() {
+            const treeContainer = document.getElementById('treeContainer');
+            treeContainer.innerHTML = generateTreeHTML(jsStdLib);
+            
+            // 默认折叠所有文件夹
+            document.querySelectorAll('.tree li').forEach(li => {
+                if (li.querySelector(':scope > .tree-node .folder') && !li.parentElement.classList.contains('tree')) {
+                    li.classList.add('collapsed');
+                }
+            });
+            
+            // 为所有文件夹节点添加折叠/展开功能
+            const folderNodes = document.querySelectorAll('.tree-node .folder');
+            folderNodes.forEach(folder => {
+                const node = folder.parentElement;
+                const li = node.parentElement;
+                
+                // 添加点击事件
+                node.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    li.classList.toggle('collapsed');
+                });
+            });
+            
+            // 展开全部按钮
+            document.getElementById('expandAll').addEventListener('click', function() {
+                document.querySelectorAll('.tree li.collapsed').forEach(li => {
+                    li.classList.remove('collapsed');
+                });
+            });
+            
+            // 折叠全部按钮
+            document.getElementById('collapseAll').addEventListener('click', function() {
+                document.querySelectorAll('.tree li').forEach(li => {
+                    if (li.querySelector(':scope > .tree-node .folder') && !li.parentElement.classList.contains('tree')) {
+                        li.classList.add('collapsed');
+                    }
+                });
+            });
+            
+            // 搜索功能
+            document.getElementById('searchInput').addEventListener('input', function(e) {
+                const searchTerm = e.target.value.toLowerCase();
+                
+                // 清除之前的高亮
+                document.querySelectorAll('.highlight').forEach(el => {
+                    el.classList.remove('highlight');
+                });
+                
+                if (searchTerm === '') return;
+                
+                // 搜索并高亮匹配项
+                document.querySelectorAll('.tree-node').forEach(node => {
+                    const text = node.textContent.toLowerCase();
+                    if (text.includes(searchTerm)) {
+                        node.querySelector('.tree-name').classList.add('highlight');
+                        
+                        // 展开父节点
+                        let parent = node.closest('li');
+                        while (parent && !parent.classList.contains('tree')) {
+                            parent.classList.remove('collapsed');
+                            parent = parent.parentElement.closest('li');
+                        }
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

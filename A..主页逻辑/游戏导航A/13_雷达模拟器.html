@@ -1,0 +1,1426 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>专业雷达模拟器</title>
+    <!-- 引入数据库管理器 -->
+    <script src="/db.js"></script>
+    
+    <!-- 引入在线时长插件（只需要这一行！） -->
+    <script src="/A2_全局中心/B_插件工具/2.插件_在线时长.js"></script>
+    >
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0a0e27 0%, #151932 100%);
+            color: #00ff88;
+            height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* 主容器 */
+        .container {
+            width: 100%;
+            height: 100vh;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* 雷达容器 */
+        .radar-container {
+            position: relative;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(0, 255, 136, 0.05) 0%, rgba(0, 255, 136, 0.02) 50%, transparent 70%);
+            border-radius: 50%;
+            box-shadow: 0 0 100px rgba(0, 255, 136, 0.3), inset 0 0 50px rgba(0, 255, 136, 0.1);
+        }
+
+        /* 雷达画布 */
+        #radarCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            border-radius: 50%;
+        }
+
+        /* 控制面板切换按钮 */
+        .panel-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, rgba(20, 30, 48, 0.95) 0%, rgba(36, 59, 85, 0.95) 100%);
+            border: 1px solid rgba(0, 255, 136, 0.3);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            z-index: 1001;
+            transition: all 0.3s ease;
+        }
+
+        .panel-toggle:hover {
+            background: linear-gradient(135deg, rgba(0, 255, 136, 0.2) 0%, rgba(0, 255, 136, 0.1) 100%);
+            transform: scale(1.1);
+        }
+
+        .panel-toggle svg {
+            width: 24px;
+            height: 24px;
+            fill: #00ff88;
+        }
+
+        /* 控制面板 */
+        .control-panel {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            width: 320px;
+            background: linear-gradient(135deg, rgba(20, 30, 48, 0.95) 0%, rgba(36, 59, 85, 0.95) 100%);
+            border: 1px solid rgba(0, 255, 136, 0.3);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            max-height: calc(100vh - 100px);
+            overflow-y: auto;
+            z-index: 1000;
+            transform: translateX(350px);
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .control-panel.active {
+            transform: translateX(0);
+            opacity: 1;
+        }
+
+        .control-panel::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .control-panel::-webkit-scrollbar-track {
+            background: rgba(0, 255, 136, 0.1);
+            border-radius: 4px;
+        }
+
+        .control-panel::-webkit-scrollbar-thumb {
+            background: rgba(0, 255, 136, 0.5);
+            border-radius: 4px;
+        }
+
+        .panel-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid rgba(0, 255, 136, 0.3);
+        }
+
+        .panel-title {
+            font-size: 20px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            flex: 1;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            background: #00ff88;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* 控制组 */
+        .control-group {
+            margin-bottom: 20px;
+        }
+
+        .control-label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: rgba(0, 255, 136, 0.8);
+        }
+
+        /* 滑块样式 */
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        input[type="range"] {
+            flex: 1;
+            -webkit-appearance: none;
+            appearance: none;
+            height: 6px;
+            background: rgba(0, 255, 136, 0.2);
+            border-radius: 3px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            background: #00ff88;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+        }
+
+        .slider-value {
+            min-width: 40px;
+            text-align: right;
+            font-size: 14px;
+        }
+
+        /* 按钮样式 */
+        .button-group {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px;
+            background: linear-gradient(135deg, rgba(0, 255, 136, 0.1) 0%, rgba(0, 255, 136, 0.05) 100%);
+            border: 1px solid rgba(0, 255, 136, 0.3);
+            border-radius: 8px;
+            color: #00ff88;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn:hover {
+            background: linear-gradient(135deg, rgba(0, 255, 136, 0.2) 0%, rgba(0, 255, 136, 0.1) 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 255, 136, 0.3);
+        }
+
+        .btn.active {
+            background: linear-gradient(135deg, rgba(0, 255, 136, 0.3) 0%, rgba(0, 255, 136, 0.2) 100%);
+            border-color: #00ff88;
+        }
+
+        .btn.full-width {
+            grid-column: span 2;
+        }
+
+        /* 选择框样式 */
+        select {
+            width: 100%;
+            padding: 8px;
+            background: rgba(0, 255, 136, 0.1);
+            border: 1px solid rgba(0, 255, 136, 0.3);
+            border-radius: 6px;
+            color: #00ff88;
+            cursor: pointer;
+            outline: none;
+        }
+
+        select option {
+            background: #1a2332;
+        }
+
+        /* 开关样式 */
+        .switch-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .switch {
+            position: relative;
+            width: 50px;
+            height: 24px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .switch-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 255, 136, 0.2);
+            transition: .4s;
+            border-radius: 24px;
+        }
+
+        .switch-slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: #00ff88;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .switch-slider {
+            background-color: rgba(0, 255, 136, 0.4);
+        }
+
+        input:checked + .switch-slider:before {
+            transform: translateX(26px);
+        }
+
+        /* 信息显示 */
+        .info-display {
+            background: rgba(0, 255, 136, 0.05);
+            border: 1px solid rgba(0, 255, 136, 0.2);
+            border-radius: 8px;
+            padding: 10px;
+            font-size: 12px;
+            line-height: 1.6;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+
+        .info-label {
+            color: rgba(0, 255, 136, 0.6);
+        }
+
+        .info-value {
+            color: #00ff88;
+            font-weight: bold;
+        }
+
+        /* 警报样式 */
+        .alert {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 0, 0, 0.9);
+            color: white;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-weight: bold;
+            display: none;
+            animation: alertPulse 0.5s ease-in-out infinite;
+            z-index: 2000;
+        }
+
+        @keyframes alertPulse {
+            0%, 100% { transform: translateX(-50%) scale(1); }
+            50% { transform: translateX(-50%) scale(1.05); }
+        }
+
+        .alert.show {
+            display: block;
+        }
+
+        /* 坐标显示 */
+        .coordinates {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(20, 30, 48, 0.9);
+            border: 1px solid rgba(0, 255, 136, 0.3);
+            border-radius: 8px;
+            padding: 10px 20px;
+            font-size: 14px;
+        }
+
+        /* 目标信息弹窗 */
+        .target-popup {
+            position: fixed;
+            background: rgba(20, 30, 48, 0.95);
+            border: 1px solid #00ff88;
+            border-radius: 8px;
+            padding: 10px;
+            font-size: 12px;
+            display: none;
+            z-index: 1500;
+            min-width: 150px;
+        }
+
+        .target-popup.show {
+            display: block;
+        }
+
+        /* 缩放控制 */
+        .zoom-controls {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .zoom-btn {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, rgba(20, 30, 48, 0.95) 0%, rgba(36, 59, 85, 0.95) 100%);
+            border: 1px solid rgba(0, 255, 136, 0.3);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: #00ff88;
+            font-size: 18px;
+        }
+
+        .zoom-btn:hover {
+            background: linear-gradient(135deg, rgba(0, 255, 136, 0.2) 0%, rgba(0, 255, 136, 0.1) 100%);
+            transform: scale(1.1);
+        }
+
+        /* 手机端适配 */
+        @media (max-width: 768px) {
+            .radar-container {
+                width: 90vw !important;
+                height: 90vw !important;
+                max-width: 400px;
+                max-height: 400px;
+            }
+            
+            #radarCanvas {
+                width: 100% !important;
+                height: 100% !important;
+            }
+            
+            .control-panel {
+                width: 85vw !important;
+                right: 5vw !important;
+                left: 5vw !important;
+                top: auto !important;
+                bottom: 10px;
+                max-height: 50vh;
+            }
+            
+            .panel-toggle {
+                top: 10px !important;
+                right: 10px !important;
+            }
+            
+            .coordinates {
+                font-size: 12px;
+                bottom: 10px;
+                left: 10px;
+            }
+            
+            .zoom-controls {
+                bottom: 60px;
+                right: 10px;
+            }
+            
+            .alert {
+                width: 90%;
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 雷达显示区 -->
+        <div class="radar-container">
+            <canvas id="radarCanvas" width="600" height="600"></canvas>
+        </div>
+
+        <!-- 控制面板切换按钮 -->
+        <div class="panel-toggle" id="panelToggle">
+            <svg viewBox="0 0 24 24">
+                <path d="M12 15.5A3.5 3.5 0 0 1 8.5 12A3.5 3.5 0 0 1 12 8.5a3.5 3.5 0 0 1 3.5 3.5a3.5 3.5 0 0 1-3.5 3.5m7.43-2.53c.04-.32.07-.64.07-.97c0-.33-.03-.65-.07-.97l2.11-1.63c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.39-1.06-.73-1.69-.98l-.37-2.65A.506.506 0 0 0 14 2h-4c-.25 0-.46.18-.5.42l-.37 2.65c-.63.25-1.17.59-1.69.98l-2.49-1c-.22-.08-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64L4.57 11c-.04.32-.07.64-.07.97c0 .33.03.65.07.97l-2.11 1.63c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.39 1.06.73 1.69.98l.37 2.65c.04.24.25.42.5.42h4c.25 0 .46-.18.5-.42l.37-2.65c.63-.25 1.17-.59 1.69-.98l2.49 1c.22.08.49 0 .61-.22l2-3.46c.13-.22.07-.49-.12-.64l-2.11-1.63Z"/>
+            </svg>
+        </div>
+
+        <!-- 控制面板 -->
+        <div class="control-panel" id="controlPanel">
+            <div class="panel-header">
+                <span class="panel-title">雷达控制台</span>
+                <div class="status-indicator"></div>
+            </div>
+
+            <!-- 扫描控制 -->
+            <div class="control-group">
+                <label class="control-label">扫描速度</label>
+                <div class="slider-container">
+                    <input type="range" id="scanSpeed" min="1" max="10" value="5">
+                    <span class="slider-value" id="scanSpeedValue">5</span>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label class="control-label">扫描范围(km)</label>
+                <div class="slider-container">
+                    <input type="range" id="scanRange" min="50" max="500" value="200" step="50">
+                    <span class="slider-value" id="scanRangeValue">200</span>
+                </div>
+            </div>
+
+            <!-- 显示模式 -->
+            <div class="control-group">
+                <label class="control-label">显示模式</label>
+                <select id="displayMode">
+                    <option value="standard">标准模式</option>
+                    <option value="thermal">热成像模式</option>
+                    <option value="night">夜视模式</option>
+                    <option value="military">军用模式</option>
+                </select>
+            </div>
+
+            <!-- 目标类型 -->
+            <div class="control-group">
+                <label class="control-label">目标类型</label>
+                <select id="targetType">
+                    <option value="all">全部目标</option>
+                    <option value="air">空中目标</option>
+                    <option value="ground">地面目标</option>
+                    <option value="sea">海上目标</option>
+                    <option value="space">太空目标</option>
+                </select>
+            </div>
+
+            <!-- 功能按钮 -->
+            <div class="control-group">
+                <label class="control-label">功能选项</label>
+                <div class="button-group">
+                    <button class="btn" id="toggleGrid">网格显示</button>
+                    <button class="btn" id="toggleTrail">轨迹显示</button>
+                    <button class="btn" id="toggleTrack">自动追踪</button>
+                    <button class="btn" id="toggleAlarm">警报系统</button>
+                    <button class="btn" id="addTarget">添加目标</button>
+                    <button class="btn" id="clearTargets">清除目标</button>
+                    <button class="btn" id="exportData">导出数据</button>
+                    <button class="btn" id="fullscreen">全屏模式</button>
+                </div>
+            </div>
+
+            <!-- 开关控制 -->
+            <div class="control-group">
+                <label class="control-label">系统设置</label>
+                <div class="switch-container">
+                    <span>声音效果</span>
+                    <label class="switch">
+                        <input type="checkbox" id="soundToggle" checked>
+                        <span class="switch-slider"></span>
+                    </label>
+                </div>
+                <div class="switch-container" style="margin-top: 10px;">
+                    <span>坐标显示</span>
+                    <label class="switch">
+                        <input type="checkbox" id="coordToggle" checked>
+                        <span class="switch-slider"></span>
+                    </label>
+                </div>
+                <div class="switch-container" style="margin-top: 10px;">
+                    <span>距离测量</span>
+                    <label class="switch">
+                        <input type="checkbox" id="measureToggle">
+                        <span class="switch-slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- 信息显示 -->
+            <div class="control-group">
+                <label class="control-label">系统信息</label>
+                <div class="info-display">
+                    <div class="info-row">
+                        <span class="info-label">检测目标:</span>
+                        <span class="info-value" id="targetCount">0</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">威胁等级:</span>
+                        <span class="info-value" id="threatLevel">低</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">系统状态:</span>
+                        <span class="info-value" id="systemStatus">正常</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">运行时间:</span>
+                        <span class="info-value" id="runTime">00:00:00</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 历史记录 -->
+            <div class="control-group">
+                <button class="btn full-width" id="showHistory">查看历史记录</button>
+            </div>
+        </div>
+
+        <!-- 警报提示 -->
+        <div class="alert" id="alertBox">⚠️警报：检测到未知目标接近！</div>
+
+        <!-- 坐标显示 -->
+        <div class="coordinates" id="coordinates">坐标: X: 0, Y: 0 | 距离: 0 km</div>
+
+        <!-- 目标信息弹窗 -->
+        <div class="target-popup" id="targetPopup"></div>
+
+        <!-- 缩放控制 -->
+        <div class="zoom-controls">
+            <div class="zoom-btn" id="zoomIn">+</div>
+            <div class="zoom-btn" id="zoomOut">-</div>
+        </div>
+    </div>
+
+    <script>
+        // 雷达模拟器主类
+        class RadarSimulator {
+            constructor() {
+                // 添加响应式尺寸初始化
+                this.isMobile = window.innerWidth <= 768;
+                this.baseSize = this.isMobile ? Math.min(window.innerWidth * 0.9, 400) : 600;
+                
+                this.canvas = document.getElementById('radarCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                
+                // 动态设置尺寸
+                this.updateCanvasSize();
+                
+                this.centerX = this.canvas.width / 2;
+                this.centerY = this.canvas.height / 2;
+                this.radius = (this.baseSize * 0.47); // 按比例缩放
+                
+                // 雷达状态
+                this.scanAngle = 0;
+                this.scanSpeed = 5;
+                this.scanRange = 200;
+                this.gridEnabled = true;
+                this.trailEnabled = false;
+                this.trackEnabled = false;
+                this.alarmEnabled = false;
+                this.soundEnabled = true;
+                this.coordEnabled = true;
+                this.measureEnabled = false;
+                
+                // 目标管理
+                this.targets = [];
+                this.targetIdCounter = 1;
+                this.selectedTarget = null;
+                this.trails = new Map();
+                
+                // 系统状态
+                this.startTime = Date.now();
+                this.displayMode = 'standard';
+                this.targetFilter = 'all';
+                
+                // 鼠标位置
+                this.mouseX = 0;
+                this.mouseY = 0;
+                
+                // 缩放
+                this.zoomLevel = 1;
+                
+                // 音频上下文
+                this.audioContext = null;
+                this.scanSound = null;
+                this.alarmSound = null;
+                
+                this.init();
+            }
+            
+            // 添加新方法
+            updateCanvasSize() {
+                const container = document.querySelector('.radar-container');
+                container.style.width = this.baseSize + 'px';
+                container.style.height = this.baseSize + 'px';
+                
+                this.canvas.width = this.baseSize;
+                this.canvas.height = this.baseSize;
+            }
+            
+            init() {
+                this.setupEventListeners();
+                this.initAudio();
+                this.generateInitialTargets();
+                this.animate();
+                this.updateSystemInfo();
+            }
+            
+            initAudio() {
+                // 创建音频上下文
+                this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                // 创建扫描声音
+                this.createScanSound();
+                // 创建警报声音
+                this.createAlarmSound();
+            }
+            
+            createScanSound() {
+                // 创建扫描声音的振荡器
+                this.scanOscillator = null;
+                this.scanGainNode = this.audioContext.createGain();
+                this.scanGainNode.connect(this.audioContext.destination);
+                this.scanGainNode.gain.value = 0;
+            }
+            
+            createAlarmSound() {
+                // 创建警报声音
+                this.alarmOscillator = null;
+                this.alarmGainNode = this.audioContext.createGain();
+                this.alarmGainNode.connect(this.audioContext.destination);
+                this.alarmGainNode.gain.value = 0;
+            }
+            
+            playScanSound() {
+                if (!this.soundEnabled || !this.audioContext) return;
+                
+                // 创建扫描声音
+                this.scanOscillator = this.audioContext.createOscillator();
+                this.scanOscillator.type = 'sine';
+                this.scanOscillator.frequency.setValueAtTime(800, this.audioContext.currentTime);
+                
+                // 连接节点
+                this.scanOscillator.connect(this.scanGainNode);
+                
+                // 设置音量淡入淡出
+                this.scanGainNode.gain.setValueAtTime(0, this.audioContext.currentTime);
+                this.scanGainNode.gain.linearRampToValueAtTime(0.1, this.audioContext.currentTime + 0.1);
+                this.scanGainNode.gain.linearRampToValueAtTime(0, this.audioContext.currentTime + 0.3);
+                
+                // 播放声音
+                this.scanOscillator.start(this.audioContext.currentTime);
+                this.scanOscillator.stop(this.audioContext.currentTime + 0.3);
+            }
+            
+            playAlarmSound() {
+                if (!this.soundEnabled || !this.audioContext) return;
+                
+                // 创建警报声音
+                this.alarmOscillator = this.audioContext.createOscillator();
+                this.alarmOscillator.type = 'square';
+                this.alarmOscillator.frequency.setValueAtTime(440, this.audioContext.currentTime);
+                
+                // 连接节点
+                this.alarmOscillator.connect(this.alarmGainNode);
+                
+                // 设置音量
+                this.alarmGainNode.gain.setValueAtTime(0.3, this.audioContext.currentTime);
+                
+                // 播放声音
+                this.alarmOscillator.start(this.audioContext.currentTime);
+                
+                // 1 秒后停止
+                setTimeout(() => {
+                    if (this.alarmOscillator) {
+                        this.alarmGainNode.gain.linearRampToValueAtTime(0, this.audioContext.currentTime + 0.5);
+                        this.alarmOscillator.stop(this.audioContext.currentTime + 0.5);
+                    }
+                }, 1000);
+            }
+            
+            setupEventListeners() {
+                // 添加窗口变化监听
+                window.addEventListener('resize', () => {
+                    const wasMobile = this.isMobile;
+                    this.isMobile = window.innerWidth <= 768;
+                    this.baseSize = this.isMobile ? Math.min(window.innerWidth * 0.9, 400) : 600;
+                    
+                    // 尺寸变化时重置
+                    if (wasMobile !== this.isMobile) {
+                        this.updateCanvasSize();
+                        this.centerX = this.canvas.width / 2;
+                        this.centerY = this.canvas.height / 2;
+                        this.radius = (this.baseSize * 0.47);
+                    }
+                });
+                
+                // 控制面板切换
+                document.getElementById('panelToggle').addEventListener('click', () => {
+                    const panel = document.getElementById('controlPanel');
+                    panel.classList.toggle('active');
+                    
+                    // 手机端自动滚动到面板
+                    if (this.isMobile && panel.classList.contains('active')) {
+                        setTimeout(() => panel.scrollIntoView({ behavior: 'smooth' }), 300);
+                    }
+                });
+                
+                // 缩放控制
+                document.getElementById('zoomIn').addEventListener('click', () => {
+                    this.zoomLevel = Math.min(this.zoomLevel * 1.2, 3);
+                    this.updateRadarSize();
+                });
+                
+                document.getElementById('zoomOut').addEventListener('click', () => {
+                    this.zoomLevel = Math.max(this.zoomLevel / 1.2, 0.5);
+                    this.updateRadarSize();
+                });
+                
+                // 扫描速度
+                document.getElementById('scanSpeed').addEventListener('input', (e) => {
+                    this.scanSpeed = parseInt(e.target.value);
+                    document.getElementById('scanSpeedValue').textContent = e.target.value;
+                });
+                
+                // 扫描范围
+                document.getElementById('scanRange').addEventListener('input', (e) => {
+                    this.scanRange = parseInt(e.target.value);
+                    document.getElementById('scanRangeValue').textContent = e.target.value;
+                });
+                
+                // 显示模式
+                document.getElementById('displayMode').addEventListener('change', (e) => {
+                    this.displayMode = e.target.value;
+                });
+                
+                // 目标类型
+                document.getElementById('targetType').addEventListener('change', (e) => {
+                    this.targetFilter = e.target.value;
+                });
+                
+                // 功能按钮
+                document.getElementById('toggleGrid').addEventListener('click', () => {
+                    this.gridEnabled = !this.gridEnabled;
+                    document.getElementById('toggleGrid').classList.toggle('active');
+                });
+                
+                document.getElementById('toggleTrail').addEventListener('click', () => {
+                    this.trailEnabled = !this.trailEnabled;
+                    document.getElementById('toggleTrail').classList.toggle('active');
+                    if (!this.trailEnabled) {
+                        this.trails.clear();
+                    }
+                });
+                
+                document.getElementById('toggleTrack').addEventListener('click', () => {
+                    this.trackEnabled = !this.trackEnabled;
+                    document.getElementById('toggleTrack').classList.toggle('active');
+                });
+                
+                document.getElementById('toggleAlarm').addEventListener('click', () => {
+                    this.alarmEnabled = !this.alarmEnabled;
+                    document.getElementById('toggleAlarm').classList.toggle('active');
+                });
+                
+                document.getElementById('addTarget').addEventListener('click', () => {
+                    this.addRandomTarget();
+                });
+                
+                document.getElementById('clearTargets').addEventListener('click', () => {
+                    this.targets = [];
+                    this.trails.clear();
+                    this.updateTargetCount();
+                });
+                
+                document.getElementById('exportData').addEventListener('click', () => {
+                    this.exportData();
+                });
+                
+                document.getElementById('fullscreen').addEventListener('click', () => {
+                    if (!document.fullscreenElement) {
+                        document.documentElement.requestFullscreen();
+                    } else {
+                        document.exitFullscreen();
+                    }
+                });
+                
+                document.getElementById('showHistory').addEventListener('click', () => {
+                    this.showHistory();
+                });
+                
+                // 开关控制
+                document.getElementById('soundToggle').addEventListener('change', (e) => {
+                    this.soundEnabled = e.target.checked;
+                });
+                
+                document.getElementById('coordToggle').addEventListener('change', (e) => {
+                    this.coordEnabled = e.target.checked;
+                    document.getElementById('coordinates').style.display = this.coordEnabled ? 'block' : 'none';
+                });
+                
+                document.getElementById('measureToggle').addEventListener('change', (e) => {
+                    this.measureEnabled = e.target.checked;
+                });
+                
+                // 鼠标事件
+                this.canvas.addEventListener('mousemove', (e) => {
+                    const rect = this.canvas.getBoundingClientRect();
+                    this.mouseX = e.clientX - rect.left;
+                    this.mouseY = e.clientY - rect.top;
+                    this.updateCoordinates();
+                });
+                
+                this.canvas.addEventListener('click', (e) => {
+                    const rect = this.canvas.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    this.checkTargetClick(x, y);
+                });
+            }
+            
+            updateRadarSize() {
+                const container = document.querySelector('.radar-container');
+                const newWidth = this.baseSize * this.zoomLevel;
+                const newHeight = this.baseSize * this.zoomLevel;
+                
+                container.style.width = newWidth + 'px';
+                container.style.height = newHeight + 'px';
+                
+                this.canvas.width = newWidth;
+                this.canvas.height = newHeight;
+                
+                this.centerX = newWidth / 2;
+                this.centerY = newHeight / 2;
+                this.radius = (this.baseSize * 0.47) * this.zoomLevel;
+            }
+            
+            generateInitialTargets() {
+                // 生成初始目标
+                for (let i = 0; i < 5; i++) {
+                    this.addRandomTarget();
+                }
+            }
+            
+            addRandomTarget() {
+                const angle = Math.random() * Math.PI * 2;
+                const distance = Math.random() * this.radius * 0.8;
+                const x = this.centerX + Math.cos(angle) * distance;
+                const y = this.centerY + Math.sin(angle) * distance;
+                
+                const types = ['air', 'ground', 'sea', 'space'];
+                const type = types[Math.floor(Math.random() * types.length)];
+                
+                const target = {
+                    id: this.targetIdCounter++,
+                    x: x,
+                    y: y,
+                    vx: (Math.random() - 0.5) * 2,
+                    vy: (Math.random() - 0.5) * 2,
+                    type: type,
+                    size: Math.random() * 10 + 5,
+                    detected: false,
+                    threat: Math.random() > 0.7
+                };
+                
+                this.targets.push(target);
+                this.updateTargetCount();
+            }
+            
+            updateTargets() {
+                this.targets.forEach(target => {
+                    // 更新位置
+                    target.x += target.vx;
+                    target.y += target.vy;
+                    
+                    // 边界检测
+                    const dx = target.x - this.centerX;
+                    const dy = target.y - this.centerY;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (distance > this.radius) {
+                        // 反弹
+                        const angle = Math.atan2(dy, dx);
+                        target.x = this.centerX + Math.cos(angle) * this.radius * 0.95;
+                        target.y = this.centerY + Math.sin(angle) * this.radius * 0.95;
+                        target.vx *= -1;
+                        target.vy *= -1;
+                    }
+                    
+                    // 记录轨迹
+                    if (this.trailEnabled) {
+                        if (!this.trails.has(target.id)) {
+                            this.trails.set(target.id, []);
+                        }
+                        const trail = this.trails.get(target.id);
+                        trail.push({ x: target.x, y: target.y });
+                        if (trail.length > 30) {
+                            trail.shift();
+                        }
+                    }
+                    
+                    // 检测扫描
+                    const targetAngle = Math.atan2(dy, dx);
+                    const angleDiff = Math.abs(targetAngle - this.scanAngle);
+                    if (angleDiff < 0.1 && !target.detected) {
+                        target.detected = true;
+                        if (this.alarmEnabled && target.threat) {
+                            this.triggerAlarm();
+                        }
+                    }
+                });
+            }
+            
+            drawRadar() {
+                // 清空画布
+                this.ctx.fillStyle = 'rgba(10, 14, 39, 0.1)';
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                // 绘制雷达圆圈
+                this.drawRadarCircles();
+                
+                // 绘制网格
+                if (this.gridEnabled) {
+                    this.drawGrid();
+                }
+                
+                // 绘制扫描线
+                this.drawScanLine();
+                
+                // 绘制扫描扇形
+                this.drawScanSector();
+                
+                // 绘制轨迹
+                if (this.trailEnabled) {
+                    this.drawTrails();
+                }
+                
+                // 绘制目标
+                this.drawTargets();
+                
+                // 绘制距离测量
+                if (this.measureEnabled) {
+                    this.drawMeasurement();
+                }
+            }
+            
+            drawRadarCircles() {
+                this.ctx.strokeStyle = this.getDisplayColor('grid');
+                this.ctx.lineWidth = 1;
+                
+                // 绘制同心圆
+                for (let i = 1; i <= 4; i++) {
+                    this.ctx.beginPath();
+                    this.ctx.arc(this.centerX, this.centerY, this.radius * i / 4, 0, Math.PI * 2);
+                    this.ctx.stroke();
+                }
+                
+                // 绘制十字线
+                this.ctx.beginPath();
+                this.ctx.moveTo(this.centerX - this.radius, this.centerY);
+                this.ctx.lineTo(this.centerX + this.radius, this.centerY);
+                this.ctx.moveTo(this.centerX, this.centerY - this.radius);
+                this.ctx.lineTo(this.centerX, this.centerY + this.radius);
+                this.ctx.stroke();
+            }
+            
+            drawGrid() {
+                this.ctx.strokeStyle = this.getDisplayColor('grid');
+                this.ctx.lineWidth = 0.5;
+                
+                // 绘制角度线
+                for (let angle = 0; angle < Math.PI * 2; angle += Math.PI / 6) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(this.centerX, this.centerY);
+                    this.ctx.lineTo(
+                        this.centerX + Math.cos(angle) * this.radius,
+                        this.centerY + Math.sin(angle) * this.radius
+                    );
+                    this.ctx.stroke();
+                }
+            }
+            
+            drawScanLine() {
+                const gradient = this.ctx.createLinearGradient(
+                    this.centerX, this.centerY,
+                    this.centerX + Math.cos(this.scanAngle) * this.radius,
+                    this.centerY + Math.sin(this.scanAngle) * this.radius
+                );
+                gradient.addColorStop(0, 'rgba(0, 255, 136, 0)');
+                gradient.addColorStop(1, this.getDisplayColor('scan'));
+                
+                this.ctx.strokeStyle = gradient;
+                this.ctx.lineWidth = 2;
+                this.ctx.beginPath();
+                this.ctx.moveTo(this.centerX, this.centerY);
+                this.ctx.lineTo(
+                    this.centerX + Math.cos(this.scanAngle) * this.radius,
+                    this.centerY + Math.sin(this.scanAngle) * this.radius
+                );
+                this.ctx.stroke();
+            }
+            
+            drawScanSector() {
+                const gradient = this.ctx.createRadialGradient(
+                    this.centerX, this.centerY, 0,
+                    this.centerX, this.centerY, this.radius
+                );
+                gradient.addColorStop(0, 'rgba(0, 255, 136, 0.05)');
+                gradient.addColorStop(1, 'rgba(0, 255, 136, 0)');
+                
+                this.ctx.fillStyle = gradient;
+                this.ctx.beginPath();
+                this.ctx.moveTo(this.centerX, this.centerY);
+                this.ctx.arc(
+                    this.centerX, this.centerY, this.radius,
+                    this.scanAngle - 0.3, this.scanAngle, false
+                );
+                this.ctx.closePath();
+                this.ctx.fill();
+            }
+            
+            drawTrails() {
+                this.trails.forEach((trail, targetId) => {
+                    if (trail.length < 2) return;
+                    
+                    this.ctx.strokeStyle = this.getDisplayColor('trail');
+                    this.ctx.lineWidth = 1;
+                    this.ctx.beginPath();
+                    
+                    for (let i = 0; i < trail.length; i++) {
+                        const point = trail[i];
+                        const opacity = i / trail.length;
+                        this.ctx.globalAlpha = opacity * 0.5;
+                        
+                        if (i === 0) {
+                            this.ctx.moveTo(point.x, point.y);
+                        } else {
+                            this.ctx.lineTo(point.x, point.y);
+                        }
+                    }
+                    
+                    this.ctx.stroke();
+                    this.ctx.globalAlpha = 1;
+                });
+            }
+            
+            drawTargets() {
+                this.targets.forEach(target => {
+                    // 过滤目标类型
+                    if (this.targetFilter !== 'all' && target.type !== this.targetFilter) {
+                        return;
+                    }
+                    
+                    const dx = target.x - this.centerX;
+                    const dy = target.y - this.centerY;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (distance > this.radius) return;
+                    
+                    // 绘制目标
+                    this.ctx.fillStyle = this.getTargetColor(target);
+                    this.ctx.strokeStyle = this.getTargetColor(target);
+                    this.ctx.lineWidth = 2;
+                    
+                    if (target.detected) {
+                        // 已检测到的目标
+                        this.ctx.beginPath();
+                        this.ctx.arc(target.x, target.y, target.size, 0, Math.PI * 2);
+                        this.ctx.fill();
+                        
+                        // 绘制目标标记
+                        if (target.threat) {
+                            this.ctx.beginPath();
+                            this.ctx.moveTo(target.x - target.size - 5, target.y);
+                            this.ctx.lineTo(target.x + target.size + 5, target.y);
+                            this.ctx.moveTo(target.x, target.y - target.size - 5);
+                            this.ctx.lineTo(target.x, target.y + target.size + 5);
+                            this.ctx.stroke();
+                        }
+                        
+                        // 自动追踪
+                        if (this.trackEnabled) {
+                            this.ctx.strokeStyle = 'rgba(255, 0, 0, 0.5)';
+                            this.ctx.beginPath();
+                            this.ctx.arc(target.x, target.y, target.size + 10, 0, Math.PI * 2);
+                            this.ctx.stroke();
+                        }
+                    } else {
+                        // 未检测到的目标（半透明）
+                        this.ctx.globalAlpha = 0.3;
+                        this.ctx.beginPath();
+                        this.ctx.arc(target.x, target.y, target.size * 0.5, 0, Math.PI * 2);
+                        this.ctx.fill();
+                        this.ctx.globalAlpha = 1;
+                    }
+                });
+            }
+            
+            drawMeasurement() {
+                const dx = this.mouseX - this.centerX;
+                const dy = this.mouseY - this.centerY;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance <= this.radius) {
+                    this.ctx.strokeStyle = 'rgba(255, 255, 0, 0.5)';
+                    this.ctx.lineWidth = 1;
+                    this.ctx.setLineDash([5, 5]);
+                    
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(this.centerX, this.centerY);
+                    this.ctx.lineTo(this.mouseX, this.mouseY);
+                    this.ctx.stroke();
+                    
+                    this.ctx.setLineDash([]);
+                }
+            }
+            
+            getDisplayColor(element) {
+                const colors = {
+                    standard: {
+                        grid: 'rgba(0, 255, 136, 0.2)',
+                        scan: '#00ff88',
+                        trail: '#00ff88'
+                    },
+                    thermal: {
+                        grid: 'rgba(255, 100, 0, 0.2)',
+                        scan: '#ff6400',
+                        trail: '#ff6400'
+                    },
+                    night: {
+                        grid: 'rgba(0, 200, 255, 0.2)',
+                        scan: '#00c8ff',
+                        trail: '#00c8ff'
+                    },
+                    military: {
+                        grid: 'rgba(255, 0, 0, 0.2)',
+                        scan: '#ff0000',
+                        trail: '#ff0000'
+                    }
+                };
+                
+                return colors[this.displayMode][element];
+            }
+            
+            getTargetColor(target) {
+                const colors = {
+                    air: '#00ff88',
+                    ground: '#ffaa00',
+                    sea: '#00aaff',
+                    space: '#ff00ff'
+                };
+                
+                if (target.threat) {
+                    return '#ff0000';
+                }
+                
+                return colors[target.type] || '#00ff88';
+            }
+            
+            checkTargetClick(x, y) {
+                this.targets.forEach(target => {
+                    const dx = x - target.x;
+                    const dy = y - target.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (distance <= target.size + 5) {
+                        this.showTargetInfo(target, x, y);
+                    }
+                });
+            }
+            
+            showTargetInfo(target, x, y) {
+                const popup = document.getElementById('targetPopup');
+                const dx = target.x - this.centerX;
+                const dy = target.y - this.centerY;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                popup.innerHTML = `
+                    <div><strong>目标#${target.id}</strong></div>
+                    <div>类型: ${this.getTargetTypeName(target.type)}</div>
+                    <div>距离: ${(distance * this.scanRange / this.radius).toFixed(1)} km</div>
+                    <div>速度: ${Math.sqrt(target.vx * target.vx + target.vy * target.vy).toFixed(1)} m/s</div>
+                    <div>威胁: ${target.threat ? '高' : '低'}</div>
+                `;
+                
+                popup.style.left = x + 20 + 'px';
+                popup.style.top = y - 50 + 'px';
+                popup.classList.add('show');
+                
+                setTimeout(() => {
+                    popup.classList.remove('show');
+                }, 3000);
+            }
+            
+            getTargetTypeName(type) {
+                const names = {
+                    air: '空中目标',
+                    ground: '地面目标',
+                    sea: '海上目标',
+                    space: '太空目标'
+                };
+                
+                return names[type] || '未知';
+            }
+            
+            updateCoordinates() {
+                if (!this.coordEnabled) return;
+                
+                const dx = this.mouseX - this.centerX;
+                const dy = this.mouseY - this.centerY;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                const km = (distance * this.scanRange / this.radius).toFixed(1);
+                
+                document.getElementById('coordinates').textContent = `坐标: X: ${dx.toFixed(0)}, Y: ${dy.toFixed(0)} | 距离: ${km} km`;
+            }
+            
+            updateTargetCount() {
+                const count = this.targets.filter(t => t.detected).length;
+                document.getElementById('targetCount').textContent = count;
+                
+                // 更新威胁等级
+                const threats = this.targets.filter(t => t.threat && t.detected).length;
+                let level = '低';
+                if (threats > 3) level = '高';
+                else if (threats > 0) level = '中';
+                
+                document.getElementById('threatLevel').textContent = level;
+            }
+            
+            updateSystemInfo() {
+                // 更新运行时间
+                setInterval(() => {
+                    const elapsed = Date.now() - this.startTime;
+                    const hours = Math.floor(elapsed / 3600000);
+                    const minutes = Math.floor((elapsed % 3600000) / 60000);
+                    const seconds = Math.floor((elapsed % 60000) / 1000);
+                    
+                    document.getElementById('runTime').textContent = 
+                        `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                }, 1000);
+                
+                // 更新系统状态
+                setInterval(() => {
+                    const statuses = ['正常', '监控中', '扫描中', '分析中'];
+                    document.getElementById('systemStatus').textContent = 
+                        statuses[Math.floor(Math.random() * statuses.length)];
+                }, 3000);
+            }
+            
+            triggerAlarm() {
+                const alertBox = document.getElementById('alertBox');
+                alertBox.classList.add('show');
+                
+                // 播放警报声音
+                this.playAlarmSound();
+                
+                setTimeout(() => {
+                    alertBox.classList.remove('show');
+                }, 3000);
+            }
+            
+            exportData() {
+                const data = {
+                    timestamp: new Date().toISOString(),
+                    scanRange: this.scanRange,
+                    targets: this.targets.map(t => ({
+                        id: t.id,
+                        type: t.type,
+                        position: { x: t.x, y: t.y },
+                        velocity: { vx: t.vx, vy: t.vy },
+                        threat: t.threat
+                    }))
+                };
+                
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `radar_data_${Date.now()}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+            }
+            
+            showHistory() {
+                const history = localStorage.getItem('radarHistory') || '[]';
+                const records = JSON.parse(history);
+                
+                if (records.length === 0) {
+                    alert('暂无历史记录');
+                    return;
+                }
+                
+                let historyText = '历史记录:\n\n';
+                records.slice(-10).forEach((record, index) => {
+                    historyText += `${index + 1}. ${record.time} - 检测到 ${record.targetCount} 个目标\n`;
+                });
+                
+                alert(historyText);
+            }
+            
+            animate() {
+                // 更新扫描角度
+                this.scanAngle += (this.scanSpeed * 0.01);
+                if (this.scanAngle > Math.PI * 2) {
+                    this.scanAngle = 0;
+                    
+                    // 重置检测状态
+                    this.targets.forEach(target => {
+                        target.detected = false;
+                    });
+                }
+                
+                // 播放扫描声音
+                if (this.scanAngle % 0.5 < 0.01) {
+                    this.playScanSound();
+                }
+                
+                // 更新目标
+                this.updateTargets();
+                
+                // 绘制雷达
+                this.drawRadar();
+                
+                // 更新信息
+                this.updateTargetCount();
+                
+                // 保存历史记录
+                if (Math.random() < 0.01) {
+                    this.saveHistory();
+                }
+                
+                requestAnimationFrame(() => this.animate());
+            }
+            
+            saveHistory() {
+                const history = localStorage.getItem('radarHistory') || '[]';
+                const records = JSON.parse(history);
+                
+                records.push({
+                    time: new Date().toLocaleString(),
+                    targetCount: this.targets.filter(t => t.detected).length,
+                    scanRange: this.scanRange
+                });
+                
+                if (records.length > 100) {
+                    records.shift();
+                }
+                
+                localStorage.setItem('radarHistory', JSON.stringify(records));
+            }
+        }
+        
+        // 启动雷达模拟器
+        const radar = new RadarSimulator();
+    </script>
+</body>
+</html>

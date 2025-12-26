@@ -1,0 +1,1065 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>GitHub项目查看器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        :root {
+            --bg-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --card-bg: rgba(255,255,255,0.95);
+            --text-primary: #333;
+            --text-secondary: #666;
+            --border-color: #e0e0e0;
+            --accent-color: #667eea;
+            --card-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            --card-hover-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--bg-primary);
+            min-height: 100vh;
+            padding: 8px;
+            font-size: var(--base-font-size, 14px);
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        /* 搜索和控制面板 */
+        .search-control-container {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 12px;
+            box-shadow: var(--card-shadow);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .search-box {
+            flex: 1;
+            position: relative;
+            max-width: 600px;
+        }
+        .search-input {
+            width: 100%;
+            padding: 10px 40px 10px 15px;
+            border: 2px solid var(--border-color);
+            border-radius: 25px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            background: white;
+        }
+        .search-input:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        .search-icon {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+            pointer-events: none;
+        }
+        .load-time {
+            font-size: 12px;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            min-width: 80px;
+            text-align: right;
+        }
+        .control-panel-btn {
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+        .control-panel-btn:hover {
+            background: #5a67d8;
+            transform: translateY(-1px);
+        }
+        /* 项目卡片 */
+        .projects-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .project-card {
+            background: var(--card-bg);
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: var(--card-shadow);
+            transition: all 0.3s ease;
+            position: relative;
+            cursor: pointer;
+            height: 140px;
+            display: flex;
+            flex-direction: column;
+        }
+        .project-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+        .project-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--card-hover-shadow);
+        }
+        .project-card:hover::before {
+            transform: scaleX(1);
+        }
+        .project-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 8px 12px;
+            position: relative;
+            flex-shrink: 0;
+        }
+        .project-number {
+            position: absolute;
+            top: 5px;
+            right: 10px;
+            background: rgba(255,255,255,0.2);
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: bold;
+        }
+        .project-name {
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 2px;
+            word-break: break-all;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .project-index {
+            font-size: 10px;
+            opacity: 0.9;
+        }
+        .project-content {
+            padding: 8px 12px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .project-desc {
+            color: var(--text-primary);
+            font-size: 12px;
+            line-height: 1.3;
+            margin-bottom: 6px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            flex: 1;
+        }
+        .project-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: auto;
+        }
+        .project-type {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 8px;
+            font-size: 9px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .view-details {
+            color: var(--accent-color);
+            font-size: 10px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+        .view-details:hover {
+            color: #764ba2;
+        }
+        /* 分页 */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        .pagination button {
+            padding: 8px 12px;
+            border: none;
+            background: var(--card-bg);
+            color: var(--accent-color);
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            min-width: 32px;
+            font-size: 13px;
+        }
+        .pagination button:hover:not(:disabled) {
+            background: white;
+            transform: translateY(-1px);
+            box-shadow: var(--card-shadow);
+        }
+        .pagination button.active {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .page-info {
+            color: white;
+            font-weight: 600;
+            padding: 0 12px;
+            font-size: 13px;
+        }
+        /* 控制面板弹窗 */
+        .control-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 10000;
+            justify-content: center;
+            align-items: center;
+        }
+        .control-content {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        .control-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #eee;
+        }
+        .control-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: var(--text-primary);
+        }
+        .control-close {
+            background: #f44336;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.3s ease;
+        }
+        .control-close:hover {
+            background: #d32f2f;
+        }
+        .control-group {
+            margin-bottom: 20px;
+        }
+        .control-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+        .control-input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+        .control-input:focus {
+            outline: none;
+            border-color: var(--accent-color);
+        }
+        .control-btn {
+            width: 100%;
+            padding: 12px;
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        .control-btn:hover {
+            background: #5a67d8;
+        }
+        .font-size-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .font-btn {
+            flex: 1;
+            padding: 8px;
+            background: #f0f0f0;
+            border: 2px solid transparent;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.3s ease;
+        }
+        .font-btn:hover {
+            background: #e0e0e0;
+        }
+        .font-btn.active {
+            background: var(--accent-color);
+            color: white;
+            border-color: var(--accent-color);
+        }
+        /* 项目详情弹窗 */
+        .project-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+        }
+        .project-content {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            max-width: 90%;
+            max-height: 80%;
+            width: 800px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .project-header-modal {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #eee;
+        }
+        .project-title {
+            font-size: 16px;
+            color: var(--text-primary);
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .project-index-modal {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+        }
+        .project-close {
+            background: #f44336;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.3s ease;
+        }
+        .project-close:hover {
+            background: #d32f2f;
+        }
+        .project-body {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.4;
+            overflow: auto;
+            white-space: pre-wrap;
+            flex: 1;
+        }
+        .project-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .project-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .copy-btn {
+            background: #2196F3;
+            color: white;
+        }
+        .github-btn {
+            background: #24292e;
+            color: white;
+        }
+        .project-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        /* 加载动画 */
+        .loading {
+            text-align: center;
+            color: white;
+            padding: 40px;
+            font-size: 16px;
+        }
+        .loading::after {
+            content: '';
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+            margin-left: 10px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        /* 响应式 */
+        @media (max-width: 768px) {
+            .projects-container {
+                grid-template-columns: 1fr;
+            }
+            .search-control-container {
+                flex-direction: row;
+                align-items: stretch;
+            }
+            .search-box {
+                max-width: none;
+            }
+            .load-time {
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 搜索和控制面板 -->
+        <div class="search-control-container">
+            <div class="search-box">
+                <input type="text" class="search-input" id="searchInput" placeholder="搜索GitHub项目名称或描述...">
+                <span class="search-icon">🔍</span>
+            </div>
+            <div class="load-time" id="loadTime">加载中...</div>
+            <button class="control-panel-btn" onclick="openControlPanel()">⚙️ 控制面板</button>
+        </div>
+
+        <!-- 项目容器 -->
+        <div class="projects-container" id="projectsContainer">
+            <div class="loading">正在初始化...</div>
+        </div>
+
+        <!-- 分页 -->
+        <div class="pagination" id="pagination"></div>
+    </div>
+
+    <!-- 控制面板弹窗 -->
+    <div class="control-modal" id="controlModal">
+        <div class="control-content">
+            <div class="control-header">
+                <div class="control-title">控制面板</div>
+                <button class="control-close" onclick="closeControlPanel()">✕</button>
+            </div>
+            
+            <div class="control-group">
+                <label class="control-label">跳转到页面:</label>
+                <input type="number" class="control-input" id="gotoPageInput" placeholder="输入页码" min="1">
+                <button class="control-btn" onclick="gotoPage()" style="margin-top: 10px;">跳转</button>
+            </div>
+
+            <div class="control-group">
+                <label class="control-label">字体大小:</label>
+                <div class="font-size-controls">
+                    <button class="font-btn" onclick="setFontSize(12)">小</button>
+                    <button class="font-btn active" onclick="setFontSize(14)">中</button>
+                    <button class="font-btn" onclick="setFontSize(16)">大</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label class="control-label">背景颜色:</label>
+                <input type="color" class="control-input" id="bgColorInput" value="#667eea">
+                <button class="control-btn" onclick="changeBgColor()" style="margin-top: 10px;">应用背景</button>
+            </div>
+
+            <div class="control-group">
+                <label class="control-label">缓存信息:</label>
+                <div style="font-size: 13px; color: #666;">
+                    <div>当前页面: <span id="currentPageInfo">1</span></div>
+                    <div>缓存状态: <span id="cacheStatusInfo">未缓存</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 项目详情弹窗 -->
+    <div class="project-modal" id="projectModal">
+        <div class="project-content">
+            <div class="project-header-modal">
+                <div class="project-title">
+                    <span class="project-index-modal" id="projectIndex">1</span>
+                    <span id="projectName">项目名称</span>
+                </div>
+                <button class="project-close" onclick="closeProjectModal()">✕ 关闭</button>
+            </div>
+            <div class="project-body" id="projectBody">项目内容</div>
+            <div class="project-actions">
+                <button class="project-btn copy-btn" onclick="copyProjectContent()">📋 复制内容</button>
+                <button class="project-btn github-btn" onclick="openGitHubRepo()">🔗 打开GitHub</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ===== 配置变量（易于维护） =====
+        const CONFIG = {
+            // 配置文件名 - 修改这里即可更换配置文件
+            CONFIG_FILE_NAME: '3.2025_GITHUB项目_去重后.js',
+            
+            // 缓存键名
+            CACHE_KEY: 'github-config',
+            PAGE_CACHE_KEY: 'github-page-cache',
+            
+            // 分页设置
+            PROJECTS_PER_PAGE: 24,
+            
+            // 其他设置
+            DEBUG_MODE: true
+        };
+
+        // ===== 全局变量 =====
+        let allProjects = [];
+        let filteredProjects = [];
+        let currentPage = 1;
+        let totalPages = 1;
+        let configLoaded = false;
+        let currentProject = null;
+        let loadStartTime = 0;
+
+        // ===== 缓存管理 =====
+        window.GitHubCache = window.GitHubCache || {
+            has: function(key) {
+                return this.cache && this.cache[key];
+            },
+            get: function(key) {
+                if (this.has(key)) {
+                    if (CONFIG.DEBUG_MODE) console.log(`📦 从缓存加载: ${key}`);
+                    return this.cache[key];
+                }
+                return null;
+            },
+            set: function(key, data) {
+                if (!this.cache) {
+                    this.cache = {};
+                }
+                this.cache[key] = data;
+                if (CONFIG.DEBUG_MODE) console.log(`💾 缓存已保存: ${key}`);
+            },
+            remove: function(key) {
+                if (this.has(key)) {
+                    delete this.cache[key];
+                    if (CONFIG.DEBUG_MODE) console.log(`🗑️ 缓存已清除: ${key}`);
+                }
+            },
+            clear: function() {
+                this.cache = {};
+                if (CONFIG.DEBUG_MODE) console.log('🧹 所有缓存已清除');
+            },
+            stats: function() {
+                const count = this.cache ? Object.keys(this.cache).length : 0;
+                if (CONFIG.DEBUG_MODE) console.log(`📊 缓存统计: ${count} 个配置已缓存`);
+                return count;
+            }
+        };
+
+        // ===== 页面缓存管理 =====
+        function savePageToCache() {
+            const pageData = {
+                page: currentPage,
+                timestamp: Date.now()
+            };
+            localStorage.setItem(CONFIG.PAGE_CACHE_KEY, JSON.stringify(pageData));
+            if (CONFIG.DEBUG_MODE) console.log(`💾 页面缓存已保存: 第${currentPage}页`);
+        }
+
+        function loadPageFromCache() {
+            try {
+                const cached = localStorage.getItem(CONFIG.PAGE_CACHE_KEY);
+                if (cached) {
+                    const pageData = JSON.parse(cached);
+                    // 检查缓存是否过期（24小时）
+                    if (Date.now() - pageData.timestamp < 24 * 60 * 60 * 1000) {
+                        return pageData.page;
+                    }
+                }
+            } catch (e) {
+                console.error('页面缓存读取失败:', e);
+            }
+            return 1;
+        }
+
+        // ===== 动态加载配置文件 =====
+        function loadConfigWithCache() {
+            return new Promise((resolve, reject) => {
+                if (configLoaded) {
+                    if (CONFIG.DEBUG_MODE) console.log('✅ 配置已加载，直接使用');
+                    resolve();
+                    return;
+                }
+
+                // 检查缓存
+                const cachedData = window.GitHubCache.get(CONFIG.CACHE_KEY);
+                if (cachedData) {
+                    if (CONFIG.DEBUG_MODE) console.log('🚀 使用缓存数据，无需重新下载');
+                    // 将缓存数据应用到window对象
+                    Object.assign(window, cachedData);
+                    configLoaded = true;
+                    updateCacheStatus('已缓存');
+                    resolve();
+                    return;
+                }
+
+                if (CONFIG.DEBUG_MODE) console.log(`⬇️ 开始下载配置文件: ${CONFIG.CONFIG_FILE_NAME}`);
+                loadStartTime = Date.now();
+                
+                // 动态创建script标签
+                const script = document.createElement('script');
+                script.src = CONFIG.CONFIG_FILE_NAME;
+                script.onload = () => {
+                    const loadTime = Date.now() - loadStartTime;
+                    if (CONFIG.DEBUG_MODE) console.log(`✅ 配置文件下载完成，耗时: ${loadTime}ms`);
+                    
+                    // 将配置数据缓存到window.GitHubCache
+                    const configData = {};
+                    // 收集所有项目变量（gh001到gh300）
+                    for (let i = 1; i <= 300; i++) {
+                        const varName = 'gh' + String(i).padStart(3, '0');
+                        if (window[varName]) {
+                            configData[varName] = window[varName];
+                        }
+                    }
+                    // 缓存gh_list
+                    if (window.gh_list) {
+                        configData.gh_list = window.gh_list;
+                    }
+                    
+                    // 保存到缓存
+                    window.GitHubCache.set(CONFIG.CACHE_KEY, configData);
+                    
+                    configLoaded = true;
+                    updateCacheStatus('已加载');
+                    updateLoadTime(loadTime);
+                    resolve();
+                };
+                script.onerror = () => {
+                    console.error(`❌ 配置文件加载失败: ${CONFIG.CONFIG_FILE_NAME}`);
+                    updateLoadTime('加载失败');
+                    reject(new Error(`配置文件加载失败: ${CONFIG.CONFIG_FILE_NAME}`));
+                };
+                document.head.appendChild(script);
+            });
+        }
+
+        // ===== 更新状态显示 =====
+        function updateCacheStatus(status) {
+            const cacheStatusEl = document.getElementById('cacheStatusInfo');
+            if (cacheStatusEl) {
+                cacheStatusEl.textContent = status;
+            }
+        }
+
+        function updateLoadTime(time) {
+            const loadTimeEl = document.getElementById('loadTime');
+            if (loadTimeEl) {
+                if (typeof time === 'number') {
+                    loadTimeEl.textContent = `${time}ms`;
+                } else {
+                    loadTimeEl.textContent = time;
+                }
+            }
+        }
+
+        function updateCurrentPageInfo() {
+            const currentPageEl = document.getElementById('currentPageInfo');
+            if (currentPageEl) {
+                currentPageEl.textContent = currentPage;
+            }
+        }
+
+        // ===== 控制面板功能 =====
+        function openControlPanel() {
+            document.getElementById('controlModal').style.display = 'flex';
+            document.getElementById('gotoPageInput').value = currentPage;
+            updateCurrentPageInfo();
+            updateCacheStatus(window.GitHubCache.has(CONFIG.CACHE_KEY) ? '已缓存' : '未缓存');
+        }
+
+        function closeControlPanel() {
+            document.getElementById('controlModal').style.display = 'none';
+        }
+
+        function gotoPage() {
+            const input = document.getElementById('gotoPageInput');
+            const page = parseInt(input.value);
+            
+            if (page && page >= 1 && page <= totalPages) {
+                currentPage = page;
+                renderProjects();
+                renderPagination();
+                savePageToCache();
+                closeControlPanel();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            } else {
+                alert(`请输入有效的页码 (1-${totalPages})`);
+            }
+        }
+
+        function setFontSize(size) {
+            document.documentElement.style.setProperty('--base-font-size', `${size}px`);
+            
+            // 更新按钮状态
+            document.querySelectorAll('.font-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // 保存到localStorage
+            localStorage.setItem('preferred-font-size', size);
+        }
+
+        function changeBgColor() {
+            const color = document.getElementById('bgColorInput').value;
+            const color2 = adjustColor(color, -20);
+            document.documentElement.style.setProperty('--bg-primary', `linear-gradient(135deg, ${color} 0%, ${color2} 100%)`);
+            
+            // 保存到localStorage
+            localStorage.setItem('preferred-bg-color', color);
+        }
+
+        function adjustColor(color, amount) {
+            const num = parseInt(color.replace('#', ''), 16);
+            const r = Math.max(0, Math.min(255, (num >> 16) + amount));
+            const g = Math.max(0, Math.min(255, ((num >> 8) & 0x00FF) + amount));
+            const b = Math.max(0, Math.min(255, (num & 0x0000FF) + amount));
+            return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`;
+        }
+
+        // ===== 初始化 =====
+        document.addEventListener('DOMContentLoaded', function() {
+            if (CONFIG.DEBUG_MODE) console.log('🚀 页面加载完成，开始初始化');
+            
+            // 恢复用户偏好设置
+            const savedFontSize = localStorage.getItem('preferred-font-size');
+            if (savedFontSize) {
+                document.documentElement.style.setProperty('--base-font-size', `${savedFontSize}px`);
+            }
+            
+            const savedBgColor = localStorage.getItem('preferred-bg-color');
+            if (savedBgColor) {
+                document.getElementById('bgColorInput').value = savedBgColor;
+                const color2 = adjustColor(savedBgColor, -20);
+                document.documentElement.style.setProperty('--bg-primary', `linear-gradient(135deg, ${savedBgColor} 0%, ${color2} 100%)`);
+            }
+            
+            // 显示加载状态
+            document.getElementById('projectsContainer').innerHTML = '<div class="loading">正在加载配置文件...</div>';
+            
+            // 显示缓存统计
+            window.GitHubCache.stats();
+            
+            // 从缓存恢复页面
+            currentPage = loadPageFromCache();
+            
+            // 动态加载配置文件（带缓存）
+            loadConfigWithCache()
+                .then(() => {
+                    if (CONFIG.DEBUG_MODE) console.log('📚 配置加载成功，开始初始化数据');
+                    initializeData();
+                })
+                .catch(error => {
+                    console.error('初始化失败:', error);
+                    document.getElementById('projectsContainer').innerHTML = 
+                        `<div class="loading">配置文件加载失败: ${error.message}</div>`;
+                    updateLoadTime('加载失败');
+                });
+        });
+
+        // ===== 初始化数据 =====
+        function initializeData() {
+            if (typeof gh_list === 'undefined') {
+                document.getElementById('projectsContainer').innerHTML = '<div class="loading">配置文件未正确加载</div>';
+                return;
+            }
+
+            allProjects = [...gh_list];
+            filteredProjects = [...allProjects];
+            
+            if (CONFIG.DEBUG_MODE) console.log(`📊 成功加载 ${allProjects.length} 个GitHub项目`);
+            
+            // 渲染项目列表
+            renderProjects();
+            renderPagination();
+            
+            // 绑定搜索事件
+            document.getElementById('searchInput').addEventListener('input', handleSearch);
+        }
+
+        // ===== 搜索处理 =====
+        function handleSearch(e) {
+            const searchTerm = e.target.value.toLowerCase().trim();
+            if (searchTerm === '') {
+                filteredProjects = [...allProjects];
+            } else {
+                filteredProjects = allProjects.filter(project =>
+                    project.repo.toLowerCase().includes(searchTerm) ||
+                    project.desc.toLowerCase().includes(searchTerm) ||
+                    project.raw.toLowerCase().includes(searchTerm)
+                );
+            }
+            currentPage = 1;
+            renderProjects();
+            renderPagination();
+        }
+
+        // ===== 渲染项目列表 =====
+        function renderProjects() {
+            const startIndex = (currentPage - 1) * CONFIG.PROJECTS_PER_PAGE;
+            const endIndex = startIndex + CONFIG.PROJECTS_PER_PAGE;
+            const pageProjects = filteredProjects.slice(startIndex, endIndex);
+
+            if (pageProjects.length === 0) {
+                document.getElementById('projectsContainer').innerHTML = '<div class="loading">没有找到匹配的项目</div>';
+                return;
+            }
+
+            let html = '';
+            pageProjects.forEach((project, index) => {
+                const globalIndex = startIndex + index + 1;
+                html += `
+                    <div class="project-card" onclick="showProjectDetails(${project.index})">
+                        <div class="project-header">
+                            <div class="project-number">#${globalIndex}</div>
+                            <div class="project-name">${project.repo}</div>
+                            <div class="project-index">Index: ${project.index}</div>
+                        </div>
+                        <div class="project-content">
+                            <div class="project-desc">${project.desc}</div>
+                            <div class="project-meta">
+                                <span class="project-type">${project.type}</span>
+                                <a href="#" class="view-details" onclick="event.stopPropagation(); showProjectDetails(${project.index})">查看详情 →</a>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            document.getElementById('projectsContainer').innerHTML = html;
+            
+            // 保存当前页面到缓存
+            savePageToCache();
+            updateCurrentPageInfo();
+        }
+
+        // ===== 渲染分页 =====
+        function renderPagination() {
+            const pagination = document.getElementById('pagination');
+            totalPages = Math.ceil(filteredProjects.length / CONFIG.PROJECTS_PER_PAGE);
+
+            if (totalPages <= 1) {
+                pagination.innerHTML = '';
+                return;
+            }
+
+            let paginationHTML = '';
+            paginationHTML += `<button onclick="changePage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>上一页</button>`;
+            
+            for (let i = 1; i <= totalPages; i++) {
+                if (i === 1 || i === totalPages || (i >= currentPage - 2 && i <= currentPage + 2)) {
+                    paginationHTML += `<button onclick="changePage(${i})" class="${i === currentPage ? 'active' : ''}">${i}</button>`;
+                } else if (i === currentPage - 3 || i === currentPage + 3) {
+                    paginationHTML += `<span style="color:white;">...</span>`;
+                }
+            }
+            
+            paginationHTML += `<button onclick="changePage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>下一页</button>`;
+            paginationHTML += `<span class="page-info">第 ${currentPage} / ${totalPages} 页</span>`;
+            
+            pagination.innerHTML = paginationHTML;
+        }
+
+        // ===== 切换页面 =====
+        function changePage(page) {
+            if (page >= 1 && page <= totalPages) {
+                currentPage = page;
+                renderProjects();
+                renderPagination();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+
+        // ===== 显示项目详情 =====
+        function showProjectDetails(index) {
+            const project = allProjects.find(p => p.index === index);
+            if (!project) return;
+            
+            currentProject = project;
+            document.getElementById('projectIndex').textContent = `#${project.index}`;
+            document.getElementById('projectName').textContent = project.repo;
+            document.getElementById('projectBody').textContent = `项目描述:\n${project.desc}\n\n详细信息:\n${project.raw}`;
+            document.getElementById('projectModal').style.display = 'flex';
+        }
+
+        // ===== 关闭项目弹窗 =====
+        function closeProjectModal() {
+            document.getElementById('projectModal').style.display = 'none';
+            currentProject = null;
+        }
+
+        // ===== 复制项目内容 =====
+        function copyProjectContent() {
+            if (!currentProject) return;
+            
+            const content = `项目: ${currentProject.repo}\n描述: ${currentProject.desc}\n详细信息: ${currentProject.raw}`;
+            navigator.clipboard.writeText(content).then(() => {
+                showToast('内容已复制到剪贴板');
+            }).catch(() => {
+                const textArea = document.createElement('textarea');
+                textArea.value = content;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                showToast('内容已复制到剪贴板');
+            });
+        }
+
+        // ===== 打开GitHub仓库 =====
+        function openGitHubRepo() {
+            if (!currentProject) return;
+            window.open(`https://github.com/${currentProject.repo}`, '_blank');
+        }
+
+        // ===== 显示提示消息 =====
+        function showToast(message) {
+            const toast = document.createElement('div');
+            toast.style.cssText = `
+                position: fixed;
+                bottom: 30px;
+                right: 30px;
+                background: #4CAF50;
+                color: white;
+                padding: 12px 20px;
+                border-radius: 8px;
+                box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+                z-index: 10000;
+                animation: slideIn 0.3s ease;
+                font-size: 14px;
+            `;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            setTimeout(() => {
+                toast.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => document.body.removeChild(toast), 300);
+            }, 3000);
+        }
+
+        // ===== 添加动画样式 =====
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideIn {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            @keyframes slideOut {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(100%); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
+
+        // ===== ESC键关闭弹窗 =====
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeProjectModal();
+                closeControlPanel();
+            }
+        });
+        document.getElementById('projectModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeProjectModal();
+            }
+        });
+        document.getElementById('controlModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeControlPanel();
+            }
+        });
+
+        // ===== 调试工具 =====
+        if (CONFIG.DEBUG_MODE) {
+            console.log('🔧 缓存管理工具已加载，使用 GitHubCache 对象管理缓存');
+            console.log('🔧 配置信息:', CONFIG);
+            console.log('💡 使用方法:');
+            console.log('  GitHubCache.stats() - 查看缓存统计');
+            console.log('  GitHubCache.clear() - 清除所有缓存');
+            console.log(`  GitHubCache.remove("${CONFIG.CACHE_KEY}") - 清除指定缓存`);
+        }
+    </script>
+</body>
+</html>
