@@ -1,4 +1,5 @@
 const changelog = [
+    {date: '2025-12-26', content: '<strong>项目测试版永久地址</strong>：<a href="https://sumoy.netlify.app/" target="_blank">https://sumoy.netlify.app/</a>', tags: ['feature']},
     {date: '2025-11-26', content: '<strong>新增了账号数据迁移</strong>，目前支持关键词,剪切板', tags: ['feature', 'improve']},
     {date: '2025-11-20', content: '<strong>添加项目GitHub地址</strong>：<a href="https://github.com/qq1660396635/-APP" target="_blank">https://github.com/qq1660396635/-APP</a>', tags: ['feature', 'improve']},
     {date: '2025-11-20', content: '<strong>新增用户个性化侧边栏</strong>，支持自定义背景图片、头像等个性化设置', tags: ['feature', 'improve']},
