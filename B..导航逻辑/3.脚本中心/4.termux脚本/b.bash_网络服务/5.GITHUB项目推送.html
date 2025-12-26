@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Git 操作指南</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif;
+            background: #f5f6f7;
+            padding: 15px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+
+        .header h1 {
+            font-size: 18px;
+            color: #333;
+            font-weight: 600;
+        }
+
+        .step {
+            background: white;
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+
+        .step-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .step-number {
+            width: 28px;
+            height: 28px;
+            background: #2196F3;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 600;
+            margin-right: 10px;
+        }
+
+        .step-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .step-desc {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+
+        .repo-url {
+            background: #f0f7ff;
+            border: 1px solid #b3d4fc;
+            border-radius: 8px;
+            padding: 10px;
+            font-size: 12px;
+            color: #1976D2;
+            word-break: break-all;
+            font-family: monospace;
+        }
+
+        .code-block {
+            background: #263238;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .code-header {
+            display: flex;
+            justify-content: flex-end;
+            padding: 6px 10px;
+            background: #37474F;
+        }
+
+        .copy-btn {
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .copy-btn.copied {
+            background: #4CAF50;
+        }
+
+        .code-content {
+            padding: 10px;
+            overflow-x: auto;
+        }
+
+        .code-content code {
+            color: #ECEFF1;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.6;
+            white-space: pre;
+        }
+
+        .tip {
+            background: #fff8e1;
+            border-left: 3px solid #FFC107;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #F57C00;
+            margin-top: 8px;
+        }
+
+        .footer {
+            background: white;
+            border-radius: 12px;
+            padding: 14px;
+            margin-top: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+
+        .footer h3 {
+            font-size: 14px;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        .footer p {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        .quick-cmd {
+            background: #f0f7ff;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 11px;
+            color: #1976D2;
+        }
+
+        @media (max-width: 360px) {
+            body { padding: 12px; }
+            .header h1 { font-size: 16px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Git 仓库上传</h1>
+        </div>
+
+        <div class="step">
+            <div class="step-header">
+                <div class="step-number">1</div>
+                <div class="step-title">确认仓库地址</div>
+            </div>
+            <p class="step-desc">空仓库地址：</p>
+            <div class="repo-url">https://github.com/qq1660396635/-.git</div>
+        </div>
+
+        <div class="step">
+            <div class="step-header">
+                <div class="step-number">2</div>
+                <div class="step-title">初始化并绑定</div>
+            </div>
+            <p class="step-desc">在目标文件夹执行：</p>
+            <div class="code-block">
+                <div class="code-header">
+                    <button class="copy-btn" onclick="copyCode(this)">复制</button>
+                </div>
+                <div class="code-content">
+                    <code>cd "/storage/emulated/0/Download/OnePlus Share/05_APP/苏沫V-专为上传"
+git init
+git remote add origin https://github.com/qq1660396635/-.git</code>
+                </div>
+            </div>
+        </div>
+
+        <div class="step">
+            <div class="step-header">
+                <div class="step-number">3</div>
+                <div class="step-title">提交并推送</div>
+            </div>
+            <p class="step-desc">一次性推送所有文件：</p>
+            <div class="code-block">
+                <div class="code-header">
+                    <button class="copy-btn" onclick="copyCode(this)">复制</button>
+                </div>
+                <div class="code-content">
+                    <code>git add .
+git commit -m "first commit"
+git branch -M master
+git push -u origin master</code>
+                </div>
+            </div>
+            <div class="tip">执行完刷新 GitHub 即可</div>
+        </div>
+
+        <div class="footer">
+            <h3>日常同步</h3>
+            <p>修改后用这三步：</p>
+            <div class="quick-cmd">
+                git add . &&<br>
+                git commit -m "说明" &&<br>
+                git push
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function copyCode(btn) {
+            const codeBlock = btn.closest('.code-block');
+            const code = codeBlock.querySelector('code').textContent;
+            navigator.clipboard.writeText(code).then(() => {
+                btn.textContent = '已复制';
+                btn.classList.add('copied');
+                setTimeout(() => {
+                    btn.textContent = '复制';
+                    btn.classList.remove('copied');
+                }, 1500);
+            }).catch(() => {
+                const ta = document.createElement('textarea');
+                ta.value = code;
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+                btn.textContent = '已复制';
+                btn.classList.add('copied');
+                setTimeout(() => {
+                    btn.textContent = '复制';
+                    btn.classList.remove('copied');
+                }, 1500);
+            });
+        }
+    </script>
+</body>
+</html>
